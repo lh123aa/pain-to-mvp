@@ -33,6 +33,15 @@ def extract() -> dict:
         if not re.search(r'if __name__ == ["\']__main__["\']:\s*\n\s*generate\(\)', code):
             code += '\n\nif __name__ == "__main__":\n    generate()\n'
         p = HERE / f"generate_p{i}.py"
+        # 模板级修复保护：若旧版生成器含我们的模板修复而新版（MVP.md）不含，
+        # 警告覆盖将丢失修复（bilibili/demo 的权威修复在 generators/fixes/ overlay）
+        if p.exists():
+            old = p.read_text(encoding="utf-8")
+            lost = [m for m in ("wbi/search/type", "v_voucher", "def latest(")
+                    if m in old and m not in code]
+            if lost:
+                print(f"⚠️ 覆盖 generate_p{i}.py：MVP.md 版本缺少模板修复标记 {lost}，"
+                      f"请运行 python generators/apply_fixes.py 恢复 overlay 修复")
         p.write_text(code, encoding="utf-8")
         compile(code, str(p), "exec")  # 语法校验
         blocks[i] = p

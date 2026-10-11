@@ -355,52 +355,36 @@ def main():
             f.write(json.dumps(c, ensure_ascii=False) + "\n")
     print(f"📝 写入样本：{sample_file}（{len(SAMPLE_COMMENTS)} 条）")
 
-    # 跑痛点挖掘 → 评分 → MVP → 卡片，每步跑完再定位上一步产物（不再预先 glob）
-    def latest(directory, pattern):
-        files = sorted(directory.glob(pattern), key=lambda p: p.stat().st_mtime)
-        if not files:
-            print(f"❌ 未找到 {directory}/{pattern}")
-            return None
-        return files[-1]
-
+    # 跑痛点挖掘
     pipeline = ROOT / "scripts" / "pipeline"
-    py = sys.executable
+    steps = [
+        ([sys.executable, str(pipeline / "mine_pain_points.py"),
+          "--input", str(sample_file), "--min-pain", "3", "--min-cluster", "2"],
+         "痛点挖掘"),
+        ([sys.executable, str(pipeline / "score_opportunity.py"),
+          "--input", str(sorted((ROOT / "data" / "pains").glob("*.json"),
+                                key=lambda p: p.stat().st_mtime)[-1]),
+          "--no-llm"],
+         "机会评分"),
+        ([sys.executable, str(pipeline / "design_mvp.py"),
+          "--input", str(sorted((ROOT / "data" / "scored").glob("scored_*.json"),
+                                key=lambda p: p.stat().st_mtime)[-1])],
+         "MVP 设计"),
+        ([sys.executable, str(pipeline / "export_card.py"),
+          "--input", str(sorted((ROOT / "data" / "scored").glob("*_mvp.json"),
+                                key=lambda p: p.stat().st_mtime)[-1]),
+          "--top", "5"],
+         "导出卡片"),
+        ([sys.executable, str(ROOT / "scripts" / "dashboard" / "write_dashboard.py")],
+         "重建看板"),
+    ]
 
-    def run(desc, cmd):
+    for cmd, desc in steps:
         print(f"\n▶️  {desc}")
         r = subprocess.run(cmd, text=True)
         if r.returncode != 0:
             print(f"❌ {desc} 失败")
-            return False
-        return True
-
-    if not run("痛点挖掘", [py, str(pipeline / "mine_pain_points.py"),
-                          "--input", str(sample_file),
-                          "--min-pain", "3", "--min-cluster", "2"]):
-        return
-
-    pains = latest(ROOT / "data" / "pains", "*.json")
-    if not pains:
-        return
-    if not run("机会评分", [py, str(pipeline / "score_opportunity.py"),
-                          "--input", str(pains), "--no-llm"]):
-        return
-
-    scored = latest(ROOT / "data" / "scored", "scored_*.json")
-    if not scored:
-        return
-    if not run("MVP 设计", [py, str(pipeline / "design_mvp.py"), "--input", str(scored)]):
-        return
-
-    mvp_file = Path(str(scored).replace(".json", "_mvp.json"))
-    if not mvp_file.exists():
-        print("❌ 未找到 MVP 结果")
-        return
-    if not run("导出卡片", [py, str(pipeline / "export_card.py"),
-                          "--input", str(mvp_file), "--top", "5"]):
-        return
-
-    run("重建看板", [py, str(ROOT / "scripts" / "dashboard" / "write_dashboard.py")])
+            return
 
     print("\n🎉 演示完成！")
     print("查看卡片：data/cards/")

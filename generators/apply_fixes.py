@@ -407,6 +407,20 @@ class Handler(BaseHTTPRequestHandler):''',
     )
 
 
+def fix_bilibili() -> None:
+    """bilibili 适配器修复走 overlay（extract 会以仓库外 MVP.md 覆盖
+    generate_p2.py 模板，模板级修复不可靠，overlay 为权威）。"""
+    shutil.copyfile(FIXES_SRC / "bilibili.py",
+                    ROOT / "scripts" / "pipeline" / "adapters" / "bilibili.py")
+    report.append("🔧 bilibili.py ← overlay（WBI+游标+风控识别）")
+
+
+def fix_demo() -> None:
+    """demo.py 修复走 overlay（extract 会覆盖 generate_p6.py 模板）。"""
+    shutil.copyfile(FIXES_SRC / "demo.py", ROOT / "scripts" / "demo.py")
+    report.append("🔧 demo.py ← overlay（顺序执行修复）")
+
+
 def fix_heal() -> None:
     """自愈系统改只读诊断：覆盖 heal_runner.py 与 self-heal.yml。"""
     shutil.copyfile(FIXES_SRC / "heal_runner.py",
@@ -427,7 +441,16 @@ def main():
     fix_scoring()
     fix_export_card()
     fix_serve()
+    fix_bilibili()
+    fix_demo()
     fix_heal()
+    # 生成后断言：bilibili overlay 必须生效（否则 MVP.md 覆盖模板且 overlay 失效）
+    bili = (ROOT / "scripts" / "pipeline" / "adapters" / "bilibili.py").read_text(encoding="utf-8")
+    if "wbi/search/type" not in bili:
+        raise SystemExit("❌ bilibili.py 缺少 WBI 修复——apply_fixes overlay 未生效")
+    demo = (ROOT / "scripts" / "demo.py").read_text(encoding="utf-8")
+    if "def latest(" not in demo:
+        raise SystemExit("❌ demo.py 缺少顺序执行修复——apply_fixes overlay 未生效")
     # 1. UTF-8 入口（复用 fix_utf8）
     r = subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "fix_utf8.py")],
                        capture_output=True, text=True)
