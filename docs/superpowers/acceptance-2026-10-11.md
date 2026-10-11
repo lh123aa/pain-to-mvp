@@ -58,16 +58,27 @@
 ## 六、复现方式
 
 ```bash
-# 从 MVP.md 重新生成全部（单一事实源 + 后处理 overlay）
+# 从 MVP.md 重新生成全部（单一事实源 generate_p*.py + overlay 权威）
 cd pain-to-mvp
-python generators/extract_generators.py      # 从 ../MVP.md 提取 P0-P6
+python generators/extract_generators.py      # 首次冷启动：从 ../MVP.md 提取 P0-P6
+                                             # ⚠️ 会警告模板修复被覆盖（正常，overlay 会恢复）
 for i in 0 1 2 3 4 5 6; do python generators/generate_p$i.py; done
-python generators/apply_fixes.py             # 恢复全部修复
-python -m pytest tests/                      # 25 passed
+python generators/apply_fixes.py             # 恢复全部修复（bilibili/demo 为 overlay 权威）
+python -m pytest tests/                      # 32 passed
 python scripts/demo.py                       # 离线演示
 python scripts/e2e_test.py --keyword "独立开发" --platform bilibili --limit 10 --comments 100
 python scripts/dashboard/serve.py --port 8787  # 看板
 ```
+
+## 五补、终审修复（whole-branch review 后，32 tests）
+
+| 评审发现 | 处置 |
+|---|---|
+| C1 extract 覆盖模板修复致复现路径失效 | bilibili/demo 修复移入 apply_fixes overlay + extract 覆盖警告 + 4 个护栏测试；实测 extract→生成→修复→32/32 绿 |
+| I1 safe_filename 未接线（`/` 关键词 traceback） | discover/run_all/e2e 三处接线 + CLI 回归测试 |
+| I2 storage 入库数虚报（total_changes 语义） | 改 cursor.rowcount + 测试（RED: 报 3 实 2） |
+| I3 测试污染用户真实产出 | conftest session 快照还原；实测 pytest 后 data/ 零改动 |
+| 补丁标记三次写错 | apply_fixes 幂等冒烟测试（重跑必须零改动） |
 
 ## 七、遗留与建议（下轮候选）
 
