@@ -1,9 +1,9 @@
 name: Self-Heal
 
+# 注意：本工作流已改为"手动触发的只读诊断"。原实现每天定时自动
+# commit & push 虚假修复（不改代码却标记 fixed），已废弃。
+# 真正的修复由人执行；此 workflow 仅用于在 CI 环境跑一次诊断并留存报告。
 on:
-  schedule:
-    - cron: '0 8 * * *'
-    - cron: '0 20 * * *'
   workflow_dispatch:
 
 jobs:
@@ -16,12 +16,11 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Run self-heal
+      - name: Run self-heal diagnosis (read-only)
         run: python scripts/healing/heal_runner.py
-      - name: Commit changes
-        run: |
-          git config user.name "self-heal-bot"
-          git config user.email "bot@pain-to-mvp.local"
-          git add -A
-          git diff --quiet && git diff --staged --quiet || git commit -m "auto-heal: $(date +%Y-%m-%d)"
-          git push
+      - name: Upload heal report
+        uses: actions/upload-artifact@v4
+        with:
+          name: heal-report
+          path: data/bugs/heal-report.md
+          if-no-files-found: warn

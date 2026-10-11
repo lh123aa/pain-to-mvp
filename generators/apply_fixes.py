@@ -38,8 +38,10 @@ def patch_text(path: Path, old: str, new: str, marker: str, desc: str) -> None:
 
 
 def copy_new_modules() -> None:
-    for src in sorted(FIXES_SRC.glob("*.py")):
-        dst = ROOT / "scripts" / "pipeline" / src.name
+    # 仅 scripts/pipeline/ 下的新模块；heal_runner.py 由 fix_heal 放到 scripts/healing/
+    for name in ("encoding.py", "wbi.py", "run_inputs.py"):
+        src = FIXES_SRC / name
+        dst = ROOT / "scripts" / "pipeline" / name
         shutil.copyfile(src, dst)
         report.append(f"📄 新模块 {dst.relative_to(ROOT)}")
 
@@ -405,6 +407,16 @@ class Handler(BaseHTTPRequestHandler):''',
     )
 
 
+def fix_heal() -> None:
+    """自愈系统改只读诊断：覆盖 heal_runner.py 与 self-heal.yml。"""
+    shutil.copyfile(FIXES_SRC / "heal_runner.py",
+                    ROOT / "scripts" / "healing" / "heal_runner.py")
+    report.append("🔧 heal_runner.py → 只读诊断模式")
+    shutil.copyfile(FIXES_SRC / "self-heal.yml",
+                    ROOT / ".github" / "workflows" / "self-heal.yml")
+    report.append("🔧 self-heal.yml → 手动触发 + artifact 上传")
+
+
 def main():
     copy_new_modules()
     fix_adapter_imports()
@@ -415,6 +427,7 @@ def main():
     fix_scoring()
     fix_export_card()
     fix_serve()
+    fix_heal()
     # 1. UTF-8 入口（复用 fix_utf8）
     r = subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "fix_utf8.py")],
                        capture_output=True, text=True)
