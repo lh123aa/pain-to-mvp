@@ -63,6 +63,14 @@ class BilibiliAdapter(BaseAdapter):
         code = data.get("code", 0)
         if code != 0:
             raise RuntimeError(f"B站接口返回错误码 {code}：{data.get('message', '')}")
+        payload = data.get("data") or {}
+        if "v_voucher" in payload:
+            # B站风控人机验证票据：不绕过验证码，明确报错交人工处置
+            raise RuntimeError(
+                "B站风控人机验证（v_voucher）：当前 IP/会话被限制。"
+                "请稍后重试、降低频率，或配置 BILI_SESSDATA 登录态。"
+                "本系统按合规要求不绕过验证码。"
+            )
         return data
 
     def discover(self, keyword: str, limit: int = 20) -> List[Dict[str, Any]]:

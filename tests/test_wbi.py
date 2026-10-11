@@ -80,3 +80,29 @@ def test_discover_failure_does_not_break_pipeline(monkeypatch):
 
     monkeypatch.setattr(bili.BilibiliAdapter, "discover", boom)
     assert discover_content.discover("kw", ["bilibili"], 5) == []
+
+
+def test_v_voucher_risk_control_raises_clear_error():
+    """风控真实验票（v_voucher）必须抛清晰错误，不静默返回空、不绕过验证码。"""
+    from scripts.pipeline.adapters.bilibili import BilibiliAdapter
+    from scripts.pipeline.compliance import RateLimiter
+
+    adapter = BilibiliAdapter()
+
+    class _Resp:
+        def json(self):
+            return {"code": 0, "message": "OK", "data": {"v_voucher": "risk-token"}}
+
+    class _Sess:
+        def get(self, url, params=None, timeout=None):
+            return _Resp()
+
+    adapter.session = _Sess()
+    adapter._wbi_keys = lambda: ("a" * 32, "b" * 32)
+    adapter.limiter = RateLimiter(0.0)
+
+    try:
+        adapter.discover("kw", 5)
+        raise AssertionError("v_voucher 风控响应必须抛错，不能静默返回空")
+    except RuntimeError as e:
+        assert "风控" in str(e), f"错误信息需说明风控：{e}"

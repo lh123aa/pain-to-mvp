@@ -75,8 +75,9 @@ def main(args):
     # Step 2: 爬评论
     if args.skip_crawl:
         print("\n⏭️  跳过爬取（--skip-crawl）")
-        raw_file = latest(ROOT / "data" / "raw", "*.jsonl")
+        raw_files = collect_raw_files(ROOT / "data" / "raw")
     else:
+        crawl_started_at = time.time()
         ok, dt = run(
             [sys.executable, str(PIPELINE / "crawl_comments.py"),
              "--input", str(discovered),
@@ -84,16 +85,17 @@ def main(args):
             "Step 2/6：爬取评论"
         )
         steps.append(("crawl", ok, dt))
-        raw_file = latest(ROOT / "data" / "raw", "*.jsonl")
+        # 本次爬取产出的全部 raw 文件（多视频合并，不丢评论）
+        raw_files = collect_raw_files(ROOT / "data" / "raw", since=crawl_started_at)
 
-    if not raw_file:
+    if not raw_files:
         print("❌ 未找到评论数据")
         return _report(steps, time.time() - t_start)
 
     # Step 3: 挖掘痛点
     ok, dt = run(
         [sys.executable, str(PIPELINE / "mine_pain_points.py"),
-         "--input", str(raw_file),
+         "--inputs", *[str(p) for p in raw_files],
          "--min-pain", "3",
          "--min-cluster", "2"],
         "Step 3/6：挖掘痛点"

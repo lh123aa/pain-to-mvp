@@ -71,3 +71,11 @@ def test_mine_cli_inputs_flag_works(tmp_path):
     )
     assert r.returncode == 0, (r.stdout[-500:] + r.stderr[-500:])
     assert "载入 2 条评论" in r.stdout
+
+
+def test_pipeline_entries_use_inputs_flag():
+    """护栏：run_all/e2e 必须接通 --inputs（曾因补丁标记撞车整体回退）。"""
+    root = Path(__file__).resolve().parent.parent
+    for rel in ("scripts/pipeline/run_all.py", "scripts/e2e_test.py"):
+        src = (root / rel).read_text(encoding="utf-8")
+        assert '"--inputs"' in src, f"{rel} 未使用 --inputs（多文件合并不生效）"

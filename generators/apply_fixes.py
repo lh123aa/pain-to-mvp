@@ -245,7 +245,7 @@ from pipeline.run_inputs import collect_raw_files''',
          "--min-cluster", "2"],
         "Step 3/6：挖掘痛点"
     )''',
-        marker="collect_raw_files",
+        marker='"--inputs"',
         desc="e2e: 全量 raw 合并",
     )
 
