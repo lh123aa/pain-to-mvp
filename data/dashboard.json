@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-10-11T16:03:11.108718",
+  "last_updated": "2026-10-11T16:16:01.572142",
   "summary": {
     "total": 1,
     "in_progress": 0,
@@ -14,21 +14,18 @@
       "status": "discovered",
       "progress": 10,
       "stage": "新发现",
-      "score": 74.0,
+      "score": 80.0,
       "representative_quotes": [
         "「求推荐一个好用的落地页模板，太贵了买不起",
         "「这个工具的价格太高了，有没有平替",
         "「产品做出来了，不知道怎么推广，太难了"
       ],
-      "discovered_at": "2026-10-11T16:03:11.027283",
+      "discovered_at": "2026-10-11T16:16:01.496304",
       "card_path": "data\\cards\\20261011-001.md",
       "timeline": [],
       "scores": {
         "demand": 3,
-        "competition": 3,
-        "feasibility": 5,
-        "reach": 4,
-        "ai_leverage": 4
+        "feasibility": 5
       }
     }
   ]

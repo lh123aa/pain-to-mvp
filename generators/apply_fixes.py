@@ -248,6 +248,119 @@ from pipeline.run_inputs import collect_raw_files''',
     )
 
 
+def fix_scoring() -> None:
+    """评分去伪：无数据来源的维度不伪造恒定分。"""
+    p = ROOT / "scripts" / "pipeline" / "score_opportunity.py"
+    patch_text(
+        p,
+        old='''    # 需求强度：平均痛点 + 付费信号
+    demand = min(5, max(1, round(avg_pain / 2 + (1 if "付费意愿" in sigs else 0))))
+    # 竞争空缺：暂默认中等（无外部数据时保守）
+    competition = 3
+    # 个人可行性：聚类规模小通常更聚焦
+    feasibility = 5 if size < 50 else (4 if size < 200 else 3)
+    # 触达难度：有明确渠道（聚类本身就来自渠道）
+    reach = 4
+    # AI杠杆：默认较高（文本类任务）
+    ai_leverage = 4
+    return {
+        "demand": demand, "competition": competition,
+        "feasibility": feasibility, "reach": reach, "ai_leverage": ai_leverage
+    }''',
+        new='''    # 需求强度：平均痛点 + 付费信号
+    demand = min(5, max(1, round(avg_pain / 2 + (1 if "付费意愿" in sigs else 0))))
+    # 个人可行性：聚类规模小通常更聚焦
+    feasibility = 5 if size < 50 else (4 if size < 200 else 3)
+    return {
+        "demand": demand, "competition": None,
+        "feasibility": feasibility, "reach": None, "ai_leverage": None
+    }''',
+        marker='"competition": None,',
+        desc="score: 启发式只输出有数据维度",
+    )
+    patch_text(
+        p,
+        old='''def _compose_total(scores: dict) -> float:
+    total = sum(scores[k] * WEIGHTS[k] for k in WEIGHTS)  # 1-5 加权
+    return round(total / 5 * 100, 1)  # 归一到 100''',
+        new='''def _compose_total(scores: dict) -> float:
+    """仅对有值的维度求简单均值，归一到 100；无有效维度返回 0。"""
+    valid = [scores[k] for k in WEIGHTS if scores.get(k) is not None]
+    if not valid:
+        return 0.0
+    return round(sum(valid) / len(valid) * 20, 1)''',
+        marker="无有效维度返回 0",
+        desc="score: 总分只用有效维度",
+    )
+
+
+def fix_export_card() -> None:
+    """卡片可读性：标题格式化；None 维度渲染 —。"""
+    p = ROOT / "scripts" / "pipeline" / "export_card.py"
+    patch_text(
+        p,
+        old='''def _format_list(items):
+    if not items:
+        return "- （暂无）"
+    return "\\n".join(f"- {i}" for i in items)
+
+def export(input_file, top=5):''',
+        new='''def _format_list(items):
+    if not items:
+        return "- （暂无）"
+    return "\\n".join(f"- {i}" for i in items)
+
+
+def format_title(quotes, max_len: int = 30) -> str:
+    """卡片标题：首条非空代表原话，去首尾标点，超长截断加省略号。"""
+    text = next((q for q in (quotes or []) if q), "").strip() if quotes else ""
+    text = text.strip("，。！？、；：,.!?;: ")
+    if not text:
+        return "未命名痛点"
+    return text[:max_len] + "…" if len(text) > max_len else text
+
+
+def format_dim(value):
+    """评分渲染：None（无数据来源）显示 —，而不是伪造分。"""
+    return f"{value}/5" if value is not None else "—"
+
+
+def export(input_file, top=5):''',
+        marker="def format_dim",
+        desc="export: format_title/format_dim",
+    )
+    patch_text(
+        p,
+        old='''        title = (p.get("representative_quotes") or ["未命名痛点"])[0][:40]''',
+        new='''        title = format_title(p.get("representative_quotes"))''',
+        marker="title = format_title(",
+        desc="export: 标题格式化",
+    )
+    patch_text(
+        p,
+        old='''            demand=p["scores"]["demand"],
+            competition=p["scores"]["competition"],
+            feasibility=p["scores"]["feasibility"],
+            reach=p["scores"]["reach"],
+            ai_leverage=p["scores"]["ai_leverage"],''',
+        new='''            demand=format_dim(p["scores"].get("demand")),
+            competition=format_dim(p["scores"].get("competition")),
+            feasibility=format_dim(p["scores"].get("feasibility")),
+            reach=format_dim(p["scores"].get("reach")),
+            ai_leverage=format_dim(p["scores"].get("ai_leverage")),''',
+        marker="demand=format_dim(",
+        desc="export: 维度 None 渲染 —",
+    )
+    for dim in ("demand", "competition", "feasibility", "reach", "ai_leverage"):
+        patch_text(
+            p,
+            old="| {%s}/5 |" % dim,
+            new="| {%s} |" % dim,
+            marker="| {%s} |" % dim,
+            desc="export: 模板行 %s" % dim,
+        )
+
+
 def main():
     copy_new_modules()
     fix_adapter_imports()
@@ -255,6 +368,8 @@ def main():
     fix_mine()
     fix_run_all()
     fix_e2e()
+    fix_scoring()
+    fix_export_card()
     # 1. UTF-8 入口（复用 fix_utf8）
     r = subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "fix_utf8.py")],
                        capture_output=True, text=True)

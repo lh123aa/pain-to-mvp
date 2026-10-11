@@ -46,11 +46,11 @@ CARD_TMPL = """# 机会卡片 #{id}
 ## 机会评分
 | 维度 | 分数 |
 |---|---|
-| 需求强度 | {demand}/5 |
-| 竞争空缺 | {competition}/5 |
-| 个人可行性 | {feasibility}/5 |
-| 触达难度 | {reach}/5 |
-| AI杠杆 | {ai_leverage}/5 |
+| 需求强度 | {demand} |
+| 竞争空缺 | {competition} |
+| 个人可行性 | {feasibility} |
+| 触达难度 | {reach} |
+| AI杠杆 | {ai_leverage} |
 
 {reason}
 
@@ -86,6 +86,21 @@ def _format_list(items):
         return "- （暂无）"
     return "\n".join(f"- {i}" for i in items)
 
+
+def format_title(quotes, max_len: int = 30) -> str:
+    """卡片标题：首条非空代表原话，去首尾标点，超长截断加省略号。"""
+    text = next((q for q in (quotes or []) if q), "").strip() if quotes else ""
+    text = text.strip("，。！？、；：,.!?;: ")
+    if not text:
+        return "未命名痛点"
+    return text[:max_len] + "…" if len(text) > max_len else text
+
+
+def format_dim(value):
+    """评分渲染：None（无数据来源）显示 —，而不是伪造分。"""
+    return f"{value}/5" if value is not None else "—"
+
+
 def export(input_file, top=5):
     scored = json.loads(Path(input_file).read_text(encoding="utf-8"))
     CARD_DIR.mkdir(parents=True, exist_ok=True)
@@ -93,7 +108,7 @@ def export(input_file, top=5):
     cards = []
     for i, p in enumerate(scored[:top], 1):
         card_id = f"{datetime.now().strftime('%Y%m%d')}-{i:03d}"
-        title = (p.get("representative_quotes") or ["未命名痛点"])[0][:40]
+        title = format_title(p.get("representative_quotes"))
         mvp = p.get("mvp", {})
         mvp_rec = (mvp.get("recommended_mvp") or [{}])[0]
 
@@ -108,11 +123,11 @@ def export(input_file, top=5):
             description=title,
             signals=json.dumps(p.get("signal_distribution", {}), ensure_ascii=False),
             quotes=_format_quotes(p.get("representative_quotes")),
-            demand=p["scores"]["demand"],
-            competition=p["scores"]["competition"],
-            feasibility=p["scores"]["feasibility"],
-            reach=p["scores"]["reach"],
-            ai_leverage=p["scores"]["ai_leverage"],
+            demand=format_dim(p["scores"].get("demand")),
+            competition=format_dim(p["scores"].get("competition")),
+            feasibility=format_dim(p["scores"].get("feasibility")),
+            reach=format_dim(p["scores"].get("reach")),
+            ai_leverage=format_dim(p["scores"].get("ai_leverage")),
             reason=f"\n**评分理由**：{p.get('score_reason', '启发式评分')}\n",
             mvp_type=mvp_rec.get("type", "咨询/模板"),
             mvp_rationale=mvp_rec.get("rationale", ""),

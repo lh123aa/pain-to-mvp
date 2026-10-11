@@ -1,0 +1,36 @@
+[
+  {
+    "cluster_id": 0,
+    "size": 1,
+    "avg_pain": 9.0,
+    "total_pain": 9,
+    "signal_distribution": {
+      "求助": 1,
+      "抱怨": 1,
+      "对比": 1
+    },
+    "representative_quotes": [
+      "太难用了，求推荐平替"
+    ],
+    "evidence_ids": [
+      "1"
+    ],
+    "method": "tfidf_kmeans"
+  },
+  {
+    "cluster_id": 1,
+    "size": 1,
+    "avg_pain": 5.0,
+    "total_pain": 5,
+    "signal_distribution": {
+      "付费意愿": 1
+    },
+    "representative_quotes": [
+      "价格太贵了，有没有免费的"
+    ],
+    "evidence_ids": [
+      "2"
+    ],
+    "method": "tfidf_kmeans"
+  }
+]

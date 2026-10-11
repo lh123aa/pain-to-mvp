@@ -42,17 +42,11 @@ def _heuristic_scores(pain: dict) -> dict:
 
     # 需求强度：平均痛点 + 付费信号
     demand = min(5, max(1, round(avg_pain / 2 + (1 if "付费意愿" in sigs else 0))))
-    # 竞争空缺：暂默认中等（无外部数据时保守）
-    competition = 3
     # 个人可行性：聚类规模小通常更聚焦
     feasibility = 5 if size < 50 else (4 if size < 200 else 3)
-    # 触达难度：有明确渠道（聚类本身就来自渠道）
-    reach = 4
-    # AI杠杆：默认较高（文本类任务）
-    ai_leverage = 4
     return {
-        "demand": demand, "competition": competition,
-        "feasibility": feasibility, "reach": reach, "ai_leverage": ai_leverage
+        "demand": demand, "competition": None,
+        "feasibility": feasibility, "reach": None, "ai_leverage": None
     }
 
 def _llm_scores(pain: dict, model: str = "gpt-4o-mini") -> dict:
@@ -96,8 +90,11 @@ def _llm_scores(pain: dict, model: str = "gpt-4o-mini") -> dict:
         return _heuristic_scores(pain)
 
 def _compose_total(scores: dict) -> float:
-    total = sum(scores[k] * WEIGHTS[k] for k in WEIGHTS)  # 1-5 加权
-    return round(total / 5 * 100, 1)  # 归一到 100
+    """仅对有值的维度求简单均值，归一到 100；无有效维度返回 0。"""
+    valid = [scores[k] for k in WEIGHTS if scores.get(k) is not None]
+    if not valid:
+        return 0.0
+    return round(sum(valid) / len(valid) * 20, 1)
 
 def score(input_file, output_file=None, use_llm=True):
     pains = json.loads(Path(input_file).read_text(encoding="utf-8"))
