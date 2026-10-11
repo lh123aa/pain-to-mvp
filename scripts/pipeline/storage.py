@@ -3,6 +3,22 @@
 标准存储层：统一 JSONL + SQLite 写入，字段标准化。
 所有工具的输出都应经过这里，保证下游可消费。
 """
+# --- UTF-8 入口稳定化（fix_utf8.py 自动插入） ---
+import os as _os
+import sys as _sys
+
+_here = _os.path.dirname(_os.path.abspath(__file__))
+for _cand in (_here, _os.path.dirname(_here), _os.path.join(_os.path.dirname(_here), "scripts")):
+    if _os.path.isdir(_os.path.join(_cand, "pipeline")) and _cand not in _sys.path:
+        _sys.path.insert(0, _cand)
+        break
+try:
+    from pipeline.encoding import ensure_utf8
+
+    ensure_utf8()
+except Exception:
+    pass
+# --- 结束 UTF-8 入口稳定化 ---
 import json
 import sqlite3
 from datetime import datetime

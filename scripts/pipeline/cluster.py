@@ -2,6 +2,22 @@
 """
 痛点聚类：优先 BERTopic + Sentence Transformers，缺依赖时退化为 TF-IDF + KMeans。
 """
+# --- UTF-8 入口稳定化（fix_utf8.py 自动插入） ---
+import os as _os
+import sys as _sys
+
+_here = _os.path.dirname(_os.path.abspath(__file__))
+for _cand in (_here, _os.path.dirname(_here), _os.path.join(_os.path.dirname(_here), "scripts")):
+    if _os.path.isdir(_os.path.join(_cand, "pipeline")) and _cand not in _sys.path:
+        _sys.path.insert(0, _cand)
+        break
+try:
+    from pipeline.encoding import ensure_utf8
+
+    ensure_utf8()
+except Exception:
+    pass
+# --- 结束 UTF-8 入口稳定化 ---
 from typing import List, Dict
 
 def _cluster_bertopic(texts: List[str]) -> List[int]:

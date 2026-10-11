@@ -5,6 +5,22 @@
   python mine_pain_points.py --input data/raw/bilibili_xxx.jsonl --output data/pains/xxx.json
   python mine_pain_points.py --platform bilibili --limit 1000
 """
+# --- UTF-8 入口稳定化（fix_utf8.py 自动插入） ---
+import os as _os
+import sys as _sys
+
+_here = _os.path.dirname(_os.path.abspath(__file__))
+for _cand in (_here, _os.path.dirname(_here), _os.path.join(_os.path.dirname(_here), "scripts")):
+    if _os.path.isdir(_os.path.join(_cand, "pipeline")) and _cand not in _sys.path:
+        _sys.path.insert(0, _cand)
+        break
+try:
+    from pipeline.encoding import ensure_utf8
+
+    ensure_utf8()
+except Exception:
+    pass
+# --- 结束 UTF-8 入口稳定化 ---
 import argparse
 import json
 from datetime import datetime
