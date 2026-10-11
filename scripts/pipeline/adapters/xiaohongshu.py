@@ -7,7 +7,7 @@ import subprocess
 import json
 from typing import List, Dict, Any
 from .base import BaseAdapter
-from ..compliance import anonymize
+from compliance import anonymize
 
 class XiaohongshuAdapter(BaseAdapter):
     platform = "xiaohongshu"

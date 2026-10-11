@@ -5,7 +5,7 @@ YouTube 适配器。优先 youtube-comment-downloader（无需 API key）。
 """
 from typing import List, Dict, Any
 from .base import BaseAdapter
-from ..compliance import anonymize
+from compliance import anonymize
 
 class YouTubeAdapter(BaseAdapter):
     platform = "youtube"

@@ -5,7 +5,7 @@ Reddit 适配器。依赖 praw，需环境变量 REDDIT_CLIENT_ID / REDDIT_CLIEN
 import os
 from typing import List, Dict, Any
 from .base import BaseAdapter
-from ..compliance import anonymize
+from compliance import anonymize
 
 class RedditAdapter(BaseAdapter):
     platform = "reddit"
