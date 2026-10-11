@@ -93,7 +93,7 @@ def save_records(records: Iterable[Dict[str, Any]], platform: str, source_id: st
                 skipped += 1
                 continue
             try:
-                conn.execute(
+                cur = conn.execute(
                     """INSERT OR IGNORE INTO comments
                        (id, platform, source_id, source_title, content, author,
                         likes, replies, timestamp, url, extra)
@@ -106,7 +106,7 @@ def save_records(records: Iterable[Dict[str, Any]], platform: str, source_id: st
                         json.dumps(norm.get("extra") or {}, ensure_ascii=False)
                     )
                 )
-                if conn.total_changes:
+                if cur.rowcount:
                     inserted += 1
                 f.write(json.dumps(norm, ensure_ascii=False) + "\n")
             except sqlite3.Error:

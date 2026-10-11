@@ -407,6 +407,106 @@ class Handler(BaseHTTPRequestHandler):''',
     )
 
 
+def fix_safe_filename_wiring() -> None:
+    """Review Focus #3：关键词含路径非法字符时输出文件名必须净化（三处接线）。"""
+    p = ROOT / "scripts" / "pipeline" / "discover_content.py"
+    patch_text(
+        p,
+        old='''OUTPUT_DIR = Path("data/discovered")''',
+        new='''from run_inputs import safe_filename
+
+OUTPUT_DIR = Path("data/discovered")''',
+        marker="from run_inputs import safe_filename",
+        desc="discover: import safe_filename",
+    )
+    patch_text(
+        p,
+        old='''    out_file = OUTPUT_DIR / f"{keyword}_{datetime.now().strftime('%Y%m%d_%H%M')}.json"''',
+        new='''    out_file = OUTPUT_DIR / f"{safe_filename(keyword)}_{datetime.now().strftime('%Y%m%d_%H%M')}.json"''',
+        marker="safe_filename(keyword)}_",
+        desc="discover: 输出文件名净化",
+    )
+    p = ROOT / "scripts" / "pipeline" / "run_all.py"
+    patch_text(
+        p,
+        old='''    from run_inputs import collect_raw_files''',
+        new='''    from run_inputs import collect_raw_files, safe_filename''',
+        marker="collect_raw_files, safe_filename",
+        desc="run_all: import safe_filename",
+    )
+    patch_text(
+        p,
+        old='''    files = sorted(discovered_dir.glob(f"{args.keyword}_*.json"), key=lambda p: p.stat().st_mtime)''',
+        new='''    files = sorted(discovered_dir.glob(f"{safe_filename(args.keyword)}_*.json"), key=lambda p: p.stat().st_mtime)''',
+        marker='safe_filename(args.keyword)}_*.json',
+        desc="run_all: discovered glob 前缀净化",
+    )
+    p = ROOT / "scripts" / "e2e_test.py"
+    patch_text(
+        p,
+        old='''from pipeline.run_inputs import collect_raw_files''',
+        new='''from pipeline.run_inputs import collect_raw_files, safe_filename''',
+        marker="collect_raw_files, safe_filename",
+        desc="e2e: import safe_filename",
+    )
+    patch_text(
+        p,
+        old='''    discovered = latest(ROOT / "data" / "discovered", f"{args.keyword}_*.json")''',
+        new='''    discovered = latest(ROOT / "data" / "discovered", f"{safe_filename(args.keyword)}_*.json")''',
+        marker='safe_filename(args.keyword)}_*.json',
+        desc="e2e: discovered glob 前缀净化",
+    )
+
+
+def fix_storage() -> None:
+    """入库计数诚实化：conn.total_changes 是连接级累计值，会把 IGNORE 的重复
+    误计为新增；改用 cursor.rowcount（新插=1，IGNORE=0）。"""
+    p = ROOT / "scripts" / "pipeline" / "storage.py"
+    patch_text(
+        p,
+        old='''            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO comments
+                       (id, platform, source_id, source_title, content, author,
+                        likes, replies, timestamp, url, extra)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        norm["id"], norm["platform"], norm.get("source_id") or source_id,
+                        norm.get("source_title"), norm.get("content"), norm.get("author"),
+                        norm.get("likes") or 0, norm.get("replies") or 0,
+                        norm.get("timestamp"), norm.get("url"),
+                        json.dumps(norm.get("extra") or {}, ensure_ascii=False)
+                    )
+                )
+                if conn.total_changes:
+                    inserted += 1
+                f.write(json.dumps(norm, ensure_ascii=False) + "\\n")
+            except sqlite3.Error:
+                skipped += 1''',
+        new='''            try:
+                cur = conn.execute(
+                    """INSERT OR IGNORE INTO comments
+                       (id, platform, source_id, source_title, content, author,
+                        likes, replies, timestamp, url, extra)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        norm["id"], norm["platform"], norm.get("source_id") or source_id,
+                        norm.get("source_title"), norm.get("content"), norm.get("author"),
+                        norm.get("likes") or 0, norm.get("replies") or 0,
+                        norm.get("timestamp"), norm.get("url"),
+                        json.dumps(norm.get("extra") or {}, ensure_ascii=False)
+                    )
+                )
+                if cur.rowcount:
+                    inserted += 1
+                f.write(json.dumps(norm, ensure_ascii=False) + "\\n")
+            except sqlite3.Error:
+                skipped += 1''',
+        marker="cur.rowcount",
+        desc="storage: 计数改 cursor.rowcount",
+    )
+
+
 def fix_bilibili() -> None:
     """bilibili 适配器修复走 overlay（extract 会以仓库外 MVP.md 覆盖
     generate_p2.py 模板，模板级修复不可靠，overlay 为权威）。"""
@@ -441,6 +541,8 @@ def main():
     fix_scoring()
     fix_export_card()
     fix_serve()
+    fix_safe_filename_wiring()
+    fix_storage()
     fix_bilibili()
     fix_demo()
     fix_heal()

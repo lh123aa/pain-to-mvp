@@ -79,3 +79,34 @@ def test_pipeline_entries_use_inputs_flag():
     for rel in ("scripts/pipeline/run_all.py", "scripts/e2e_test.py"):
         src = (root / rel).read_text(encoding="utf-8")
         assert '"--inputs"' in src, f"{rel} 未使用 --inputs（多文件合并不生效）"
+
+
+def test_discover_keyword_with_path_chars(tmp_path, monkeypatch):
+    """Review Focus #3：关键词含 / : * 等路径非法字符时不得 traceback，
+    必须产出净化后的输出文件（CLI 级回归，单测覆盖不到接线）。"""
+    import subprocess
+    import sys
+
+    def fake_discover(self, keyword, limit=20):
+        raise RuntimeError("风控 -352")  # 模拟平台失败，走 except 分支
+
+    import adapters.bilibili as bili
+    monkeypatch.setattr(bili.BilibiliAdapter, "discover", fake_discover)
+
+    root = Path(__file__).resolve().parent.parent
+    out_dir = root / "data" / "discovered"
+    before = set(out_dir.glob("*.json")) if out_dir.exists() else set()
+
+    r = subprocess.run(
+        [sys.executable, "scripts/pipeline/discover_content.py",
+         "--keyword", "获客/增长", "--platforms", "bilibili", "--limit", "2"],
+        capture_output=True, text=True, timeout=300,
+    )
+    assert r.returncode == 0, (r.stdout[-400:] + r.stderr[-400:])
+    assert "Traceback" not in r.stderr
+
+    new = set(out_dir.glob("*.json")) - before
+    assert new, "应产出发现结果文件"
+    produced = next(iter(new))
+    assert "/" not in produced.name and "获客_增长" in produced.name, \
+        f"输出文件名未净化：{produced.name}"

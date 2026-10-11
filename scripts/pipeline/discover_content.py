@@ -29,6 +29,8 @@ from adapters import get_adapter
 from compliance import preflight
 from pipeline_score import filter_and_rank
 
+from run_inputs import safe_filename
+
 OUTPUT_DIR = Path("data/discovered")
 
 def discover(keyword, platforms, limit):
@@ -54,7 +56,7 @@ def discover(keyword, platforms, limit):
 
     ranked = filter_and_rank(all_results)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    out_file = OUTPUT_DIR / f"{keyword}_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
+    out_file = OUTPUT_DIR / f"{safe_filename(keyword)}_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
     out_file.write_text(json.dumps(ranked, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\n💾 已保存 {len(ranked)} 条 → {out_file}")
 

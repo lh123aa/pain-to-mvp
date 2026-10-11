@@ -29,7 +29,7 @@ import sys
 import time
 from pathlib import Path
 
-from pipeline.run_inputs import collect_raw_files
+from pipeline.run_inputs import collect_raw_files, safe_filename
 
 ROOT = Path(__file__).parent.parent
 PIPELINE = ROOT / "scripts" / "pipeline"
@@ -67,7 +67,7 @@ def main(args):
     if not ok:
         return _report(steps, time.time() - t_start)
 
-    discovered = latest(ROOT / "data" / "discovered", f"{args.keyword}_*.json")
+    discovered = latest(ROOT / "data" / "discovered", f"{safe_filename(args.keyword)}_*.json")
     if not discovered:
         print("❌ 未找到发现结果")
         return _report(steps, time.time() - t_start)

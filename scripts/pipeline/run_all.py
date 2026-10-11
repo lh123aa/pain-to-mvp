@@ -44,7 +44,7 @@ def main(args):
 
     # 找最新的 discovered 文件
     discovered_dir = Path("data/discovered")
-    files = sorted(discovered_dir.glob(f"{args.keyword}_*.json"), key=lambda p: p.stat().st_mtime)
+    files = sorted(discovered_dir.glob(f"{safe_filename(args.keyword)}_*.json"), key=lambda p: p.stat().st_mtime)
     if not files:
         print("❌ 未找到发现结果"); return
     latest = files[-1]
@@ -55,7 +55,7 @@ def main(args):
          "--input", str(latest), "--limit", str(args.comments)])
 
     # 3. 合并本次爬取产出的全部 raw JSONL（多视频评论不丢）
-    from run_inputs import collect_raw_files
+    from run_inputs import collect_raw_files, safe_filename
     raw_files = collect_raw_files(Path("data/raw"), since=crawl_started_at)
     if not raw_files:
         print("❌ 未找到爬取结果"); return
