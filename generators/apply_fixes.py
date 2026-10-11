@@ -361,6 +361,50 @@ def export(input_file, top=5):''',
         )
 
 
+def fix_serve() -> None:
+    """Dashboard 静态资源防路径穿越。"""
+    p = ROOT / "scripts" / "dashboard" / "serve.py"
+    patch_text(
+        p,
+        old='''ASSETS = ROOT / "assets" / "dashboard"
+
+class Handler(BaseHTTPRequestHandler):''',
+        new='''ASSETS = ROOT / "assets" / "dashboard"
+
+
+def resolve_asset(rel: str):
+    """把 URL 相对路径解析为 ASSETS 内的文件；越界返回 None（防路径穿越）。"""
+    try:
+        candidate = (ASSETS / rel).resolve()
+        candidate.relative_to(ASSETS.resolve())
+    except (ValueError, OSError):
+        return None
+    return candidate if candidate.is_file() else None
+
+
+class Handler(BaseHTTPRequestHandler):''',
+        marker="def resolve_asset",
+        desc="serve: resolve_asset",
+    )
+    patch_text(
+        p,
+        old='''        else:
+            # 静态资源（style.css / app.js）
+            rel = path.lstrip("/")
+            self._send_file(ASSETS / rel)''',
+        new='''        else:
+            # 静态资源（style.css / app.js）——必须防路径穿越
+            rel = urlparse(self.path).path.lstrip("/")
+            asset = resolve_asset(rel)
+            if asset is None:
+                self.send_error(403)
+                return
+            self._send_file(asset)''',
+        marker="resolve_asset(rel)",
+        desc="serve: do_GET 接线",
+    )
+
+
 def main():
     copy_new_modules()
     fix_adapter_imports()
@@ -370,6 +414,7 @@ def main():
     fix_e2e()
     fix_scoring()
     fix_export_card()
+    fix_serve()
     # 1. UTF-8 入口（复用 fix_utf8）
     r = subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "fix_utf8.py")],
                        capture_output=True, text=True)

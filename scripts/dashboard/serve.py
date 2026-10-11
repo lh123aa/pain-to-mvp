@@ -34,6 +34,17 @@ ROOT = Path(__file__).parent.parent.parent
 DASHBOARD_JSON = ROOT / "data" / "dashboard.json"
 ASSETS = ROOT / "assets" / "dashboard"
 
+
+def resolve_asset(rel: str):
+    """把 URL 相对路径解析为 ASSETS 内的文件；越界返回 None（防路径穿越）。"""
+    try:
+        candidate = (ASSETS / rel).resolve()
+        candidate.relative_to(ASSETS.resolve())
+    except (ValueError, OSError):
+        return None
+    return candidate if candidate.is_file() else None
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         # 静默日志，避免刷屏
@@ -78,9 +89,13 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/health":
             self._send_json({"status": "ok"})
         else:
-            # 静态资源（style.css / app.js）
-            rel = path.lstrip("/")
-            self._send_file(ASSETS / rel)
+            # 静态资源（style.css / app.js）——必须防路径穿越
+            rel = urlparse(self.path).path.lstrip("/")
+            asset = resolve_asset(rel)
+            if asset is None:
+                self.send_error(403)
+                return
+            self._send_file(asset)
 
 def main(port, host):
     print(f"🚀 Dashboard 已启动：http://{host}:{port}")
