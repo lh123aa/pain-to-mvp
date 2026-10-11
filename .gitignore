@@ -1,0 +1,20 @@
+# 数据
+data/cache/
+data/executions/
+data/bugs/bug-log.jsonl
+data/bugs/bug-index.json
+data/bugs/fixes/
+data/bugs/patches/
+data/bugs/rollbacks/
+data/journeys/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/

@@ -1,0 +1,27 @@
+name: Self-Heal
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+jobs:
+  heal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run self-heal
+        run: python scripts/healing/heal_runner.py
+      - name: Commit changes
+        run: |
+          git config user.name "self-heal-bot"
+          git config user.email "bot@pain-to-mvp.local"
+          git add -A
+          git diff --quiet && git diff --staged --quiet || git commit -m "auto-heal: $(date +%Y-%m-%d)"
+          git push

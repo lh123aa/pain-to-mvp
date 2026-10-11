@@ -1,0 +1,26 @@
+name: Daily Audit
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 每天 UTC 02:00（北京时间 10:00）
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install requests pyyaml
+      - name: Run audit
+        run: python scripts/self_improve/audit_runner.py
+      - name: Commit changes
+        run: |
+          git config user.name "audit-bot"
+          git config user.email "bot@pain-to-mvp.local"
+          git add -A
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: daily audit $(date +%Y-%m-%d)"
+          git push

@@ -1,0 +1,2 @@
+# 开发与测试依赖（运行期依赖见 requirements.txt）
+pytest>=8.0
