@@ -43,6 +43,8 @@ def cluster_comments(comments: List[Dict], min_size: int = 3) -> List[Dict]:
     输入评论列表（需含 clean_content 或 content）
     输出聚类列表，每个聚类含 representative 文本 + 成员
     """
+    if not comments:
+        return []
     texts = [c.get("clean_content") or c.get("content") or "" for c in comments]
     if len(texts) < min_size:
         return [{"cluster_id": 0, "size": len(texts), "members": comments,

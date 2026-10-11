@@ -23,6 +23,7 @@ except Exception:
 import argparse
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 def run(cmd):
@@ -48,20 +49,20 @@ def main(args):
         print("❌ 未找到发现结果"); return
     latest = files[-1]
 
-    # 2. 爬评论
+    # 2. 爬评论（记录开始时刻，用于筛选本次运行产出的 raw 文件）
+    crawl_started_at = time.time()
     run([sys.executable, str(base / "crawl_comments.py"),
          "--input", str(latest), "--limit", str(args.comments)])
 
-    # 3. 找最新的 raw JSONL（爬取结果）
-    raw_dir = Path("data/raw")
-    raw_files = sorted(raw_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime)
+    # 3. 合并本次爬取产出的全部 raw JSONL（多视频评论不丢）
+    from run_inputs import collect_raw_files
+    raw_files = collect_raw_files(Path("data/raw"), since=crawl_started_at)
     if not raw_files:
         print("❌ 未找到爬取结果"); return
-    raw_latest = raw_files[-1]
 
     # 4. 挖掘痛点
     run([sys.executable, str(base / "mine_pain_points.py"),
-         "--input", str(raw_latest)])
+         "--inputs", *[str(p) for p in raw_files]])
 
     # 5. 找最新 pains 文件
     pains_dir = Path("data/pains")

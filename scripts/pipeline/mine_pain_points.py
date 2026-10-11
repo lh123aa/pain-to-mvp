@@ -29,11 +29,15 @@ from pathlib import Path
 from preprocess import preprocess_comments
 from pain_rules import filter_painful
 from cluster import cluster_comments
+from run_inputs import merge_jsonl_records
 from storage import query_comments
 
 OUTPUT_DIR = Path("data/pains")
 
-def _load_input(input_file=None, platform=None, limit=1000):
+def _load_input(input_file=None, platform=None, limit=1000, inputs=None):
+    if inputs:
+        # 多文件全量合并去重（多视频/多来源评论不丢）
+        return merge_jsonl_records([Path(p) for p in inputs])
     if input_file:
         comments = []
         with open(input_file, "r", encoding="utf-8") as f:
@@ -45,8 +49,8 @@ def _load_input(input_file=None, platform=None, limit=1000):
         return query_comments(platform=platform, limit=limit)
     return []
 
-def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3):
-    raw = _load_input(input_file, platform, limit)
+def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, inputs=None):
+    raw = _load_input(input_file, platform, limit, inputs)
     print(f"📥 载入 {len(raw)} 条评论")
 
     cleaned = preprocess_comments(raw)
@@ -93,10 +97,11 @@ def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--input", help="评论 JSONL 文件")
+    p.add_argument("--input", help="评论 JSONL 文件（单个）")
+    p.add_argument("--inputs", nargs="+", help="多个评论 JSONL 文件（全量合并，优先于 --input）")
     p.add_argument("--platform", help="平台（从 SQLite 读）")
     p.add_argument("--limit", type=int, default=1000)
     p.add_argument("--min-pain", type=int, default=3)
     p.add_argument("--min-cluster", type=int, default=3)
     args = p.parse_args()
-    mine(args.input, args.platform, args.limit, args.min_pain, args.min_cluster)
+    mine(args.input, args.platform, args.limit, args.min_pain, args.min_cluster, inputs=args.inputs)

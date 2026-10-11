@@ -1,0 +1,269 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+后处理修复器：在 P0-P6 生成器运行后执行，恢复全部修复。
+
+用法：python generators/apply_fixes.py
+幂等：每项修复前检查标记，已修复则跳过。
+
+修复清单（对应评估发现的 P0/P1 问题）：
+  1. UTF-8 入口稳定化（委托 fix_utf8.py）
+  2. 新模块落盘：scripts/pipeline/{encoding,wbi,run_inputs}.py
+  3. adapters 导入风格统一：`from ..compliance import` → `from compliance import`
+  4. cluster.py 空输入守卫（空评论不产出伪簇）
+  5. mine_pain_points.py 支持 --inputs 多文件全量合并
+  6. run_all.py / e2e_test.py 用 collect_raw_files 合并本次全部 raw（不丢评论）
+"""
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+FIXES_SRC = Path(__file__).resolve().parent / "fixes"
+
+report = []
+
+
+def patch_text(path: Path, old: str, new: str, marker: str, desc: str) -> None:
+    """幂等文本替换：已含 marker 跳过；找不到 old 报错。"""
+    text = path.read_text(encoding="utf-8")
+    if marker in text:
+        report.append(f"⏭️  {desc}（已修复）")
+        return
+    if old not in text:
+        raise SystemExit(f"❌ {desc}：在 {path} 中未找到锚点，请人工检查")
+    path.write_text(text.replace(old, new, 1), encoding="utf-8")
+    report.append(f"🔧 {desc}")
+
+
+def copy_new_modules() -> None:
+    for src in sorted(FIXES_SRC.glob("*.py")):
+        dst = ROOT / "scripts" / "pipeline" / src.name
+        shutil.copyfile(src, dst)
+        report.append(f"📄 新模块 {dst.relative_to(ROOT)}")
+
+
+def fix_adapter_imports() -> None:
+    for p in sorted((ROOT / "scripts" / "pipeline" / "adapters").glob("*.py")):
+        text = p.read_text(encoding="utf-8")
+        if "from ..compliance import" not in text:
+            continue
+        p.write_text(text.replace("from ..compliance import", "from compliance import"), encoding="utf-8")
+        report.append(f"🔧 适配器导入统一：{p.name}")
+
+
+def fix_cluster() -> None:
+    p = ROOT / "scripts" / "pipeline" / "cluster.py"
+    patch_text(
+        p,
+        old='''    输出聚类列表，每个聚类含 representative 文本 + 成员
+    """
+    texts = [c.get("clean_content") or c.get("content") or "" for c in comments]''',
+        new='''    输出聚类列表，每个聚类含 representative 文本 + 成员
+    """
+    if not comments:
+        return []
+    texts = [c.get("clean_content") or c.get("content") or "" for c in comments]''',
+        marker="if not comments:",
+        desc="cluster.py 空输入守卫",
+    )
+
+
+def fix_mine() -> None:
+    p = ROOT / "scripts" / "pipeline" / "mine_pain_points.py"
+    if "from run_inputs import merge_jsonl_records" not in p.read_text(encoding="utf-8"):
+        patch_text(
+            p,
+            old='''from preprocess import preprocess_comments
+from pain_rules import filter_painful
+from cluster import cluster_comments
+from storage import query_comments''',
+            new='''from preprocess import preprocess_comments
+from pain_rules import filter_painful
+from cluster import cluster_comments
+from run_inputs import merge_jsonl_records
+from storage import query_comments''',
+            marker="from run_inputs import merge_jsonl_records",
+            desc="mine: imports",
+        )
+    patch_text(
+        p,
+        old='''def _load_input(input_file=None, platform=None, limit=1000):''',
+        new='''def _load_input(input_file=None, platform=None, limit=1000, inputs=None):
+    if inputs:
+        # 多文件全量合并去重（多视频/多来源评论不丢）
+        return merge_jsonl_records([Path(p) for p in inputs])''',
+        marker="多文件全量合并去重",
+        desc="mine: _load_input 多文件",
+    )
+    patch_text(
+        p,
+        old='''def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3):
+    raw = _load_input(input_file, platform, limit)''',
+        new='''def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, inputs=None):
+    raw = _load_input(input_file, platform, limit, inputs)''',
+        marker="min_cluster=3, inputs=None",
+        desc="mine: 签名加 inputs",
+    )
+    patch_text(
+        p,
+        old='''    p.add_argument("--input", help="评论 JSONL 文件")''',
+        new='''    p.add_argument("--input", help="评论 JSONL 文件（单个）")
+    p.add_argument("--inputs", nargs="+", help="多个评论 JSONL 文件（全量合并，优先于 --input）")''',
+        marker="--inputs",
+        desc="mine: CLI --inputs",
+    )
+    patch_text(
+        p,
+        old='''    mine(args.input, args.platform, args.limit, args.min_pain, args.min_cluster)''',
+        new='''    mine(args.input, args.platform, args.limit, args.min_pain, args.min_cluster, inputs=args.inputs)''',
+        marker="inputs=args.inputs",
+        desc="mine: CLI 传 inputs",
+    )
+
+
+def fix_run_all() -> None:
+    p = ROOT / "scripts" / "pipeline" / "run_all.py"
+    patch_text(
+        p,
+        old='''import argparse
+import subprocess
+import sys
+from pathlib import Path''',
+        new='''import argparse
+import subprocess
+import sys
+import time
+from pathlib import Path''',
+        marker="import time",
+        desc="run_all: import time",
+    )
+    patch_text(
+        p,
+        old='''    # 2. 爬评论
+    run([sys.executable, str(base / "crawl_comments.py"),
+         "--input", str(latest), "--limit", str(args.comments)])
+
+    # 3. 找最新的 raw JSONL（爬取结果）
+    raw_dir = Path("data/raw")
+    raw_files = sorted(raw_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime)
+    if not raw_files:
+        print("❌ 未找到爬取结果"); return
+    raw_latest = raw_files[-1]
+
+    # 4. 挖掘痛点
+    run([sys.executable, str(base / "mine_pain_points.py"),
+         "--input", str(raw_latest)])''',
+        new='''    # 2. 爬评论（记录开始时刻，用于筛选本次运行产出的 raw 文件）
+    crawl_started_at = time.time()
+    run([sys.executable, str(base / "crawl_comments.py"),
+         "--input", str(latest), "--limit", str(args.comments)])
+
+    # 3. 合并本次爬取产出的全部 raw JSONL（多视频评论不丢）
+    from run_inputs import collect_raw_files
+    raw_files = collect_raw_files(Path("data/raw"), since=crawl_started_at)
+    if not raw_files:
+        print("❌ 未找到爬取结果"); return
+
+    # 4. 挖掘痛点
+    run([sys.executable, str(base / "mine_pain_points.py"),
+         "--inputs", *[str(p) for p in raw_files]])''',
+        marker="collect_raw_files",
+        desc="run_all: 全量 raw 合并",
+    )
+
+
+def fix_e2e() -> None:
+    p = ROOT / "scripts" / "e2e_test.py"
+    patch_text(
+        p,
+        old='''import time
+from pathlib import Path''',
+        new='''import time
+from pathlib import Path
+
+from pipeline.run_inputs import collect_raw_files''',
+        marker="from pipeline.run_inputs import",
+        desc="e2e: import collect_raw_files",
+    )
+    patch_text(
+        p,
+        old='''    # Step 2: 爬评论
+    if args.skip_crawl:
+        print("\\n⏭️  跳过爬取（--skip-crawl）")
+        raw_file = latest(ROOT / "data" / "raw", "*.jsonl")
+    else:
+        ok, dt = run(
+            [sys.executable, str(PIPELINE / "crawl_comments.py"),
+             "--input", str(discovered),
+             "--limit", str(args.comments)],
+            "Step 2/6：爬取评论"
+        )
+        steps.append(("crawl", ok, dt))
+        raw_file = latest(ROOT / "data" / "raw", "*.jsonl")
+
+    if not raw_file:
+        print("❌ 未找到评论数据")
+        return _report(steps, time.time() - t_start)
+
+    # Step 3: 挖掘痛点
+    ok, dt = run(
+        [sys.executable, str(PIPELINE / "mine_pain_points.py"),
+         "--input", str(raw_file),
+         "--min-pain", "3",
+         "--min-cluster", "2"],
+        "Step 3/6：挖掘痛点"
+    )''',
+        new='''    # Step 2: 爬评论
+    if args.skip_crawl:
+        print("\\n⏭️  跳过爬取（--skip-crawl）")
+        raw_files = collect_raw_files(ROOT / "data" / "raw")
+    else:
+        crawl_started_at = time.time()
+        ok, dt = run(
+            [sys.executable, str(PIPELINE / "crawl_comments.py"),
+             "--input", str(discovered),
+             "--limit", str(args.comments)],
+            "Step 2/6：爬取评论"
+        )
+        steps.append(("crawl", ok, dt))
+        # 本次爬取产出的全部 raw 文件（多视频合并，不丢评论）
+        raw_files = collect_raw_files(ROOT / "data" / "raw", since=crawl_started_at)
+
+    if not raw_files:
+        print("❌ 未找到评论数据")
+        return _report(steps, time.time() - t_start)
+
+    # Step 3: 挖掘痛点
+    ok, dt = run(
+        [sys.executable, str(PIPELINE / "mine_pain_points.py"),
+         "--inputs", *[str(p) for p in raw_files],
+         "--min-pain", "3",
+         "--min-cluster", "2"],
+        "Step 3/6：挖掘痛点"
+    )''',
+        marker="collect_raw_files",
+        desc="e2e: 全量 raw 合并",
+    )
+
+
+def main():
+    copy_new_modules()
+    fix_adapter_imports()
+    fix_cluster()
+    fix_mine()
+    fix_run_all()
+    fix_e2e()
+    # 1. UTF-8 入口（复用 fix_utf8）
+    r = subprocess.run([sys.executable, str(Path(__file__).resolve().parent / "fix_utf8.py")],
+                       capture_output=True, text=True)
+    if r.returncode == 0:
+        report.append("🔧 fix_utf8:" + r.stdout.splitlines()[0])
+    for line in report:
+        print(line)
+    print("\n✅ apply_fixes 完成")
+
+
+if __name__ == "__main__":
+    main()

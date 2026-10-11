@@ -29,6 +29,8 @@ import sys
 import time
 from pathlib import Path
 
+from pipeline.run_inputs import collect_raw_files
+
 ROOT = Path(__file__).parent.parent
 PIPELINE = ROOT / "scripts" / "pipeline"
 
