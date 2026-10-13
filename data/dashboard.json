@@ -1,11 +1,11 @@
 {
-  "last_updated": "2026-10-11T19:23:01.021618",
+  "last_updated": "2026-10-13T11:27:59.414482",
   "summary": {
-    "total": 1,
+    "total": 3,
     "in_progress": 0,
     "completed": 0,
     "dropped": 0,
-    "high_score": 1
+    "high_score": 3
   },
   "requirements": [
     {
@@ -26,6 +26,46 @@
       "scores": {
         "demand": 3,
         "feasibility": 5
+      }
+    },
+    {
+      "id": "20261013-001",
+      "title": "我想自己写一个苹果APP，很简单的设计，主要是满足自己的需求…",
+      "status": "discovered",
+      "progress": 10,
+      "stage": "新发现",
+      "score": 80.0,
+      "representative_quotes": [
+        "「我想自己写一个苹果APP，很简单的设计，主要是满足自己的需求，请问要如何自学，非cs专业只有c语言基础[笑哭][笑哭][笑哭]",
+        "「哪有那么容易，有些行业业务复杂的很，连专注该行业软件公司开发的软件都远远不符合需求，以前接触家具行业深有感触，物料需求清单用excel表格,各物料用量vba计算，从深圳找一家软件公司派几个人来了解需求，听得也是懵懵懂懂就回去了，没了下文[笑哭]",
+        "「我没记错的话，看过up以前一则视频说要自律减肥的，怎么现在我发现脸更圆润了啊[笑哭][笑哭]。减了个寂寞"
+      ],
+      "discovered_at": "2026-10-13T11:27:59.336514",
+      "card_path": "data\\cards\\20261013-001.md",
+      "timeline": [],
+      "scores": {
+        "demand": 3,
+        "feasibility": 5
+      }
+    },
+    {
+      "id": "20261013-002",
+      "title": "独立开发，知识付费，跨境电商，差异化，独立开发出海",
+      "status": "discovered",
+      "progress": 10,
+      "stage": "新发现",
+      "score": 70.0,
+      "representative_quotes": [
+        "「独立开发，知识付费，跨境电商，差异化，独立开发出海",
+        "「超市菜价这么贵，菜农为啥不直接把菜送到超市呢",
+        "「独立开发需要解决产品调研、营销、需求对接、服务器部署等等等一系列问题，除非你是个全才，不能很难打通所有关节"
+      ],
+      "discovered_at": "2026-10-13T11:27:59.336514",
+      "card_path": "data\\cards\\20261013-002.md",
+      "timeline": [],
+      "scores": {
+        "demand": 3,
+        "feasibility": 4
       }
     }
   ]

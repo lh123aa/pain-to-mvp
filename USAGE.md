@@ -1,22 +1,23 @@
 # 使用手册
 
+> 需求与验收标准见 `docs/PRD.md`；技术债跟踪见 `docs/OPEN_ISSUES.md`。
+
 ## 一、安装
 
 ```bash
-# 1. 生成项目（依序执行 P0-P6）
-python generate_p0.py
-python generate_p1.py
-python generate_p2.py
-python generate_p3.py
-python generate_p4.py
-python generate_p5.py
-python generate_p6.py
-
-# 2. 安装依赖
+# 1. 安装依赖
 pip install -r requirements.txt
 
-# 3. 自检
+# 2. 自检
 python scripts/doctor.py
+```
+
+代码已生成在仓库内，无需重新生成。**仅维护者**在修改生成器或 overlay 后需要：
+
+```bash
+python generators/generate_p0.py   # …依次到 generate_p6.py（会覆盖 scripts/）
+python generators/apply_fixes.py  # 必跑：恢复全部修复
+python -m pytest tests/ -q        # 必须 32 全绿
 ```
 
 ## 二、快速验证（离线）
@@ -90,8 +91,11 @@ python scripts/dashboard/update_progress.py --id 20261011-001 --status analyzing
 
 ## 五、平台配置
 
+> 规范（PRD §七）：所有凭证统一写仓库根 `.env`（已 gitignore，模板见 `.env.example`），不要写进脚本或截图。
+> 当前代码读取 shell 环境变量；`.env` 自动读取接线见 `docs/OPEN_ISSUES.md` #10。
+
 ### 小红书 / 抖音
-需要 MediaCrawler 或 TikTokDownloader：
+需要 MediaCrawler 或 TikTokDownloader（当前阶段未接入，见 PRD 范围表）：
 ```bash
 export MEDIACRAWLER_PATH=/path/to/MediaCrawler
 export TIKTOK_DOWNLOADER_PATH=/path/to/TikTokDownloader
@@ -132,15 +136,19 @@ python scripts/tool_intelligence/audit_toolkit.py
 python scripts/self_improve/audit_runner.py
 ```
 
-## 七、Bug 自愈
+## 七、Bug 诊断（只读，未接线）
+
+> 原"自愈系统"已废弃自动修复模式（曾制造假闭环）。当前 `heal_runner.py` 只做**只读诊断**：分类 Bug、生成报告，不改代码、不碰 git。
 
 ```bash
 # 手动记录 Bug
 python scripts/healing/capture_bug.py --phase "Phase 4" --tool "MediaCrawler" --severity high --error "登录态失效"
 
-# 触发自愈（读取 Bug 日志 → 生成修复 → 提交）
+# 只读诊断（读取 Bug 日志 → 分类 → 输出 data/bugs/heal-report.md）
 python scripts/healing/heal_runner.py
 ```
+
+真正的修复由人执行。该模块按 PRD 范围表标注"保留但不投入"。
 
 ## 八、项目历程
 
@@ -154,11 +162,13 @@ python scripts/journey/log_stage.py --project-id req-001 --phase "Phase 4" --act
 
 ## 九、GitHub Actions
 
-把项目推到 GitHub 后，会自动启用：
-- **self-heal.yml**：每天 08:00 / 20:00 触发 Bug 自愈
-- **daily-audit.yml**：每天 UTC 02:00 触发工具巡检 + 知识库更新
+仓库含两个 workflow：
 
-需在仓库 Settings → Actions → General 开启 **Read and write** 权限。
+- **self-heal.yml**：已改为**手动触发**的只读诊断（原每天 08:00/20:00 定时自愈已废弃），产出报告 artifact
+- **daily-audit.yml**：每天 UTC 02:00 跑工具巡检并自动 commit & push —— 与 PRD"自优化不投入"决策冲突，处置中（见 `docs/OPEN_ISSUES.md` #14）
+
+若推到 GitHub 且需手动触发 self-heal，需在 Settings → Actions → General 开启 **Read and write** 权限。
+后续将补 `test.yml`（push/PR 跑 pytest，见 OPEN_ISSUES #19）。
 
 ## 十、故障排查
 

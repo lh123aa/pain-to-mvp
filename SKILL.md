@@ -1,8 +1,8 @@
 ---
 name: pain-to-mvp
-description: 从模糊输入出发，自主发现内容、爬取评论、挖掘痛点、设计最小商业闭环，并动态展示进度。具备工具智能、自优化、项目历程记录和 Bug 自愈能力。
-version: 5.0.0
-tags: [机会挖掘, 痛点分析, MVP设计, 自优化, 自愈系统]
+description: 从模糊输入出发，自主发现内容、爬取评论、挖掘痛点、设计最小商业闭环，并动态展示进度。工具智能、Bug 诊断已可用；自优化与项目历程记录保留但未接线（不投入）。
+version: 0.1.0
+tags: [机会挖掘, 痛点分析, MVP设计]
 ---
 
 # Pain-to-MVP Skill
@@ -19,8 +19,8 @@ tags: [机会挖掘, 痛点分析, MVP设计, 自优化, 自愈系统]
 6. 设计最小商业闭环
 7. 输出机会卡片
 8. 动态展示在看板上
-9. 记录项目历程
-10. 自动修复系统 Bug
+9. 记录项目历程（⚠️ 未接线，不投入）
+10. Bug 只读诊断（⚠️ 不再自动修复）
 
 ## 二、触发条件
 
@@ -82,34 +82,24 @@ tags: [机会挖掘, 痛点分析, MVP设计, 自优化, 自愈系统]
 
 关键原则：不造轮子，先找、再评、再组、最后才写。
 
-## 五、记录系统
+## 五、记录系统（⚠️ 本节整体按 PRD 范围表标注：保留但未接线、不投入）
 
-### 5.1 项目历程（Journey Logger）
+### 5.1 项目历程（Journey Logger）— 未接线
 
-每个项目开启时，自动创建 `data/journeys/{project_id}/`，记录：
+按设计保留于 `scripts/journey/`，每个项目可创建 `data/journeys/{project_id}/`：
 
 - `journey.md`：人类可读的工作日志
 - `journey.json`：结构化数据
-- `decisions.md`：关键决策
-- `lessons.md`：反思与经验
-- `course-outline.md`：自动生成的课程大纲
 
-每个 Phase 结束时调用 `log_stage.py` 追加记录。
+### 5.2 Bug 诊断（只读）— 已可用
 
-### 5.2 Bug 自愈（Self-Healing）
-
-运行中任何异常自动写入 `data/bugs/bug-log.jsonl`。
-
-每天 08:00 / 20:00 触发 `heal_runner.py`：
+运行中异常可写入 `data/bugs/bug-log.jsonl`，`heal_runner.py` 做**只读诊断**：
 
 1. 读取日志
 2. 分类 Bug
-3. 生成修复方案
-4. 备份 → 应用 → 测试
-5. 通过则提交 GitHub，失败则回滚
-6. 更新 CHANGELOG 和知识库
+3. 输出诊断报告（`data/bugs/heal-report.md`）
 
-安全边界：备份优先、高风险人工确认、失败回滚、每天最多 3 次。
+不改代码、不碰 git、不自动推送。真正的修复由人执行。
 
 ## 六、展示层
 
@@ -121,11 +111,12 @@ python scripts/dashboard/serve.py --port 8787
 
 看板每 3 秒轮询 `dashboard.json`，实时展示需求列表和进度。
 
-## 七、合规与安全
+## 七、合规与安全（PRD §七）
 
-- 遵守 robots.txt 和平台条款
+- 遵守 robots.txt 和平台条款：**fail-close**（读不到 robots.txt 即跳过该平台）
 - 只爬公开内容
 - 频率限制 ≤1 请求/秒
-- 数据本地处理，不上云
+- 数据本地处理，不上云；`data/` 产物不入库
 - 用户身份脱敏
+- 凭证统一走 `.env`，不绕验证码、不破解登录
 - 支持一键清除本地数据

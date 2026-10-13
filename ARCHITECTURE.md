@@ -95,26 +95,29 @@ Web 看板
 - 零依赖：Python 标准库 `http.server`
 - 前端：单 HTML + 原生 JS，3 秒轮询
 
-## 五、自优化闭环
+## 五、自优化闭环（⚠️ 保留但未接线，不投入 — 见 docs/PRD.md §三）
 
 ```
 每次任务 → log_execution.py
-每日 UTC 02:00 → audit_runner.py
+每日 UTC 02:00 → audit_runner.py（daily-audit.yml，处置中）
     ├─ audit_toolkit.py（巡检工具）
     ├─ sync_toolkit.py（同步文档）
     ├─ update_knowledge.py（提炼经验）
     └─ optimizer.py（生成建议）
-GitHub Actions 自动 commit & push
 ```
 
-## 六、安全边界
+> 设计上曾判定为"假闭环"（制造系统在工作的错觉），按 PRD 决策保留代码但不接入主流程；
+> heal_runner 已改为只读诊断（self-heal.yml 仅手动触发，不自动 commit & push）。
 
-- 遵守 robots.txt
+## 六、安全边界（PRD §四.1 / §七）
+
+- 遵守 robots.txt：**fail-close**——读不到 robots.txt 即跳过该平台（落地中，见 OPEN_ISSUES #1）
 - 频率限制 ≤ 1 请求/秒
 - 作者名 MD5 脱敏
-- 数据本地存储，不上云
-- Bug 自愈每天最多 3 次，失败自动回滚
-- 高风险修复需人工确认
+- 数据本地存储，不上云；`data/` 产物全部 gitignore
+- 凭证统一走 `.env`（gitignore），模板见 `.env.example`
+- 不绕验证码（如 B站 v_voucher）、不破解登录
+- Bug 自愈已改为只读诊断：不改代码、不碰 git、不自动推送
 
 ## 七、扩展点
 

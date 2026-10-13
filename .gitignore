@@ -1,12 +1,6 @@
-# 数据
-data/cache/
-data/executions/
-data/bugs/bug-log.jsonl
-data/bugs/bug-index.json
-data/bugs/fixes/
-data/bugs/patches/
-data/bugs/rollbacks/
-data/journeys/
+# 数据（PRD §四.1：data 产物全部不入库；已入库的需 git rm --cached，见 OPEN_ISSUES #5）
+data/
+pain_to_mvp.db
 
 # Python
 __pycache__/
