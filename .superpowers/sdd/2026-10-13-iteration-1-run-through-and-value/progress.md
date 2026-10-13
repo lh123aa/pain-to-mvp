@@ -12,4 +12,12 @@
 ## 计划缺陷处置
 - （无）
 
-## Task 0: 待执行
+## Task 0: complete (commit f4ff2be — docs checkpoint: PRD/验收/计划 14 files)
+
+## Task 1: complete (commits f4ff2be..4ff77f5, tests: python -m pytest tests/ → 35 passed)
+- run_all.py：模块级 import（修 #21 UnboundLocalError）+ run() fail-fast SystemExit + discovered/pains/scored 三处 mtime 本次过滤（#3）+ 四个"未找到"分支全部 SystemExit
+- overlay：新增 fix_run_all_failfast（5 个补丁，排在 fix_safe_filename_wiring 之后）；幂等测试绿、重跑零改动
+- Task 1 Ruling: 测试初版 patch run_all.run 导致 fail-fast 逻辑绕过（run 本身是被测对象）→ 下沉到 patch subprocess.run；"未找到"分支从静默 return 改为 SystemExit（管道/CI 必须拿到非零退出码）— 成本：run.sh 有 || true 不受影响
+- Task 1 Ruling: test_main_ignores_stale_pains_file 探测深度不足（预放文件会被 discovered 阶段先过滤）→ monkeypatch time 前移 10s，确保探测点直达 pains 阶段 — 成本：无
+
+## Task 2: 待执行

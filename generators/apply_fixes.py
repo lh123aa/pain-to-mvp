@@ -176,6 +176,26 @@ from pathlib import Path''',
     )
 
 
+def fix_compliance_failclose() -> None:
+    """Iteration-1 Task 2：robots 读取失败 fail-close（PRD §4.1 / OPEN_ISSUES #1）。"""
+    p = ROOT / "scripts" / "pipeline" / "compliance.py"
+    patch_text(
+        p,
+        old='''    try:
+        rp.read()
+    except Exception:
+        # 读不到 robots.txt，默认允许（保守起见可改为 False）
+        rp.allow_all = True''',
+        new='''    try:
+        rp.read()
+    except Exception:
+        # PRD §4.1：fail-close——读不到 robots.txt 一律拒绝抓取
+        rp.disallow_all = True''',
+        marker="fail-close——读不到 robots.txt 一律拒绝抓取",
+        desc="compliance: robots fail-close",
+    )
+
+
 def fix_run_all_failfast() -> None:
     """Iteration-1 Task 1：run_all 一键入口修复（#21 UnboundLocalError）+
     fail-fast（任何步骤失败/产物缺失即 SystemExit）+ 旧产物防护（mtime 过滤）。
@@ -669,6 +689,7 @@ def main():
     fix_serve()
     fix_safe_filename_wiring()
     fix_run_all_failfast()
+    fix_compliance_failclose()
     fix_storage()
     fix_bilibili()
     fix_demo()

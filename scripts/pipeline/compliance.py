@@ -30,8 +30,8 @@ def check_robots(url: str, user_agent: str = USER_AGENT) -> bool:
     try:
         rp.read()
     except Exception:
-        # 读不到 robots.txt，默认允许（保守起见可改为 False）
-        rp.allow_all = True
+        # PRD §4.1：fail-close——读不到 robots.txt 一律拒绝抓取
+        rp.disallow_all = True
     _cache[base] = (rp, now)
     return rp.can_fetch(user_agent, url)
 
