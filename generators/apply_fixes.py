@@ -176,6 +176,132 @@ from pathlib import Path''',
     )
 
 
+def fix_run_all_failfast() -> None:
+    """Iteration-1 Task 1：run_all 一键入口修复（#21 UnboundLocalError）+
+    fail-fast（任何步骤失败/产物缺失即 SystemExit）+ 旧产物防护（mtime 过滤）。
+    必须在 fix_run_all 与 fix_safe_filename_wiring 之后执行。"""
+    p = ROOT / "scripts" / "pipeline" / "run_all.py"
+    patch_text(
+        p,
+        old='''import argparse
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+def run(cmd):
+    print(f"\\n$ {' '.join(cmd)}")
+    r = subprocess.run(cmd, text=True)
+    if r.returncode != 0:
+        print(f"⚠️ 命令失败：{cmd}")
+    return r.returncode == 0
+
+def main(args):
+    base = Path(__file__).parent
+
+    # 1. 发现''',
+        new='''import argparse
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+from run_inputs import collect_raw_files, safe_filename
+
+def run(cmd):
+    print(f"\\n$ {' '.join(cmd)}")
+    r = subprocess.run(cmd, text=True)
+    if r.returncode != 0:
+        print(f"❌ 命令失败：{cmd}")
+        raise SystemExit(f"❌ 命令失败：{' '.join(cmd)}")
+    return True
+
+def main(args):
+    base = Path(__file__).parent
+    run_started_at = time.time()
+
+    # 1. 发现（失败即中止，绝不消费旧产物）''',
+        marker='raise SystemExit(f"❌ 命令失败：',
+        desc="run_all: fail-fast run() + 模块级 import",
+    )
+    patch_text(
+        p,
+        old='''    # 找最新的 discovered 文件
+    discovered_dir = Path("data/discovered")
+    files = sorted(discovered_dir.glob(f"{safe_filename(args.keyword)}_*.json"), key=lambda p: p.stat().st_mtime)
+    if not files:
+        print("❌ 未找到发现结果"); return
+    latest = files[-1]''',
+        new='''    # 找最新的 discovered 文件（本次运行产出）
+    discovered_dir = Path("data/discovered")
+    files = sorted(
+        (f for f in discovered_dir.glob(f"{safe_filename(args.keyword)}_*.json")
+         if f.stat().st_mtime >= run_started_at),
+        key=lambda p: p.stat().st_mtime)
+    if not files:
+        print("❌ 未找到本次运行的发现结果")
+        raise SystemExit("❌ 未找到本次运行的发现结果（discover 未产出新文件）")
+    latest = files[-1]''',
+        marker="未找到本次运行的发现结果",
+        desc="run_all: discovered 本次产出过滤",
+    )
+    patch_text(
+        p,
+        old='''    # 3. 合并本次爬取产出的全部 raw JSONL（多视频评论不丢）
+    from run_inputs import collect_raw_files, safe_filename
+    raw_files = collect_raw_files(Path("data/raw"), since=crawl_started_at)
+    if not raw_files:
+        print("❌ 未找到爬取结果"); return''',
+        new='''    # 3. 合并本次爬取产出的全部 raw JSONL（多视频评论不丢）
+    raw_files = collect_raw_files(Path("data/raw"), since=crawl_started_at)
+    if not raw_files:
+        print("❌ 未找到本次运行的爬取结果")
+        raise SystemExit("❌ 未找到本次运行的爬取结果")''',
+        marker="未找到本次运行的爬取结果",
+        desc="run_all: raw 检查改 SystemExit（import 移模块级）",
+    )
+    patch_text(
+        p,
+        old='''    # 5. 找最新 pains 文件
+    pains_dir = Path("data/pains")
+    pains_files = sorted(pains_dir.glob("*.json"), key=lambda p: p.stat().st_mtime)
+    if not pains_files:
+        print("❌ 未找到痛点结果"); return
+    pains_latest = pains_files[-1]''',
+        new='''    # 5. 找最新 pains 文件（仅本次运行产出，旧文件一律不消费）
+    pains_dir = Path("data/pains")
+    pains_files = sorted(
+        (f for f in pains_dir.glob("*.json") if f.stat().st_mtime >= run_started_at),
+        key=lambda p: p.stat().st_mtime)
+    if not pains_files:
+        print("❌ 未找到本次运行的痛点结果")
+        raise SystemExit("❌ 未找到本次运行的痛点结果")
+    pains_latest = pains_files[-1]''',
+        marker="未找到本次运行的痛点结果",
+        desc="run_all: pains 本次产出过滤",
+    )
+    patch_text(
+        p,
+        old='''    # 7. 找最新 scored 文件
+    scored_dir = Path("data/scored")
+    scored_files = sorted(scored_dir.glob("scored_*.json"), key=lambda p: p.stat().st_mtime)
+    if not scored_files:
+        print("❌ 未找到评分结果"); return
+    scored_latest = scored_files[-1]''',
+        new='''    # 7. 找最新 scored 文件（仅本次运行产出）
+    scored_dir = Path("data/scored")
+    scored_files = sorted(
+        (f for f in scored_dir.glob("scored_*.json") if f.stat().st_mtime >= run_started_at),
+        key=lambda p: p.stat().st_mtime)
+    if not scored_files:
+        print("❌ 未找到本次运行的评分结果")
+        raise SystemExit("❌ 未找到本次运行的评分结果")
+    scored_latest = scored_files[-1]''',
+        marker="未找到本次运行的评分结果",
+        desc="run_all: scored 本次产出过滤",
+    )
+
+
 def fix_e2e() -> None:
     p = ROOT / "scripts" / "e2e_test.py"
     patch_text(
@@ -542,6 +668,7 @@ def main():
     fix_export_card()
     fix_serve()
     fix_safe_filename_wiring()
+    fix_run_all_failfast()
     fix_storage()
     fix_bilibili()
     fix_demo()

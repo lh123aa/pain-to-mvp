@@ -26,27 +26,35 @@ import sys
 import time
 from pathlib import Path
 
+from run_inputs import collect_raw_files, safe_filename
+
 def run(cmd):
     print(f"\n$ {' '.join(cmd)}")
     r = subprocess.run(cmd, text=True)
     if r.returncode != 0:
-        print(f"⚠️ 命令失败：{cmd}")
-    return r.returncode == 0
+        print(f"❌ 命令失败：{cmd}")
+        raise SystemExit(f"❌ 命令失败：{' '.join(cmd)}")
+    return True
 
 def main(args):
     base = Path(__file__).parent
+    run_started_at = time.time()
 
-    # 1. 发现
+    # 1. 发现（失败即中止，绝不消费旧产物）
     run([sys.executable, str(base / "discover_content.py"),
          "--keyword", args.keyword,
          "--platforms", *args.platforms,
          "--limit", str(args.limit)])
 
-    # 找最新的 discovered 文件
+    # 找最新的 discovered 文件（本次运行产出）
     discovered_dir = Path("data/discovered")
-    files = sorted(discovered_dir.glob(f"{safe_filename(args.keyword)}_*.json"), key=lambda p: p.stat().st_mtime)
+    files = sorted(
+        (f for f in discovered_dir.glob(f"{safe_filename(args.keyword)}_*.json")
+         if f.stat().st_mtime >= run_started_at),
+        key=lambda p: p.stat().st_mtime)
     if not files:
-        print("❌ 未找到发现结果"); return
+        print("❌ 未找到本次运行的发现结果")
+        raise SystemExit("❌ 未找到本次运行的发现结果（discover 未产出新文件）")
     latest = files[-1]
 
     # 2. 爬评论（记录开始时刻，用于筛选本次运行产出的 raw 文件）
@@ -55,31 +63,37 @@ def main(args):
          "--input", str(latest), "--limit", str(args.comments)])
 
     # 3. 合并本次爬取产出的全部 raw JSONL（多视频评论不丢）
-    from run_inputs import collect_raw_files, safe_filename
     raw_files = collect_raw_files(Path("data/raw"), since=crawl_started_at)
     if not raw_files:
-        print("❌ 未找到爬取结果"); return
+        print("❌ 未找到本次运行的爬取结果")
+        raise SystemExit("❌ 未找到本次运行的爬取结果")
 
     # 4. 挖掘痛点
     run([sys.executable, str(base / "mine_pain_points.py"),
          "--inputs", *[str(p) for p in raw_files]])
 
-    # 5. 找最新 pains 文件
+    # 5. 找最新 pains 文件（仅本次运行产出，旧文件一律不消费）
     pains_dir = Path("data/pains")
-    pains_files = sorted(pains_dir.glob("*.json"), key=lambda p: p.stat().st_mtime)
+    pains_files = sorted(
+        (f for f in pains_dir.glob("*.json") if f.stat().st_mtime >= run_started_at),
+        key=lambda p: p.stat().st_mtime)
     if not pains_files:
-        print("❌ 未找到痛点结果"); return
+        print("❌ 未找到本次运行的痛点结果")
+        raise SystemExit("❌ 未找到本次运行的痛点结果")
     pains_latest = pains_files[-1]
 
     # 6. 评分
     run([sys.executable, str(base / "score_opportunity.py"),
          "--input", str(pains_latest)])
 
-    # 7. 找最新 scored 文件
+    # 7. 找最新 scored 文件（仅本次运行产出）
     scored_dir = Path("data/scored")
-    scored_files = sorted(scored_dir.glob("scored_*.json"), key=lambda p: p.stat().st_mtime)
+    scored_files = sorted(
+        (f for f in scored_dir.glob("scored_*.json") if f.stat().st_mtime >= run_started_at),
+        key=lambda p: p.stat().st_mtime)
     if not scored_files:
-        print("❌ 未找到评分结果"); return
+        print("❌ 未找到本次运行的评分结果")
+        raise SystemExit("❌ 未找到本次运行的评分结果")
     scored_latest = scored_files[-1]
 
     # 8. MVP 设计
