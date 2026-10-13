@@ -176,6 +176,103 @@ from pathlib import Path''',
     )
 
 
+def fix_score_dims() -> None:
+    """Iteration-1 Task 4：WEIGHTS 死代码清理为 DIMS 元组（OPEN_ISSUES #4）。
+    必须在 fix_scoring 之后执行。"""
+    p = ROOT / "scripts" / "pipeline" / "score_opportunity.py"
+    patch_text(
+        p,
+        old='''WEIGHTS = {
+    "demand": 0.30,
+    "competition": 0.20,
+    "feasibility": 0.20,
+    "reach": 0.15,
+    "ai_leverage": 0.15,
+}''',
+        new='''# 评分维度（有序）。历史 WEIGHTS 的权重值在启发式路径从未生效（compose 用有效维度均值），
+# 属死代码，已清理为维度元组（OPEN_ISSUES #4）。
+DIMS = ("demand", "competition", "feasibility", "reach", "ai_leverage")''',
+        marker="DIMS = (",
+        desc="score: WEIGHTS → DIMS",
+    )
+    patch_text(
+        p,
+        old='''        for k in WEIGHTS:
+            scores[k] = max(1, min(5, int(scores.get(k, 3))))''',
+        new='''        for k in DIMS:
+            scores[k] = max(1, min(5, int(scores.get(k, 3))))''',
+        marker="for k in DIMS:",
+        desc="score: LLM clamp 用 DIMS",
+    )
+    patch_text(
+        p,
+        old='''    valid = [scores[k] for k in WEIGHTS if scores.get(k) is not None]''',
+        new='''    valid = [scores[k] for k in DIMS if scores.get(k) is not None]''',
+        marker="for k in DIMS if scores.get(k) is not None",
+        desc="score: compose 用 DIMS",
+    )
+    patch_text(
+        p,
+        old='''        p["scores"] = {k: s[k] for k in WEIGHTS}''',
+        new='''        p["scores"] = {k: s[k] for k in DIMS}''',
+        marker='for k in DIMS}',
+        desc="score: 输出 scores 用 DIMS",
+    )
+
+
+def fix_export_scores_compat() -> None:
+    """Iteration-1 Task 4：export 对缺失/部分 scores 容错（OPEN_ISSUES #4）。
+    必须在 fix_export_card 之后执行。"""
+    p = ROOT / "scripts" / "pipeline" / "export_card.py"
+    patch_text(
+        p,
+        old='''        content = CARD_TMPL.format(
+            id=card_id,
+            title=title,
+            status="discovered",
+            score=p.get("total_score"),
+            tier=p.get("tier", "?"),
+            discovered_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+            size=p.get("size", 0),
+            description=title,
+            signals=json.dumps(p.get("signal_distribution", {}), ensure_ascii=False),
+            quotes=_format_quotes(p.get("representative_quotes")),
+            demand=format_dim(p["scores"].get("demand")),
+            competition=format_dim(p["scores"].get("competition")),
+            feasibility=format_dim(p["scores"].get("feasibility")),
+            reach=format_dim(p["scores"].get("reach")),
+            ai_leverage=format_dim(p["scores"].get("ai_leverage")),''',
+        new='''        scores = p.get("scores") or {}  # 旧格式容错：缺键不崩，维度渲染 —（OPEN_ISSUES #4）
+        content = CARD_TMPL.format(
+            id=card_id,
+            title=title,
+            status="discovered",
+            score=p.get("total_score"),
+            tier=p.get("tier", "?"),
+            discovered_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+            size=p.get("size", 0),
+            description=title,
+            signals=json.dumps(p.get("signal_distribution", {}), ensure_ascii=False),
+            quotes=_format_quotes(p.get("representative_quotes")),
+            demand=format_dim(scores.get("demand")),
+            competition=format_dim(scores.get("competition")),
+            feasibility=format_dim(scores.get("feasibility")),
+            reach=format_dim(scores.get("reach")),
+            ai_leverage=format_dim(scores.get("ai_leverage")),''',
+        marker="旧格式容错：缺键不崩",
+        desc="export: scores 容错（卡片体）",
+    )
+    patch_text(
+        p,
+        old='''            "representative_quotes": p.get("representative_quotes", [])[:3],
+            "scores": p["scores"],''',
+        new='''            "representative_quotes": p.get("representative_quotes", [])[:3],
+            "scores": scores,''',
+        marker='"scores": scores,',
+        desc="export: scores 容错（看板条目）",
+    )
+
+
 def fix_mine_badlines() -> None:
     """Iteration-1 Task 3：mine 单文件分支坏行跳过（OPEN_ISSUES #2）。"""
     p = ROOT / "scripts" / "pipeline" / "mine_pain_points.py"
@@ -722,6 +819,8 @@ def main():
     fix_run_all_failfast()
     fix_compliance_failclose()
     fix_mine_badlines()
+    fix_score_dims()
+    fix_export_scores_compat()
     fix_storage()
     fix_bilibili()
     fix_demo()

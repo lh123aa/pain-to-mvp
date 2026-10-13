@@ -26,13 +26,9 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-WEIGHTS = {
-    "demand": 0.30,
-    "competition": 0.20,
-    "feasibility": 0.20,
-    "reach": 0.15,
-    "ai_leverage": 0.15,
-}
+# 评分维度（有序）。历史 WEIGHTS 的权重值在启发式路径从未生效（compose 用有效维度均值），
+# 属死代码，已清理为维度元组（OPEN_ISSUES #4）。
+DIMS = ("demand", "competition", "feasibility", "reach", "ai_leverage")
 
 def _heuristic_scores(pain: dict) -> dict:
     """启发式打分（无 LLM 时使用）"""
@@ -82,7 +78,7 @@ def _llm_scores(pain: dict, model: str = "gpt-4o-mini") -> dict:
         with urllib.request.urlopen(req, timeout=30) as r:
             data = json.loads(r.read().decode())
         scores = json.loads(data["choices"][0]["message"]["content"])
-        for k in WEIGHTS:
+        for k in DIMS:
             scores[k] = max(1, min(5, int(scores.get(k, 3))))
         return scores
     except Exception as e:
@@ -91,7 +87,7 @@ def _llm_scores(pain: dict, model: str = "gpt-4o-mini") -> dict:
 
 def _compose_total(scores: dict) -> float:
     """仅对有值的维度求简单均值，归一到 100；无有效维度返回 0。"""
-    valid = [scores[k] for k in WEIGHTS if scores.get(k) is not None]
+    valid = [scores[k] for k in DIMS if scores.get(k) is not None]
     if not valid:
         return 0.0
     return round(sum(valid) / len(valid) * 20, 1)
@@ -102,7 +98,7 @@ def score(input_file, output_file=None, use_llm=True):
     for p in pains:
         s = _llm_scores(p) if use_llm else _heuristic_scores(p)
         total = _compose_total(s)
-        p["scores"] = {k: s[k] for k in WEIGHTS}
+        p["scores"] = {k: s[k] for k in DIMS}
         p["total_score"] = total
         p["tier"] = (
             "S" if total >= 85 else

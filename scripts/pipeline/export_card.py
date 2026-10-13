@@ -112,6 +112,7 @@ def export(input_file, top=5):
         mvp = p.get("mvp", {})
         mvp_rec = (mvp.get("recommended_mvp") or [{}])[0]
 
+        scores = p.get("scores") or {}  # 旧格式容错：缺键不崩，维度渲染 —（OPEN_ISSUES #4）
         content = CARD_TMPL.format(
             id=card_id,
             title=title,
@@ -123,11 +124,11 @@ def export(input_file, top=5):
             description=title,
             signals=json.dumps(p.get("signal_distribution", {}), ensure_ascii=False),
             quotes=_format_quotes(p.get("representative_quotes")),
-            demand=format_dim(p["scores"].get("demand")),
-            competition=format_dim(p["scores"].get("competition")),
-            feasibility=format_dim(p["scores"].get("feasibility")),
-            reach=format_dim(p["scores"].get("reach")),
-            ai_leverage=format_dim(p["scores"].get("ai_leverage")),
+            demand=format_dim(scores.get("demand")),
+            competition=format_dim(scores.get("competition")),
+            feasibility=format_dim(scores.get("feasibility")),
+            reach=format_dim(scores.get("reach")),
+            ai_leverage=format_dim(scores.get("ai_leverage")),
             reason=f"\n**评分理由**：{p.get('score_reason', '启发式评分')}\n",
             mvp_type=mvp_rec.get("type", "咨询/模板"),
             mvp_rationale=mvp_rec.get("rationale", ""),
@@ -150,7 +151,7 @@ def export(input_file, top=5):
             "tier": p.get("tier"),
             "size": p.get("size"),
             "representative_quotes": p.get("representative_quotes", [])[:3],
-            "scores": p["scores"],
+            "scores": scores,
             "mvp": mvp,
             "card_path": str(card_path),
             "discovered_at": datetime.now().isoformat(),
