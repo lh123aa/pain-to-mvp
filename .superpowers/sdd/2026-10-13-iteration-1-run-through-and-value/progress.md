@@ -20,4 +20,9 @@
 - Task 1 Ruling: 测试初版 patch run_all.run 导致 fail-fast 逻辑绕过（run 本身是被测对象）→ 下沉到 patch subprocess.run；"未找到"分支从静默 return 改为 SystemExit（管道/CI 必须拿到非零退出码）— 成本：run.sh 有 || true 不受影响
 - Task 1 Ruling: test_main_ignores_stale_pains_file 探测深度不足（预放文件会被 discovered 阶段先过滤）→ monkeypatch time 前移 10s，确保探测点直达 pains 阶段 — 成本：无
 
-## Task 2: 待执行
+## Task 2: complete (commits 4ff77f5..a7156c8, tests: python -m pytest tests/ → 38 passed)
+- compliance.check_robots except 分支：allow_all=True → disallow_all=True（fail-close）+ 失败结果进缓存
+- 实测（计划 Step 4b）：fail-close 生效下 e2e 真实链路 6/6 通过（B站 robots 可达且允许所爬路径）——无需触发"停下报告"分支
+- overlay：fix_compliance_failclose 注册于 fix_run_all_failfast 之后
+
+## Task 3: 待执行

@@ -40,10 +40,17 @@ def _load_input(input_file=None, platform=None, limit=1000, inputs=None):
         return merge_jsonl_records([Path(p) for p in inputs])
     if input_file:
         comments = []
+        skipped = 0
         with open(input_file, "r", encoding="utf-8") as f:
             for line in f:
-                if line.strip():
+                if not line.strip():
+                    continue
+                try:
                     comments.append(json.loads(line))
+                except json.JSONDecodeError:
+                    skipped += 1  # 坏行跳过不崩溃（OPEN_ISSUES #2）
+        if skipped:
+            print(f"⚠️ 跳过坏行 {skipped} 条（{input_file}）")
         return comments
     if platform:
         return query_comments(platform=platform, limit=limit)

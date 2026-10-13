@@ -176,6 +176,37 @@ from pathlib import Path''',
     )
 
 
+def fix_mine_badlines() -> None:
+    """Iteration-1 Task 3：mine 单文件分支坏行跳过（OPEN_ISSUES #2）。"""
+    p = ROOT / "scripts" / "pipeline" / "mine_pain_points.py"
+    patch_text(
+        p,
+        old='''    if input_file:
+        comments = []
+        with open(input_file, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    comments.append(json.loads(line))
+        return comments''',
+        new='''    if input_file:
+        comments = []
+        skipped = 0
+        with open(input_file, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    comments.append(json.loads(line))
+                except json.JSONDecodeError:
+                    skipped += 1  # 坏行跳过不崩溃（OPEN_ISSUES #2）
+        if skipped:
+            print(f"⚠️ 跳过坏行 {skipped} 条（{input_file}）")
+        return comments''',
+        marker="跳过坏行 {skipped} 条",
+        desc="mine: 单文件坏行保护",
+    )
+
+
 def fix_compliance_failclose() -> None:
     """Iteration-1 Task 2：robots 读取失败 fail-close（PRD §4.1 / OPEN_ISSUES #1）。"""
     p = ROOT / "scripts" / "pipeline" / "compliance.py"
@@ -690,6 +721,7 @@ def main():
     fix_safe_filename_wiring()
     fix_run_all_failfast()
     fix_compliance_failclose()
+    fix_mine_badlines()
     fix_storage()
     fix_bilibili()
     fix_demo()
