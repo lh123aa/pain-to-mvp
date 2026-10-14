@@ -56,12 +56,36 @@ def _load_input(input_file=None, platform=None, limit=1000, inputs=None):
         return query_comments(platform=platform, limit=limit)
     return []
 
+def _dedup_by_text(comments):
+    """文本级去重（T9）：同一评论在多个视频/来源下重复出现只保留首条。
+
+    (platform, source_id, id) 去重无法覆盖跨视频重复——同一条热门吐槽
+    会在多个视频下被抓到，虚增簇规模 → total_pain → 机会分。
+    """
+    seen = set()
+    out = []
+    for c in comments:
+        key = " ".join((c.get("clean_content") or c.get("content") or "").split())
+        if not key:
+            continue
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(c)
+    return out
+
+
 def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, inputs=None, output=None):
     raw = _load_input(input_file, platform, limit, inputs)
     print(f"📥 载入 {len(raw)} 条评论")
 
     cleaned = preprocess_comments(raw)
     print(f"🧹 清洗后 {len(cleaned)} 条")
+
+    deduped = _dedup_by_text(cleaned)
+    if len(deduped) < len(cleaned):
+        print(f"🔁 文本去重 {len(cleaned) - len(deduped)} 条（跨视频重复评论）")
+        cleaned = deduped
 
     painful = filter_painful(cleaned, min_score=min_pain)
     print(f"🔥 痛点评论 {len(painful)} 条")

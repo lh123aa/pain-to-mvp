@@ -47,6 +47,18 @@ def test_representative_fallback_when_all_noise():
     assert rep == [TAG_LIST]  # 全噪音时回退，不返回空
 
 
+def test_representative_excludes_offtopic_outlier():
+    """高 pain_score 但与簇主题无关的离群句不应成为代表句（T9：超市菜价问题）。"""
+    members = [
+        {"clean_content": "超市菜价这么贵，菜农为啥不直接把菜送到超市呢", "pain_score": 13},
+        {"clean_content": "独立开发者获客太难了，投放太贵烧不起", "pain_score": 7},
+        {"clean_content": "独立开发获客成本太高，小团队烧不起广告", "pain_score": 7},
+        {"clean_content": "做独立开发最难的是获客，买量成本太高", "pain_score": 6},
+    ]
+    rep = _select_representative(members, top=2)
+    assert "超市菜价这么贵，菜农为啥不直接把菜送到超市呢" not in rep
+
+
 def test_cluster_end_to_end_excludes_noise():
     comments = [
         {"clean_content": REAL_HELP, "pain_score": 8},

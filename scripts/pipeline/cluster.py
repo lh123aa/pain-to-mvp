@@ -50,12 +50,35 @@ def _is_noise(text: str) -> bool:
         return True
     return False
 
+def _bigrams(t: str) -> set:
+    t = "".join(t.split())
+    return {t[i:i + 2] for i in range(max(1, len(t) - 1))}
+
 def _select_representative(members: List[Dict], top: int = 3) -> List[str]:
-    """代表句：优先取非噪音成员（按 pain_score 降序）；全噪音时回退全部成员。"""
+    """代表句：非噪音成员中，优先选与簇内其他成员平均相似度高的（有代表性），
+    相近时按 pain_score 降序；全噪音时回退全部成员。
+
+    纯按 pain_score 选会把与簇主题无关的高分离群句（如混入的"超市菜价"吐槽）
+    推成代表句，误导对痛点主题的判断（T9）。
+    """
     clean = [m for m in members if not _is_noise(m.get("clean_content") or m.get("content") or "")]
     pool = clean or members
-    pool = sorted(pool, key=lambda x: x.get("pain_score", 0), reverse=True)
-    return [m.get("clean_content") or m.get("content") for m in pool[:top]]
+    def text(m): return m.get("clean_content") or m.get("content") or ""
+    if len(pool) <= top:
+        ordered = pool
+    else:
+        bgs = {id(m): _bigrams(text(m)) for m in pool}
+        def rep_score(m):
+            mine = bgs[id(m)]
+            sims = []
+            for o in pool:
+                if o is m:
+                    continue
+                other = bgs[id(o)]
+                sims.append(len(mine & other) / (len(mine | other) or 1))
+            return sum(sims) / len(sims) if sims else 0.0
+        ordered = sorted(pool, key=lambda m: (rep_score(m), m.get("pain_score", 0)), reverse=True)
+    return [text(m) for m in ordered[:top]]
 # --- 结束痛点信号过滤 ---
 
 def _cluster_fallback(texts: List[str], n_clusters: int = 5) -> List[int]:
