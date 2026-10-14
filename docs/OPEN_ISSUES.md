@@ -5,25 +5,27 @@
 
 ---
 
-## P1 — P6 重验前必须清（阻塞或污染验证结果）
+## P1 — P6 重验前必须清（阻塞或污染验证结果）→ **iteration-1（2026-10-14）全部闭环，见各表状态列**
 
 ### 原有 5 项（2026-10-11 评审 deferred）
 
-| # | 事项 | 完成标准 |
-|---|---|---|
-| 1 | robots.txt fail-open → **fail-close**（读不到即跳过平台） | 单测：无 robots 时适配器拒绝爬取 |
-| 2 | mine 单文件分支 `json.loads` 无坏行保护（与 `--inputs` 行为不一致） | 坏行跳过+警告，测试覆盖 |
-| 3 | run_all discover 硬崩时可能取到上轮旧 discovered 文件 | discover 失败即终止，绝不读旧产物；测试覆盖 |
-| 4 | export_card 直取 `p["scores"]` 旧格式裸 KeyError；score_opportunity WEIGHTS 死代码 | 缺字段明确报错（禁止裸 KeyError）；死代码清除 |
-| 5 | `data/` 产物 gitignore + 移出 git 索引 | `.gitignore` 已覆盖；`git rm --cached` 清索引后 `git status data/` clean |
+| # | 事项 | 完成标准 | 状态 |
+|---|---|---|---|
+| 1 | robots.txt fail-open → **fail-close**（读不到即跳过平台） | 单测：无 robots 时适配器拒绝爬取 | ✅ a7156c8 |
+| 2 | mine 单文件分支 `json.loads` 无坏行保护（与 `--inputs` 行为不一致） | 坏行跳过+警告，测试覆盖 | ✅ 418fe9e |
+| 3 | run_all discover 硬崩时可能取到上轮旧 discovered 文件 | discover 失败即终止，绝不读旧产物；测试覆盖 | ✅ 4ff77f5（mtime 过滤 + fail-fast） |
+| 4 | export_card 直取 `p["scores"]` 旧格式裸 KeyError；score_opportunity WEIGHTS 死代码 | 缺字段明确报错（禁止裸 KeyError）；死代码清除 | ✅ eb0e491 |
+| 5 | `data/` 产物 gitignore + 移出 git 索引 | `.gitignore` 已覆盖；`git rm --cached` 清索引后 `git status data/` clean | ✅ 6ef3670 |
 
-### 2026-10-13 验收新发现 3 项（A5 可信率 50% < 70% 的直接原因）
+### 2026-10-13 验收新发现 3 项（A5 可信率 50% < 70% 的直接原因）→ **2026-10-14 iteration-1 已闭环**
 
-| # | 事项 | 完成标准 |
-|---|---|---|
-| 6 | 代表原话含无关段子，无噪音过滤（"超市菜价""减了个寂寞"进了机会卡） | 代表句选取过滤离题评论；抽检 top3 不再出现段子引用 |
-| 7 | 痛点描述/标题 = 关键词堆叠，不可读、无法据卡行动 | 痛点摘要用完整句子；标题可读 |
-| 8 | 小簇虚高：3 条评论得 80 分 A 档，证据强度与分数不符 | 评分对样本量加惩罚项；测试覆盖 |
+| # | 事项 | 完成标准 | 状态 |
+|---|---|---|---|
+| 6 | 代表原话含无关段子，无噪音过滤（"超市菜价""减了个寂寞"进了机会卡） | 代表句选取过滤离题评论；抽检 top3 不再出现段子引用 | ✅ `_is_noise` 噪音判定 + 代表句乘性打分（相似度×痛点加成）+ MMR 去冗余；`--topics` 主题聚焦过滤；A5 复检 top3 无段子（d3cb2c2/891a0ed/cdf150f） |
+| 7 | 痛点描述/标题 = 关键词堆叠，不可读、无法据卡行动 | 痛点摘要用完整句子；标题可读 | ✅ mine 产出 `pain_summary`（"N条评论集中反映「信号」：代表句"）；卡片 description 优先级 pain_summary→title→quote（9a27ea6） |
+| 8 | 小簇虚高：3 条评论得 80 分 A 档，证据强度与分数不符 | 评分对样本量加惩罚项；测试覆盖 | ✅ `_confidence_factor = min(1.0, 0.6+0.04*size)` 写入 `score_confidence`；3 条样本最多 6 折（d729e89） |
+
+附带闭环（同批次）：跨视频重复评论文本级去重（891a0ed）；sklearn 环境损坏时纯 Python 兜底聚类（d3cb2c2）；T6-T10 修复落 `generators/fixes/` 权威副本防生成器重跑丢失（3b76a03）。
 
 ## P2 — 重验后尽快（不阻塞，影响长期质量）
 
