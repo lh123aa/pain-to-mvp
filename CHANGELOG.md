@@ -8,6 +8,7 @@
 iteration-1：工具全链路跑通 + 最终结果价值有效性（分支内发布，待合并 master）。
 
 ### Added
+- B站适配器传输层接入 **Scrapling 0.4.15**（TLS/JA3 指纹伪装，降低 v_voucher 风控概率），缺失时回退 requests；源码副本存 `vendor/Scrapling/`（不进运行路径）（a57dbdc）
 - `pain_summary`：mine 为每个痛点簇生成一句话摘要（"N条评论集中反映「信号」：代表句"），卡片 description 优先使用（T7）
 - `score_confidence`：小簇置信惩罚 `min(1.0, 0.6+0.04*size)`，3 条样本的簇最多 6 折，不再与 200 条同档（T8 / OPEN_ISSUES #8）
 - `mine --topics`：主题聚焦过滤，多视频混合评论源剔除领域外闲聊（T10）
