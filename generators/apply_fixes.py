@@ -805,6 +805,23 @@ def fix_heal() -> None:
     report.append("🔧 self-heal.yml → 手动触发 + artifact 上传")
 
 
+def copy_canonical_modules() -> None:
+    """Iteration-1 T11：权威副本覆盖同步。
+
+    generators/fixes/{cluster,mine_pain_points,score_opportunity,export_card}.py
+    是已含全部 overlay + iteration-1 T6-T10 修复（噪音过滤/兜底聚类/pain_summary/
+    _build_card/score_confidence/文本去重/--topics/代表句 MMR）的最终版本。
+    生成器重跑后由本步骤覆盖回去，防止模板回退丢失修复。必须在各 patch 之后执行。
+    """
+    for name in ("cluster.py", "mine_pain_points.py", "score_opportunity.py", "export_card.py"):
+        src = FIXES_SRC / name
+        dst = ROOT / "scripts" / "pipeline" / name
+        if not src.exists():
+            raise SystemExit(f"❌ 缺少权威副本 {src}")
+        shutil.copyfile(src, dst)
+        report.append(f"📄 权威副本覆盖 {dst.relative_to(ROOT)}")
+
+
 def main():
     copy_new_modules()
     fix_adapter_imports()
@@ -825,6 +842,7 @@ def main():
     fix_bilibili()
     fix_demo()
     fix_heal()
+    copy_canonical_modules()
     # 生成后断言：bilibili overlay 必须生效（否则 MVP.md 覆盖模板且 overlay 失效）
     bili = (ROOT / "scripts" / "pipeline" / "adapters" / "bilibili.py").read_text(encoding="utf-8")
     if "wbi/search/type" not in bili:
