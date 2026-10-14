@@ -92,14 +92,25 @@ def _compose_total(scores: dict) -> float:
         return 0.0
     return round(sum(valid) / len(valid) * 20, 1)
 
+def _confidence_factor(size: int) -> float:
+    """小簇置信惩罚（T8）：样本越少，结论越不可信，按规模线性折减。
+
+    factor = min(1.0, 0.6 + 0.04 * size)，下限 0.6（3 条打 6 折，≥100 条不折）。
+    3 条评论撑起的"痛点"与 200 条同分同档会误导决策。
+    """
+    return min(1.0, 0.6 + 0.04 * max(0, int(size)))
+
 def score(input_file, output_file=None, use_llm=True):
     pains = json.loads(Path(input_file).read_text(encoding="utf-8"))
     scored = []
     for p in pains:
         s = _llm_scores(p) if use_llm else _heuristic_scores(p)
-        total = _compose_total(s)
+        raw = _compose_total(s)
+        conf = _confidence_factor(p.get("size", 0))
+        total = round(raw * conf, 1)
         p["scores"] = {k: s[k] for k in DIMS}
         p["total_score"] = total
+        p["score_confidence"] = conf
         p["tier"] = (
             "S" if total >= 85 else
             "A" if total >= 70 else
