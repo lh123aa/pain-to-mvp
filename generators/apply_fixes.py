@@ -805,6 +805,36 @@ def fix_heal() -> None:
     report.append("🔧 self-heal.yml → 手动触发 + artifact 上传")
 
 
+def fix_exec_report_wire() -> None:
+    """Iteration-1：run_all 末尾接入 exec_report —— 每次跑批自动产出
+    「执行结果 + 每步为什么」报告（漏斗/分数拆解/被过滤理由/域自查）。
+
+    marker=`exec_report`：已接入即跳过，因此重跑幂等；只有当 run_all 被
+    生成器重建回原始状态时才会重新插入。
+    """
+    p = ROOT / "scripts" / "pipeline" / "run_all.py"
+    patch_text(
+        p,
+        old='''        run([sys.executable, str(base / "export_card.py"),
+             "--input", str(mvp_file), "--top", "5"])
+
+    print("\\n🎉 全流程完成！")''',
+        new='''        run([sys.executable, str(base / "export_card.py"),
+             "--input", str(mvp_file), "--top", "5"])
+
+    # EXEC_REPORT_HOOK：跑批后自动产出「执行结果 + 每步为什么」报告
+    run([sys.executable, str(base / "exec_report.py"),
+         "--keyword", args.keyword,
+         "--discovered", str(latest),
+         "--scored", str(mvp_file) if mvp_file.exists() else "",
+         "--raw", *[str(p) for p in raw_files]])
+
+    print("\\n🎉 全流程完成！")''',
+        marker="exec_report",
+        desc="run_all 末尾接入 exec_report 执行报告",
+    )
+
+
 def copy_canonical_modules() -> None:
     """Iteration-1 T11：权威副本覆盖同步。
 
@@ -842,6 +872,7 @@ def main():
     fix_bilibili()
     fix_demo()
     fix_heal()
+    fix_exec_report_wire()
     copy_canonical_modules()
     # 生成后断言：bilibili overlay 必须生效（否则 MVP.md 覆盖模板且 overlay 失效）
     bili = (ROOT / "scripts" / "pipeline" / "adapters" / "bilibili.py").read_text(encoding="utf-8")

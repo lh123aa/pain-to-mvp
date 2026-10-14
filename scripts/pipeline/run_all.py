@@ -106,6 +106,13 @@ def main(args):
         run([sys.executable, str(base / "export_card.py"),
              "--input", str(mvp_file), "--top", "5"])
 
+    # EXEC_REPORT_HOOK：跑批后自动产出「执行结果 + 每步为什么」报告
+    run([sys.executable, str(base / "exec_report.py"),
+         "--keyword", args.keyword,
+         "--discovered", str(latest),
+         "--scored", str(mvp_file) if mvp_file.exists() else "",
+         "--raw", *[str(p) for p in raw_files]])
+
     print("\n🎉 全流程完成！")
     print("查看卡片：data/cards/")
     print("查看看板数据：data/dashboard.json")
