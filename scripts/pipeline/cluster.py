@@ -20,6 +20,72 @@ except Exception:
 # --- 结束 UTF-8 入口稳定化 ---
 from typing import List, Dict
 
+# --- 痛点信号过滤（iteration-1 T6：OPEN_ISSUES #6） ---
+_SEPARATORS = "，,。.！!？?；;、\n"
+
+def _segments(text: str) -> List[str]:
+    cur, out = "", []
+    for ch in text:
+        if ch in _SEPARATORS:
+            if cur:
+                out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    if cur:
+        out.append(cur)
+    return out
+
+def _is_noise(text: str) -> bool:
+    """噪音判定：话题标签串 / 灌水短句（<10字 或 ≥3段且每段≤6字）。
+
+    真实痛点表达多为完整长句；标签罗列（"独立开发，知识付费，…"）与
+    灌水（"哈哈哈哈"）进入聚类会污染簇结构与代表句。
+    """
+    t = (text or "").strip()
+    if len(t) < 10:
+        return True
+    segs = _segments(t)
+    if len(segs) >= 3 and all(len(s.strip()) <= 6 for s in segs):
+        return True
+    return False
+
+def _select_representative(members: List[Dict], top: int = 3) -> List[str]:
+    """代表句：优先取非噪音成员（按 pain_score 降序）；全噪音时回退全部成员。"""
+    clean = [m for m in members if not _is_noise(m.get("clean_content") or m.get("content") or "")]
+    pool = clean or members
+    pool = sorted(pool, key=lambda x: x.get("pain_score", 0), reverse=True)
+    return [m.get("clean_content") or m.get("content") for m in pool[:top]]
+# --- 结束痛点信号过滤 ---
+
+def _cluster_fallback(texts: List[str], n_clusters: int = 5) -> List[int]:
+    """纯 Python 兜底聚类：字符二元组 Jaccard 贪心分组。
+
+    sklearn/scipy 环境损坏（vendored .libs 冲突、编译版本不匹配）时保证管线不崩。
+    """
+    n = min(n_clusters, max(2, len(texts) // 5))
+    centers: List[set] = []
+    labels: List[int] = []
+    for t in texts:
+        bg = {t[i:i + 2] for i in range(max(1, len(t) - 1))}
+        best, best_sim = -1, 0.0
+        for i, c in enumerate(centers):
+            union = len(bg | c) or 1
+            sim = len(bg & c) / union
+            if sim > best_sim:
+                best, best_sim = i, sim
+        if best >= 0 and best_sim >= 0.15:
+            labels.append(best)
+            centers[best] = centers[best] | bg
+        elif len(centers) < n:
+            labels.append(len(centers))
+            centers.append(bg)
+        else:
+            # 附着到最近中心（即使相似度低）
+            sims = [len(bg & c) / (len(bg | c) or 1) for c in centers]
+            labels.append(max(range(len(centers)), key=lambda i: sims[i]))
+    return labels
+
 def _cluster_bertopic(texts: List[str]) -> List[int]:
     from sentence_transformers import SentenceTransformer
     from bertopic import BERTopic
@@ -30,13 +96,17 @@ def _cluster_bertopic(texts: List[str]) -> List[int]:
     return list(topics)
 
 def _cluster_tfidf(texts: List[str], n_clusters: int = 5) -> List[int]:
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.cluster import KMeans
-    vec = TfidfVectorizer(max_features=500)
-    X = vec.fit_transform(texts)
-    n = min(n_clusters, max(2, len(texts) // 5))
-    km = KMeans(n_clusters=n, random_state=42, n_init=10)
-    return list(km.fit_predict(X))
+    try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.cluster import KMeans
+        vec = TfidfVectorizer(max_features=500)
+        X = vec.fit_transform(texts)
+        n = min(n_clusters, max(2, len(texts) // 5))
+        km = KMeans(n_clusters=n, random_state=42, n_init=10)
+        return list(km.fit_predict(X))
+    except Exception as e:
+        print(f"⚠️ TF-IDF+KMeans 失败（{e}），退化为纯 Python 兜底聚类")
+        return _cluster_fallback(texts, n_clusters)
 
 def cluster_comments(comments: List[Dict], min_size: int = 3) -> List[Dict]:
     """
@@ -48,7 +118,15 @@ def cluster_comments(comments: List[Dict], min_size: int = 3) -> List[Dict]:
     texts = [c.get("clean_content") or c.get("content") or "" for c in comments]
     if len(texts) < min_size:
         return [{"cluster_id": 0, "size": len(texts), "members": comments,
-                 "representative": texts[:3]}]
+                 "representative": _select_representative(comments)}]
+
+    # 噪音过滤：标签串/灌水不参与聚类（T6）
+    kept = [(c, t) for c, t in zip(comments, texts) if not _is_noise(t)]
+    if not kept:
+        # 全噪音：保留原始成员，避免空结果
+        return [{"cluster_id": 0, "size": len(comments), "members": comments,
+                 "representative": _select_representative(comments)}]
+    comments, texts = [c for c, _ in kept], [t for _, t in kept]
 
     try:
         labels = _cluster_bertopic(texts)
@@ -69,9 +147,8 @@ def cluster_comments(comments: List[Dict], min_size: int = 3) -> List[Dict]:
     for cid, members in clusters.items():
         if len(members) < min_size:
             continue
-        # 代表文本：痛点分最高的 3 条
-        members_sorted = sorted(members, key=lambda x: x.get("pain_score", 0), reverse=True)
-        representative = [m.get("clean_content") or m.get("content") for m in members_sorted[:3]]
+        # 代表文本：非噪音成员中痛点分最高的 3 条
+        representative = _select_representative(members)
         total_pain = sum(m.get("pain_score", 0) for m in members)
         result.append({
             "cluster_id": cid,
