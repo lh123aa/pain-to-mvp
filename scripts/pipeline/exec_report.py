@@ -30,6 +30,8 @@ try:
 except Exception:
     pass
 
+from html import escape as _esc  # 不可信输入（评论/标题）直入报告前必须转义
+
 from pain_rules import detect_signals, filter_painful  # noqa: E402
 from preprocess import preprocess_comments  # noqa: E402
 from mine_pain_points import _dedup_by_text  # noqa: E402
@@ -58,6 +60,24 @@ DIM_ZH = {
 def _tier(total: float) -> str:
     return ("S" if total >= 85 else "A" if total >= 70 else
             "B" if total >= 55 else "C" if total >= 40 else "D")
+
+
+def _drop_rate(st) -> "float | None":
+    """痛点层丢弃率（%）。Markdown 与 HTML 必须共用，避免两处算出不同数字。"""
+    if not st or not st.get("deduped"):
+        return None
+    return st["dropped_pain"] / st["deduped"] * 100
+
+
+def _anomalies(raw_files) -> list:
+    """0 条评论的视频 id（评论区空 / -404 失效）。"""
+    out = []
+    for f in raw_files or []:
+        name = Path(f).name
+        sid = name.split("_", 1)[-1].replace(".jsonl", "") if "_" in name else name
+        if len(_read_jsonl(f)) == 0:
+            out.append(sid)
+    return out
 
 
 def breakdown(p: dict) -> dict:
@@ -217,8 +237,8 @@ def _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
         A(f"| 跨视频去重 | {st['deduped']} | -{st['dropped_dup']} | T9：跨视频文本完全相同的重复评论 |")
         A(f"| 痛点过滤 | {st['painful']} | -{st['dropped_pain']} | `pain_score < {min_pain}`：规则词权重和不足 |")
         A("")
-        if st["dropped_pain"] and st["deduped"]:
-            rate = st["dropped_pain"] / st["deduped"] * 100
+        rate = _drop_rate(st)
+        if rate is not None and st["dropped_pain"]:
             A(f"**{rate:.0f}% 的去重后评论在这层消失**（本次 {st['dropped_pain']}/{st['deduped']} 条），"
               "抽样理由见第 3 节。")
             A("")
@@ -281,18 +301,12 @@ def _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
     # 5. 异常（0 条评论 / 文件缺失）
     A("## 5. 异常")
     A("")
-    anomalies = []
-    for f in raw_files or []:
-        name = Path(f).name
-        sid = name.split("_", 1)[-1].replace(".jsonl", "") if "_" in name else name
-        n = len(_read_jsonl(f))
-        if n == 0:
-            anomalies.append(f"`{sid}` → raw 文件 0 条（评论区空 / 视频失效 -404 / 权限限制）")
+    anomalies = _anomalies(raw_files)
     if not anomalies:
         A("_无 0 条评论的视频。_")
     else:
-        for a in anomalies:
-            A(f"- {a}")
+        for sid in anomalies:
+            A(f"- `{sid}` → raw 文件 0 条（评论区空 / 视频失效 -404 / 权限限制）")
         A("")
         A("0 条**不是 bug**：`code=0, replies=0, is_end=True` = 该视频确实无评论；"
           "`-404` = 视频已失效。两者都会被明确记录而非静默跳过。")
@@ -317,21 +331,322 @@ def _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
     return "\n".join(L)
 
 
+# 单文件 HTML 的全部样式：内联、零外部请求（断网可开、可直接转发）。
+# 版式决策：2 个字体家族（人文无衬线 × 等宽数字）；字号阶梯 12/13/15/19/30；
+# 8pt 间距网格；中性墨色 60% + 青灰强调 10%（#0F766E，刻意避开紫蓝俗套）；
+# 只用边框不用阴影、圆角统一 6px、左对齐；漏斗靠"尺寸"立焦点，不靠高饱和。
+_HTML_CSS = """
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"SFMono-Regular",monospace;
+  --paper:#FBFBFC;--card:#FFFFFF;
+  --ink:#16181D;--ink2:#454A54;--ink3:#767C88;
+  --line:#E4E6EA;--line2:#F0F1F4;
+  --accent:#0F766E;--accent-soft:#E7F2F1;
+  --warn:#B45309;--warn-soft:#FBF1E6;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font:400 15px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+.page{max-width:960px;margin:0 auto;padding:56px 32px 80px}
+code,.mono{font-family:var(--mono);font-size:.92em;font-variant-numeric:tabular-nums}
+code{background:var(--line2);padding:1px 5px;border-radius:4px}
+
+.head{border-bottom:1px solid var(--line);padding-bottom:24px;margin-bottom:48px}
+.kicker{font:600 12px/1.4 var(--mono);letter-spacing:.14em;color:var(--accent);margin-bottom:8px}
+h1{font:700 30px/1.2 var(--sans);letter-spacing:-.02em;margin:0 0 8px}
+.meta{font-size:13px;color:var(--ink3);margin:0}
+.meta code{background:none;padding:0;color:var(--ink2)}
+
+section{margin-bottom:48px}
+h2{font:650 19px/1.35 var(--sans);margin:0 0 16px;display:flex;align-items:baseline;gap:10px}
+h2 .n{font:600 12px/1 var(--mono);color:var(--accent);letter-spacing:.08em;
+  border:1px solid var(--accent);border-radius:4px;padding:4px 6px;flex:none}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px}
+.callout{border-left:2px solid var(--warn);background:var(--warn-soft);color:#7A3B06;
+  padding:12px 16px;border-radius:0 4px 4px 0;font-size:14px;margin:16px 0 0}
+.callout strong{color:var(--warn);font-family:var(--mono)}
+.note{font-size:13px;color:var(--ink3);margin:16px 0 0;line-height:1.7}
+.formula{font:500 13px/1.6 var(--mono);color:var(--ink2);background:var(--line2);
+  padding:10px 12px;border-radius:4px;margin:0 0 20px;overflow-x:auto}
+
+.funnel{display:grid;gap:10px}
+.stage{display:grid;grid-template-columns:88px 1fr 64px 76px;align-items:center;gap:12px}
+.stage .lab{font-size:13px;color:var(--ink2);text-align:right}
+.track{height:26px;background:var(--line2);border-radius:3px;overflow:hidden}
+.fill{height:100%;background:rgba(15,118,110,.22);border-right:2px solid var(--accent)}
+.stage .cnt{font:600 15px/1 var(--mono);text-align:right;color:var(--ink)}
+.stage .drop{font:500 13px/1 var(--mono);text-align:right;color:var(--ink3)}
+.stage .drop.on{color:var(--warn)}
+
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{font:600 12px/1.4 var(--sans);color:var(--ink3);letter-spacing:.06em;
+  text-align:left;padding:0 12px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--line2);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .num{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.tbl th.num{text-align:right}
+.tier{display:inline-block;font:600 12px/1 var(--mono);padding:5px 7px;border-radius:4px;
+  background:var(--line2);color:var(--ink2)}
+.tier.a{background:var(--accent);color:#FFFFFF}
+.basis{font-size:12px;color:var(--ink3);font-family:var(--mono)}
+.chip{display:inline-block;font-size:12px;color:var(--ink3);border:1px dashed var(--line);
+  border-radius:4px;padding:2px 6px;margin:0 4px 4px 0}
+.chip.on{border-style:solid;color:var(--ink2);border-color:var(--line)}
+
+ul.notes{margin:20px 0 0;padding:0;list-style:none;font-size:14px;color:var(--ink2)}
+ul.notes li{padding-left:16px;position:relative;margin-bottom:8px}
+ul.notes li:before{content:"";position:absolute;left:0;top:.75em;width:6px;height:1px;background:var(--ink3)}
+ul.notes li:last-child{margin-bottom:0}
+ul.notes strong{color:var(--ink)}
+
+ul.samples{margin:0;padding:0;list-style:none}
+.grp + .grp{margin-top:20px;padding-top:20px;border-top:1px solid var(--line2)}
+.grp-h{font:600 12px/1.5 var(--sans);color:var(--ink3);letter-spacing:.06em;margin-bottom:12px}
+ul.samples li{padding:12px 0;border-bottom:1px solid var(--line2)}
+ul.samples li:first-child{padding-top:0}
+ul.samples li:last-child{border-bottom:none;padding-bottom:0}
+.s{display:inline-block;font:600 12px/1 var(--mono);padding:5px 6px;border-radius:4px;
+  background:var(--line2);color:var(--ink2);margin-right:8px;vertical-align:1px}
+.s.lo{background:var(--warn-soft);color:var(--warn)}
+.q{color:var(--ink);font-size:14px}
+.rsn{font-size:13px;color:var(--ink3);margin-top:4px;padding-left:48px}
+
+ol.videos{margin:0;padding:0;list-style:none;counter-reset:v}
+ol.videos li{display:flex;gap:12px;align-items:baseline;padding:8px 0;
+  border-bottom:1px solid var(--line2);font-size:14px}
+ol.videos li:first-child{padding-top:0}
+ol.videos li:last-child{border-bottom:none;padding-bottom:0}
+ol.videos li:before{counter-increment:v;content:counter(v,decimal-leading-zero);
+  font:500 12px/1 var(--mono);color:var(--ink3);flex:none}
+.vt{flex:1;color:var(--ink);min-width:0}
+.vid{font:500 12px/1 var(--mono);color:var(--ink3);flex:none}
+
+.foot{border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--ink3)}
+@media (max-width:640px){
+  .page{padding:32px 16px 56px}
+  h1{font-size:24px}
+  .stage{grid-template-columns:60px 1fr 44px 68px;gap:8px}
+  .stage .lab{font-size:12px}
+}
+@media print{
+  body{background:#FFFFFF}
+  section{break-inside:avoid}
+}
+"""
+
+
+def _render_html(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
+    """HTML 单文件报告。所有插值必须过 _esc（评论/标题是不可信输入）。"""
+    e = _esc
+    rate = _drop_rate(st)
+    bds = [breakdown(c) for c in cards]
+    anomalies = _anomalies(raw_files)
+
+    L = []
+    A = L.append
+
+    A("<!DOCTYPE html>")
+    A('<html lang="zh-CN">')
+    A("<head>")
+    A('<meta charset="utf-8">')
+    A('<meta name="viewport" content="width=device-width,initial-scale=1">')
+    A(f"<title>执行报告 — {e(keyword)}</title>")
+    A("<style>" + _HTML_CSS + "</style>")
+    A("</head>")
+    A("<body><div class='page'>")
+
+    # 页眉：kicker → h1（全页唯一大字）→ meta
+    A('<header class="head">')
+    A('<div class="kicker">EXEC REPORT</div>')
+    A(f"<h1>{e(keyword)}</h1>")
+    A(f'<p class="meta">生成 {e(ts)} ｜ 入口 <code>run_all.py</code> ｜ '
+      "本报告只读重算，不改任何步骤</p>")
+    A("</header>")
+
+    # 1. 决策漏斗（主角）
+    A("<section>")
+    A('<h2><span class="n">1</span>决策漏斗</h2>')
+    A('<div class="card">')
+    if st is None:
+        A('<p class="note">本次未提供 raw 输入，漏斗不可用。</p>')
+    else:
+        base = st["loaded"] or 1
+        rows = [
+            ("载入 raw", st["loaded"], None),
+            ("清洗", st["cleaned"], st["dropped_clean"]),
+            ("跨视频去重", st["deduped"], st["dropped_dup"]),
+            ("痛点过滤", st["painful"], st["dropped_pain"]),
+        ]
+        A('<div class="funnel">')
+        for lab, keep, drop in rows:
+            w = keep / base * 100
+            drop_html = "—" if drop is None else (
+                f'<span class="drop on">-{drop}</span>' if drop else '<span class="drop">0</span>')
+            A(f'<div class="stage"><div class="lab">{e(lab)}</div>'
+              f'<div class="track"><div class="fill" style="width:{w:.1f}%"></div></div>'
+              f'<div class="cnt">{keep}</div>{drop_html}</div>')
+        A("</div>")
+        A('<p class="note">条宽 = 该层保留数 ÷ 载入数；右列为本层丢弃量。</p>')
+    A("</div>")
+    if rate is not None and st and st["dropped_pain"]:
+        A(f'<p class="callout"><strong>{rate:.0f}%</strong> 的去重后评论在痛点层消失'
+          f"（本次 {st['dropped_pain']}/{st['deduped']} 条）→ 抽样理由见第 3 节</p>")
+    A("</section>")
+
+    # 2. 分数拆解（配角）
+    A("<section>")
+    A('<h2><span class="n">2</span>分数拆解：每张卡为什么这个分</h2>')
+    if not bds:
+        A('<div class="card"><p class="note">无评分数据。</p></div>')
+    else:
+        A('<div class="card">')
+        A('<p class="formula">total = 有效维度均值 / 5 × 100 × min(1.0, 0.6+0.04×size)</p>')
+        A('<div class="tbl-wrap"><table class="tbl"><thead><tr>'
+          '<th class="num">#</th><th class="num">分</th><th>档</th><th class="num">需求</th>'
+          '<th>可行性</th><th class="num">conf</th><th class="num">反推总分</th>'
+          "<th>未评维度</th></tr></thead><tbody>")
+        for i, (c, b) in enumerate(zip(cards, bds), 1):
+            tier_cls = "tier a" if b["tier"] == "A" else "tier"
+            feas = ("—" if b["feasibility"] is None else
+                    f'{b["feasibility"]} <span class="basis">({e(b["feas_basis"])})</span>')
+            chips = "".join(
+                f'<span class="chip">{e(DIM_ZH.get(k, k))}</span>' for k in b["unevaluated"])
+            A(f'<tr><td class="num">{i}</td><td class="num">{e(str(c.get("total_score")))}</td>'
+              f'<td><span class="{tier_cls}">{b["tier"]}</span></td>'
+              f'<td class="num">{b["demand"] if b["demand"] is not None else "—"}</td>'
+              f"<td>{feas}</td>"
+              f'<td class="num">{b["conf"]:.2f}</td>'
+              f'<td class="num">{b["recomputed"]}</td>'
+              f'<td>{chips or "—"}</td></tr>')
+        A("</tbody></table></div>")
+        b0 = bds[0]
+        A("<ul class='notes'>")
+        A(f'<li><strong>只有 {b0["dims_used"]}/{b0["dims_total"]} 个评分维度参与</strong> —— '
+          "启发式路径下 <code>竞争空缺 / 触达难度 / AI杠杆</code> 恒为 <code>None</code>，"
+          "被均值运算剔除（不是「没打分」，是「没参与」）。</li>")
+        A(f'<li><strong>个人可行性由簇大小决定</strong>（{e(b0["feas_basis"])}），'
+          "不是对内容的判断 —— 簇小反而容易拿满分 5。</li>")
+        A("<li><strong>conf 封顶规则</strong>：<code>size ≥ 10</code> 即到 1.00，"
+          "样本量再多不加分。</li>")
+        A("</ul>")
+        A("</div>")
+    A("</section>")
+
+    # 3. 被丢评论的词级理由
+    # 分组而非逐条重复同一句解释：零命中的样本占 9/10 时，逐条渲染会把同一句
+    # 「0 个规则词命中（…）」复制 9 次，既稀释信息又让本节压过主角漏斗。
+    A("<section>")
+    A(f'<h2><span class="n">3</span>被痛点层丢弃的评论（抽样 {len(dropped)} 条，按分数降序）</h2>')
+    A('<div class="card">')
+    if not dropped:
+        A('<p class="note">本次没有评论在痛点层被丢弃。</p>')
+    else:
+        near = [d for d in dropped if d["score"] > 0]
+        zero = [d for d in dropped if d["score"] == 0]
+        groups = []
+        if near:
+            groups.append(("命中了规则词，但权重和仍不够阈值", near, True))
+        if zero:
+            groups.append(("0 个规则词命中 —— 闲聊 / 分享 / 纯情绪（规则词表无匹配）",
+                           zero, False))
+        for title, rows, show_reason in groups:
+            A('<div class="grp">')
+            A(f'<div class="grp-h">{e(title)}</div>')
+            A('<ul class="samples">')
+            for d in rows:
+                txt = d["content"] if len(d["content"]) <= 80 else d["content"][:80] + "…"
+                cls = "s lo" if d["score"] > 0 else "s"
+                reason = f'<div class="rsn">{e(d["reason"])}</div>' if show_reason else ""
+                A(f'<li><span class="{cls}">{d["score"]}分</span>'
+                  f'<span class="q">「{e(txt)}」</span>{reason}</li>')
+            A("</ul></div>")
+    A("</div>")
+    A("</section>")
+
+    # 4. 实际召回的视频（域自查）
+    A("<section>")
+    A('<h2><span class="n">4</span>实际召回的视频（域匹配自查）</h2>')
+    if not items:
+        A('<p class="note">未提供 discovered 文件。</p>')
+    else:
+        A('<p class="note">采集层<strong>没有域校验</strong> —— 关键词与下列标题不符，'
+          "说明搜索召回跑偏，整条链路照单全收：</p>")
+        A('<div class="card"><ol class="videos">')
+        for it in items:
+            sid = it.get("source_id", "?")
+            title = (it.get("title") or "").strip() or "(无标题)"
+            A(f'<li><span class="vt">{e(title)}</span>'
+              f'<span class="vid">{e(str(sid))}</span></li>')
+        A("</ol></div>")
+    A("</section>")
+
+    # 5. 异常
+    A("<section>")
+    A('<h2><span class="n">5</span>异常</h2>')
+    if not anomalies:
+        A('<p class="note">无 0 条评论的视频。</p>')
+    else:
+        A('<div class="card"><ul class="samples">')
+        for sid in anomalies:
+            A(f'<li><span class="s lo">0 条</span>'
+              f'<span class="q"><code>{e(str(sid))}</code> raw 文件 0 条</span>'
+              '<div class="rsn">评论区空 / 视频已失效 -404 / 权限限制</div></li>')
+        A("</ul></div>")
+        A('<p class="note">0 条<strong>不是 bug</strong>：<code>code=0, replies=0, is_end=True</code> '
+          "= 该视频确实无评论；<code>-404</code> = 视频已失效。两者都会被明确记录，而非静默跳过。</p>")
+    A("</section>")
+
+    # 6. 规则清单
+    A("<section>")
+    A('<h2><span class="n">6</span>本次执行用到的规则</h2>')
+    A('<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr>'
+      "<th>步骤</th><th>规则</th><th>位置</th></tr></thead><tbody>")
+    rules = [
+        ("清洗", "<code>len&lt;4</code> / 纯表情 / 广告 → 丢", "preprocess.is_valid"),
+        ("去重", "跨视频 <code>clean_content</code> 完全相同 → 丢", "mine._dedup_by_text"),
+        ("痛点过滤", f"信号词权重和 ≥ {min_pain} 才保留", "pain_rules.filter_painful"),
+        ("簇主题", "取频次最高信号（求助量大恒压付费/失望）", "mine_pain_points.py:126"),
+        ("代表句", "乘性打分 + MMR，<strong>无长度上限</strong>", "cluster.py:71-83"),
+        ("评分", "2/5 维参与；可行性看 size；conf 看 size", "score_opportunity.py:33-95"),
+        ("MVP 类型", "取信号 dict <strong>第一个键</strong>（插入顺序，非主导信号）",
+         "design_mvp.py:39"),
+        ("主题聚焦", "<code>--topics</code> 可选，<strong>run_all 默认不启用</strong>",
+         "run_all.py:72"),
+    ]
+    for step, rule, loc in rules:
+        A(f"<tr><td>{e(step)}</td><td>{rule}</td><td><code>{e(loc)}</code></td></tr>")
+    A("</tbody></table></div></div>")
+    A("</section>")
+
+    A('<footer class="foot">由 <code>exec_report.py</code> 自动产出 ｜ '
+      "规则有误 → 改对应源文件后重跑</footer>")
+    A("</div></body></html>")
+    return "\n".join(L)
+
+
 def generate(keyword, discovered=None, raw_files=None, scored=None, min_pain=MIN_PAIN):
-    """生成并落盘执行报告，返回 Path。"""
+    """生成并落盘执行报告（Markdown + HTML 同名成对），返回 Markdown Path。"""
     ts = datetime.now().strftime("%Y%m%d-%H%M")
     safe = safe_filename(keyword) if keyword else "unknown"
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    out = REPORT_DIR / f"exec-report-{ts}-{safe}.md"
+    stem = f"exec-report-{ts}-{safe}"
 
     st = _stages(raw_files, min_pain) if raw_files else None
     dropped = explain_dropped(st["deduped_rows"] if st else [], min_pain, SAMPLE_DROPPED)
     items = _read_discovered(discovered)
     cards = _read_scored(scored)
 
-    body = _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain)
-    out.write_text(body, encoding="utf-8")
-    return out
+    md = REPORT_DIR / f"{stem}.md"
+    md.write_text(_render(keyword, ts, st, dropped, items, cards, raw_files, min_pain),
+                  encoding="utf-8")
+    (REPORT_DIR / f"{stem}.html").write_text(
+        _render_html(keyword, ts, st, dropped, items, cards, raw_files, min_pain),
+        encoding="utf-8")
+    return md
 
 
 if __name__ == "__main__":
@@ -346,3 +661,4 @@ if __name__ == "__main__":
     a = p.parse_args()
     path = generate(a.keyword, a.discovered, a.raw, a.scored, a.min_pain)
     print(f"📄 执行报告 → {path}")
+    print(f"🌐 浏览器打开 → {path.with_suffix('.html')}")
