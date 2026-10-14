@@ -22,6 +22,8 @@ except Exception:
 import re
 from typing import List, Dict
 
+from domain_check import is_adult
+
 # 广告/无意义关键词
 AD_PATTERNS = [
     r"加微信", r"加v", r"私信", r"代购", r"免费领", r"点击链接",
@@ -51,6 +53,8 @@ def is_valid(text: str) -> bool:
     if text in MEANINGLESS:
         return False
     if AD_RE.search(text):
+        return False
+    if is_adult(text):
         return False
     # 纯表情/符号
     if not re.search(r"[\u4e00-\u9fa5a-zA-Z]", text):

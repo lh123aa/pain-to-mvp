@@ -36,6 +36,7 @@ from pain_rules import detect_signals, filter_painful  # noqa: E402
 from preprocess import preprocess_comments  # noqa: E402
 from mine_pain_points import _dedup_by_text  # noqa: E402
 from run_inputs import safe_filename  # noqa: E402
+from domain_check import domain_overlap  # noqa: E402
 # conf 公式必须与评分同源：旧版此处硬编码 0.6+0.04*size，评分一改反推就失配
 from score_opportunity import _confidence_factor  # noqa: E402
 
@@ -297,6 +298,18 @@ def _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
     if not items:
         A("_未提供 discovered 文件。_")
     else:
+        titles = [it.get("title", "") for it in items]
+        overlap = domain_overlap(keyword, titles)
+        if overlap["verdict"] == "domain_mismatch":
+            A(f"⚠️ **域重合度 {overlap['overlap_ratio']:.0%}** —— 关键词与召回标题不符，搜索召回可能跑偏")
+            A("")
+            A("未命中的标题样本：")
+            for s in overlap["samples"]:
+                A(f"- {s}")
+            A("")
+        elif overlap["verdict"] == "domain_match":
+            A(f"✅ **域重合度 {overlap['overlap_ratio']:.0%}** —— 关键词与召回标题基本一致")
+            A("")
         A("采集层**没有域校验** —— 关键词与下列标题不符，说明搜索召回跑偏，整条链路照单全收：")
         A("")
         for it in items:
@@ -581,6 +594,18 @@ def _render_html(keyword, ts, st, dropped, items, cards, raw_files, min_pain) ->
     if not items:
         A('<p class="note">未提供 discovered 文件。</p>')
     else:
+        titles = [it.get("title", "") for it in items]
+        overlap = domain_overlap(keyword, titles)
+        if overlap["verdict"] == "domain_mismatch":
+            A(f'<p class="callout"><strong>域重合度 {overlap["overlap_ratio"]:.0%}</strong> '
+              "—— 关键词与召回标题不符，搜索召回可能跑偏</p>")
+            A('<div class="card"><div class="grp-h">未命中的标题样本</div><ul class="samples">')
+            for s in overlap["samples"]:
+                A(f'<li><span class="q">「{e(s)}」</span></li>')
+            A("</ul></div>")
+        elif overlap["verdict"] == "domain_match":
+            A(f'<p class="note">✅ <strong>域重合度 {overlap["overlap_ratio"]:.0%}</strong> '
+              "—— 关键词与召回标题基本一致</p>")
         A('<p class="note">采集层<strong>没有域校验</strong> —— 关键词与下列标题不符，'
           "说明搜索召回跑偏，整条链路照单全收：</p>")
         A('<div class="card"><ol class="videos">')
