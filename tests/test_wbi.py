@@ -1,5 +1,18 @@
 """B站 WBI 签名、游标分页、风控降级测试。"""
-from scripts.pipeline.wbi import get_mixin_key, enc_wbi
+from unittest import mock
+
+import pytest
+
+from wbi import get_mixin_key, enc_wbi
+
+
+@pytest.fixture
+def requests_only():
+    """这些测试关注 WBI/分页/风控逻辑（mock 在 session 上），
+    强制走 requests 路径，避免被 Scrapling 传输层绕过 mock。"""
+    import adapters.bilibili as bili
+    with mock.patch.object(bili, "_SCRAPLING", None):
+        yield
 
 
 def test_mixin_key_deterministic_32_chars():
@@ -49,8 +62,8 @@ class _FakeSession:
                                    "cursor": {"next": 0}}})
 
 
-def test_crawl_pagination_uses_cursor_not_page_number():
-    from scripts.pipeline.adapters.bilibili import BilibiliAdapter
+def test_crawl_pagination_uses_cursor_not_page_number(requests_only):
+    from adapters.bilibili import BilibiliAdapter
     from scripts.pipeline.compliance import RateLimiter
 
     adapter = BilibiliAdapter()
@@ -82,9 +95,9 @@ def test_discover_failure_does_not_break_pipeline(monkeypatch):
     assert discover_content.discover("kw", ["bilibili"], 5) == []
 
 
-def test_v_voucher_risk_control_raises_clear_error():
+def test_v_voucher_risk_control_raises_clear_error(requests_only):
     """风控真实验票（v_voucher）必须抛清晰错误，不静默返回空、不绕过验证码。"""
-    from scripts.pipeline.adapters.bilibili import BilibiliAdapter
+    from adapters.bilibili import BilibiliAdapter
     from scripts.pipeline.compliance import RateLimiter
 
     adapter = BilibiliAdapter()

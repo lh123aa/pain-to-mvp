@@ -3,7 +3,8 @@
 """
 B站适配器：直接调用 API，所有请求带 WBI 签名（2023 年后 B站强制要求，
 否则返回 -403/风控码）。Cookie（SESSDATA）可选，从环境变量 BILI_SESSDATA 读。
-依赖：requests。
+传输层：优先 Scrapling（TLS/JA3 指纹伪装，降低 v_voucher 风控概率），
+缺依赖时回退 requests。合规逻辑（WBI/v_voucher 不绕过）两条路径共用。
 """
 import os
 import requests
@@ -12,6 +13,12 @@ from typing import List, Dict, Any
 from .base import BaseAdapter
 from compliance import RateLimiter, anonymize
 from wbi import enc_wbi, NAV_URL
+
+# Scrapling 可选传输层（vendor 副本见 vendor/Scrapling，pip 安装亦可）
+try:
+    from scrapling.fetchers import Fetcher as _SCRAPLING
+except Exception:
+    _SCRAPLING = None
 
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
@@ -51,13 +58,25 @@ class BilibiliAdapter(BaseAdapter):
         self._img_key, self._sub_key = img, sub
         return img, sub
 
+    def _http_get(self, url: str, params: dict) -> dict:
+        """HTTP 传输：优先 Scrapling（指纹伪装），回退 requests session。"""
+        if _SCRAPLING is not None:
+            headers = {"User-Agent": UA, "Referer": "https://search.bilibili.com/"}
+            cookies = {}
+            sess = os.getenv("BILI_SESSDATA")
+            if sess:
+                cookies["SESSDATA"] = sess
+            r = _SCRAPLING.get(url, headers=headers, cookies=cookies or None,
+                               params=params, timeout=15)
+            return r.json()
+        return self.session.get(url, params=params, timeout=15).json()
+
     def _get(self, url: str, params: dict) -> dict:
         """带 WBI 签名请求；B站 HTTP 200 也可能带业务错误码，统一检查。"""
         img, sub = self._wbi_keys()
         self.limiter.wait()
         try:
-            r = self.session.get(url, params=enc_wbi(params, img, sub), timeout=15)
-            data = r.json()
+            data = self._http_get(url, enc_wbi(params, img, sub))
         except Exception as e:
             raise RuntimeError(f"B站请求失败：{e}")
         code = data.get("code", 0)
