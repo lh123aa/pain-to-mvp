@@ -14,26 +14,33 @@ import exec_report as er  # noqa: E402
 
 def test_score_breakdown_matches_formula():
     """总分必须能拆解成 demand/feasibility/conf 的算术，并标出未评维度。"""
+    from score_opportunity import _confidence_factor
+    size = 43
+    expected = round((3 + 5) / 2 * 20 * _confidence_factor(size), 1)  # 与评分同源
     scored = {
-        "size": 43, "avg_pain": 4.28,
+        "size": size, "avg_pain": 4.28,
         "signal_distribution": {"求助": 25, "付费意愿": 1},
         "scores": {"demand": 3, "competition": None, "feasibility": 5,
                    "reach": None, "ai_leverage": None},
-        "total_score": 80.0, "tier": "A",
+        "total_score": expected, "tier": "A",
     }
     b = er.breakdown(scored)
     assert b["demand"] == 3
     assert b["feasibility"] == 5
     assert b["feas_basis"] == "size=43<50"      # 说明可行性是"由簇大小"给的
-    assert b["conf"] == 1.0
-    assert abs(b["recomputed"] - 80.0) < 0.05    # 反推总分与实际一致
+    assert b["conf"] == _confidence_factor(size), "报告必须与评分共用同一 conf 公式"
+    assert b["conf"] < 1.0, "43 条尚未封顶（封顶已延后到 50 条）"
+    assert abs(b["recomputed"] - expected) < 0.05    # 反推总分与实际一致
     assert b["unevaluated"] == ["competition", "reach", "ai_leverage"]
     assert b["dims_used"] == 2 and b["dims_total"] == 5   # 5 维只用 2 维
 
 
 def test_breakdown_exposes_size_driven_score():
-    """同痛点强度下，簇大小必须显出对分数的影响（80 分的真实来源）。
-    feasibility 由 size 决定（<50 满分 5，400 条只得 3），conf 在 size≥10 封顶 1.0。
+    """同痛点强度下，簇大小必须显出对分数的影响。
+
+    feasibility 由 size 决定（<50 满分 5，400 条只得 3）—— 揭示可行性是伪信息；
+    conf 在 size≥50 才封顶 1.0（旧版 10 条即封顶，11 条与 112 条证据同价，
+    是 112 条真实需求簇被 11 条玩梗簇压过的根因之一）。
     """
     small = er.breakdown({"size": 43, "avg_pain": 4.28, "signal_distribution": {"求助": 25},
                           "scores": {"demand": 3, "feasibility": 5,
@@ -45,8 +52,10 @@ def test_breakdown_exposes_size_driven_score():
                         "total_score": 60.0, "tier": "B"})
     assert small["feasibility"] == 5 and big["feasibility"] == 3, "size<50 必须拿满 5 分"
     assert "size" in small["feas_basis"], "必须标明可行性是'由簇大小'给的，不是内容判断"
-    assert small["conf"] == 1.0, "size≥10 即封顶 1.0"
-    # 同一 demand=3 下，小簇靠 feasibility 满分拿到更高总分
+    assert big["conf"] == 1.0, "大簇应封顶 1.0"
+    assert small["conf"] < 1.0, "43 条不得已封顶（旧版 size≥10 即 1.0）"
+    assert small["conf"] < big["conf"], "43 条与 400 条的证据强度必须不同"
+    # 同一 demand=3 下，小簇靠 feasibility 满分拿到更高总分（尽管 conf 略折减）
     assert small["recomputed"] > big["recomputed"]
     assert small["tier"] == "A" and big["tier"] != "A"
 

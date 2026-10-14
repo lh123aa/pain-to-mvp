@@ -22,11 +22,18 @@ except Exception:
 # --- 结束 UTF-8 入口稳定化 ---
 import argparse
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 
 CARD_DIR = Path("data/cards")
 DASHBOARD = Path("data/dashboard.json")
+
+# 表情/玩梗标签：[笑哭] [doge] [吃瓜] 等
+_EMOJI_TAG = re.compile(r"\[[^\]]{1,12}\]")
+_ZH_DIMS = {"demand": "需求强度", "competition": "竞争空缺",
+            "feasibility": "个人可行性", "reach": "触达难度",
+            "ai_leverage": "AI杠杆"}
 
 CARD_TMPL = """# 机会卡片 #{id}
 
@@ -87,13 +94,50 @@ def _format_list(items):
     return "\n".join(f"- {i}" for i in items)
 
 
-def format_title(quotes, max_len: int = 30) -> str:
-    """卡片标题：首条非空代表原话，去首尾标点，超长截断加省略号。"""
-    text = next((q for q in (quotes or []) if q), "").strip() if quotes else ""
-    text = text.strip("，。！？、；：,.!?;: ")
-    if not text:
-        return "未命名痛点"
-    return text[:max_len] + "…" if len(text) > max_len else text
+def format_title(quotes, max_len: int = 30, fallback: str = "未命名痛点") -> str:
+    """卡片标题：从代表原话里挑信息量最高的一条，跳过玩梗句。
+
+    旧版直接取首条原话 —— 实测把「笑死，干运维还没用到Python[笑哭]」当成
+    机会标题，而 112 条真实需求簇的卡片被排在其后。规则：
+      - 含 [表情] 标签的跳过（多为玩梗/纯情绪）—— 主防线
+      - 过短（<8 字）的跳过（多为感叹、没有信息）
+      - 其余取最长者（信息密度最高），再按 max_len 截断
+    长度阈值只到 8 字：再高会误伤「预算有限投不起广告」这类真实诉求。
+    全不合格 → 退回 fallback（_topic_title 的「主导信号 + 规模」），
+    宁可标题平淡，也不引用玩梗句。
+    """
+    cands = []
+    for q in quotes or []:
+        t = (q or "").strip().strip("，。！？、；：,.!?;: ")
+        if not t or _EMOJI_TAG.search(t) or len(t) < 8:
+            continue
+        cands.append(t)
+    if not cands:
+        return fallback
+    best = max(cands, key=len)
+    return best[:max_len] + "…" if len(best) > max_len else best
+
+
+def _topic_title(p) -> str:
+    """无合格原话时的卡片标题：主导信号 + 样本规模（诚实，不引用玩梗句）。"""
+    sigs = p.get("signal_distribution") or {}
+    size = p.get("size", 0)
+    if not sigs:
+        return f"痛点（{size} 条评论）"   # 无信号时不得拼成「痛点痛点」
+    top = max(sigs.items(), key=lambda kv: kv[1])[0]
+    return f"{top}痛点（{size} 条评论）"
+
+
+def _fallback_reason(total, p) -> str:
+    """旧数据缺 score_reason 时的兜底：仍给出分数构成，不写空话。"""
+    scores = p.get("scores") or {}
+    used = [k for k in _ZH_DIMS if scores.get(k) is not None]
+    conf = p.get("score_confidence")
+    conf_txt = f" × 样本置信度 {conf:.2f}" if conf is not None else ""
+    names = "、".join(_ZH_DIMS[k] for k in used) or "无"
+    return (f"启发式评分：总分 {total} = 有效维度均值/5×100{conf_txt}"
+            f"（样本 {p.get('size', 0)} 条，参与 {len(used)}/5 维：{names}；"
+            "旧数据缺逐维理由）")
 
 
 def format_dim(value):
@@ -106,7 +150,7 @@ def _build_card(p, total_score, tier):
 
     description 优先级：pain_summary（T7 mine 生成的一句话摘要）→ title → 首条原话。
     """
-    title = format_title(p.get("representative_quotes"))
+    title = format_title(p.get("representative_quotes"), fallback=_topic_title(p))
     description = (p.get("pain_summary") or "").strip() \
         or (p.get("title") or "").strip() \
         or title \
@@ -131,7 +175,7 @@ def _build_card(p, total_score, tier):
         feasibility=format_dim(scores.get("feasibility")),
         reach=format_dim(scores.get("reach")),
         ai_leverage=format_dim(scores.get("ai_leverage")),
-        reason=f"\n**评分理由**：{p.get('score_reason', '启发式评分')}\n",
+        reason=f"\n**评分理由**：{p.get('score_reason') or _fallback_reason(total_score, p)}\n",
         mvp_type=mvp_rec.get("type", "咨询/模板"),
         mvp_rationale=mvp_rec.get("rationale", ""),
         validation=_format_list(mvp.get("validation_plan", [])),

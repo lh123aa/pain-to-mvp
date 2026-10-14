@@ -36,6 +36,8 @@ from pain_rules import detect_signals, filter_painful  # noqa: E402
 from preprocess import preprocess_comments  # noqa: E402
 from mine_pain_points import _dedup_by_text  # noqa: E402
 from run_inputs import safe_filename  # noqa: E402
+# conf 公式必须与评分同源：旧版此处硬编码 0.6+0.04*size，评分一改反推就失配
+from score_opportunity import _confidence_factor  # noqa: E402
 
 try:
     from score_opportunity import DIMS  # 单一真相源：评分维度顺序
@@ -94,7 +96,10 @@ def breakdown(p: dict) -> dict:
         basis = f"size={size}>=200"
 
     valid = [scores.get(k) for k in DIMS if scores.get(k) is not None]
-    conf = round(min(1.0, 0.6 + 0.04 * size), 2)
+    # 与 score_opportunity 共用同一公式来源；旧卡自带 score_confidence 时以其为准
+    conf = p.get("score_confidence")
+    if conf is None:
+        conf = _confidence_factor(size)
     raw = (sum(valid) / len(valid)) / 5 * 100 if valid else 0.0
     recomputed = round(raw * conf, 1)
 
@@ -269,7 +274,9 @@ def _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
         A(f"**`个人可行性` 由簇大小决定**（{b0['feas_basis']}），不是对内容的判断 —— "
           "簇小反而容易拿满分 5。")
         A("")
-        A("**`conf` 封顶规则**：`size ≥ 10` 即到 1.00，样本量再多不加分。")
+        A("**`conf` 封顶规则**：`size ≥ 50` 才到 1.00，`size=11` 只算 0.69 —— "
+          "11 条与 112 条的证据不再同价（旧版 10 条即封顶，样本量只剩反向惩罚，"
+          "是大簇被小簇压过的根因之一）。")
         A("")
 
     # 3. 被过滤评论的词级理由
@@ -530,8 +537,9 @@ def _render_html(keyword, ts, st, dropped, items, cards, raw_files, min_pain) ->
           "被均值运算剔除（不是「没打分」，是「没参与」）。</li>")
         A(f'<li><strong>个人可行性由簇大小决定</strong>（{e(b0["feas_basis"])}），'
           "不是对内容的判断 —— 簇小反而容易拿满分 5。</li>")
-        A("<li><strong>conf 封顶规则</strong>：<code>size ≥ 10</code> 即到 1.00，"
-          "样本量再多不加分。</li>")
+        A("<li><strong>conf 封顶规则</strong>：<code>size ≥ 50</code> 才到 1.00，"
+          "<code>size=11</code> 只算 0.69 —— 11 条与 112 条的证据不再同价"
+          "（旧版 10 条即封顶，样本量只剩反向惩罚，是大簇被小簇压过的根因之一）。</li>")
         A("</ul>")
         A("</div>")
     A("</section>")

@@ -30,19 +30,46 @@ from pathlib import Path
 # 属死代码，已清理为维度元组（OPEN_ISSUES #4）。
 DIMS = ("demand", "competition", "feasibility", "reach", "ai_leverage")
 
+def _paid_bonus(paid) -> int:
+    """付费信号量级加成：1-5 条 +1，6 条以上 +2，无 +0。
+
+    旧版是二值 `1 if "付费意愿" in sigs else 0`，再被 round 抹平 ——
+    实测 112 条簇里 10 个付费意愿与 11 条簇里 1 个付费意愿，
+    需求强度算出来同为 3/5，付费证据的量级差异完全丢失。
+    """
+    return min(2, (max(0, int(paid)) + 4) // 5)
+
+
+def _feas_basis(size) -> str:
+    """可行性依据的可读描述（与 exec_report.breakdown 同口径）。"""
+    if size < 50:
+        return f"size={size}<50"
+    if size < 200:
+        return f"size={size}<200"
+    return f"size={size}>=200"
+
+
 def _heuristic_scores(pain: dict) -> dict:
-    """启发式打分（无 LLM 时使用）"""
+    """启发式打分（无 LLM 时使用）。同时产出 reason，供 score_reason 落卡。"""
     avg_pain = pain.get("avg_pain", 0)
     size = pain.get("size", 0)
     sigs = pain.get("signal_distribution", {})
+    paid = int(sigs.get("付费意愿") or 0)
+    bonus = _paid_bonus(paid)
 
-    # 需求强度：平均痛点 + 付费信号
-    demand = min(5, max(1, round(avg_pain / 2 + (1 if "付费意愿" in sigs else 0))))
+    # 需求强度：平均痛点 + 付费信号量级
+    demand = min(5, max(1, round(avg_pain / 2 + bonus)))
     # 个人可行性：聚类规模小通常更聚焦
     feasibility = 5 if size < 50 else (4 if size < 200 else 3)
+    reason = (
+        f"启发式：需求强度 = 平均痛点 {avg_pain}/2 + 付费信号 {paid} 条(+{bonus}) "
+        f"→ {demand}/5；个人可行性 = 簇规模 {size} 条({_feas_basis(size)}) "
+        f"→ {feasibility}/5；竞争/触达/AI杠杆 无数据来源（不参与均值）"
+    )
     return {
         "demand": demand, "competition": None,
-        "feasibility": feasibility, "reach": None, "ai_leverage": None
+        "feasibility": feasibility, "reach": None, "ai_leverage": None,
+        "reason": reason,
     }
 
 def _llm_scores(pain: dict, model: str = "gpt-4o-mini") -> dict:
@@ -95,10 +122,15 @@ def _compose_total(scores: dict) -> float:
 def _confidence_factor(size: int) -> float:
     """小簇置信惩罚（T8）：样本越少，结论越不可信，按规模线性折减。
 
-    factor = min(1.0, 0.6 + 0.04 * size)，下限 0.6（3 条打 6 折，≥100 条不折）。
-    3 条评论撑起的"痛点"与 200 条同分同档会误导决策。
+    factor = min(1.0, 0.6 + 0.008 * size) —— 下限 0.6，50 条封顶 1.0。
+
+    旧值是 0.6 + 0.04 * size，在 size ≥ 10 就封顶 1.0：11 条与 112 条的证据
+    同价，样本量的正向作用失效；与此同时 feasibility（size<50 得 5 分）仍在
+    按「小簇更聚焦」反向计分 —— 等于样本量只剩反向惩罚这一条腿。实测后果：
+    112 条真实需求簇得 70 分，被 11 条玩梗簇的 80 分压过。
+    斜率调到 0.008 后，证据量的正向作用持续到 50 条，排序恢复。
     """
-    return min(1.0, 0.6 + 0.04 * max(0, int(size)))
+    return min(1.0, 0.6 + 0.008 * max(0, int(size)))
 
 def score(input_file, output_file=None, use_llm=True):
     pains = json.loads(Path(input_file).read_text(encoding="utf-8"))
@@ -117,8 +149,15 @@ def score(input_file, output_file=None, use_llm=True):
             "B" if total >= 55 else
             "C" if total >= 40 else "D"
         )
-        if "reason" in s:
-            p["score_reason"] = s["reason"]
+        # 评分理由必须总是存在且可核对（旧版启发式路径不产 reason，
+        # 卡片落到「启发式评分」四个字的空话兜底）。
+        size = int(p.get("size") or 0)
+        conf_txt = f"样本置信度 {conf:.2f}（{size} 条）"
+        base = str(s.get("reason") or "").strip()
+        p["score_reason"] = (
+            f"{base}；{conf_txt}" if base else
+            f"启发式评分：总分 {total} = 有效维度均值/5×100 × {conf_txt}"
+        )
         scored.append(p)
 
     scored.sort(key=lambda x: x["total_score"], reverse=True)
