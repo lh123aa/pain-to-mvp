@@ -101,58 +101,77 @@ def format_dim(value):
     return f"{value}/5" if value is not None else "—"
 
 
+def _build_card(p, total_score, tier):
+    """构造单张卡片内容（供 export 与测试复用）。
+
+    description 优先级：pain_summary（T7 mine 生成的一句话摘要）→ title → 首条原话。
+    """
+    title = format_title(p.get("representative_quotes"))
+    description = (p.get("pain_summary") or "").strip() \
+        or (p.get("title") or "").strip() \
+        or title \
+        or next((q for q in (p.get("representative_quotes") or []) if q), "（暂无描述）")
+    scores = p.get("scores") or {}  # 旧格式容错：缺键不崩，维度渲染 —（OPEN_ISSUES #4）
+    mvp = p.get("mvp", {})
+    mvp_rec = (mvp.get("recommended_mvp") or [{}])[0]
+    card_id = f"{datetime.now().strftime('%Y%m%d')}-{hash(description) % 1000:03d}"
+    content = CARD_TMPL.format(
+        id=card_id,
+        title=title,
+        status="discovered",
+        score=total_score,
+        tier=tier,
+        discovered_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+        size=p.get("size", 0),
+        description=description,
+        signals=json.dumps(p.get("signal_distribution", {}), ensure_ascii=False),
+        quotes=_format_quotes(p.get("representative_quotes")),
+        demand=format_dim(scores.get("demand")),
+        competition=format_dim(scores.get("competition")),
+        feasibility=format_dim(scores.get("feasibility")),
+        reach=format_dim(scores.get("reach")),
+        ai_leverage=format_dim(scores.get("ai_leverage")),
+        reason=f"\n**评分理由**：{p.get('score_reason', '启发式评分')}\n",
+        mvp_type=mvp_rec.get("type", "咨询/模板"),
+        mvp_rationale=mvp_rec.get("rationale", ""),
+        validation=_format_list(mvp.get("validation_plan", [])),
+        revenue=_format_list(mvp.get("revenue_layers", [])),
+        tech=", ".join(mvp.get("tech_stack", [])),
+        cost=mvp.get("estimated_cost", "¥0-500"),
+        days=mvp.get("estimated_days", 7),
+    )
+    return {"id": card_id, "title": title, "description": description, "content": content,
+            "scores": scores, "mvp": mvp, "total_score": total_score, "tier": tier,
+            "size": p.get("size", 0), "quotes": p.get("representative_quotes", [])[:3]}
+
+
 def export(input_file, top=5):
     scored = json.loads(Path(input_file).read_text(encoding="utf-8"))
     CARD_DIR.mkdir(parents=True, exist_ok=True)
 
     cards = []
     for i, p in enumerate(scored[:top], 1):
+        total_score = p.get("total_score")
+        tier = p.get("tier", "?")
+        built = _build_card(p, total_score, tier)
         card_id = f"{datetime.now().strftime('%Y%m%d')}-{i:03d}"
-        title = format_title(p.get("representative_quotes"))
-        mvp = p.get("mvp", {})
-        mvp_rec = (mvp.get("recommended_mvp") or [{}])[0]
-
-        scores = p.get("scores") or {}  # 旧格式容错：缺键不崩，维度渲染 —（OPEN_ISSUES #4）
-        content = CARD_TMPL.format(
-            id=card_id,
-            title=title,
-            status="discovered",
-            score=p.get("total_score"),
-            tier=p.get("tier", "?"),
-            discovered_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
-            size=p.get("size", 0),
-            description=title,
-            signals=json.dumps(p.get("signal_distribution", {}), ensure_ascii=False),
-            quotes=_format_quotes(p.get("representative_quotes")),
-            demand=format_dim(scores.get("demand")),
-            competition=format_dim(scores.get("competition")),
-            feasibility=format_dim(scores.get("feasibility")),
-            reach=format_dim(scores.get("reach")),
-            ai_leverage=format_dim(scores.get("ai_leverage")),
-            reason=f"\n**评分理由**：{p.get('score_reason', '启发式评分')}\n",
-            mvp_type=mvp_rec.get("type", "咨询/模板"),
-            mvp_rationale=mvp_rec.get("rationale", ""),
-            validation=_format_list(mvp.get("validation_plan", [])),
-            revenue=_format_list(mvp.get("revenue_layers", [])),
-            tech=", ".join(mvp.get("tech_stack", [])),
-            cost=mvp.get("estimated_cost", "¥0-500"),
-            days=mvp.get("estimated_days", 7),
-        )
+        built["content"] = built["content"].replace(f"#{built['id']}", f"#{card_id}", 1)
+        built["id"] = card_id
         card_path = CARD_DIR / f"{card_id}.md"
-        card_path.write_text(content, encoding="utf-8")
+        card_path.write_text(built["content"], encoding="utf-8")
         print(f"📇 卡片 → {card_path}")
 
         cards.append({
             "id": card_id,
-            "title": title,
+            "title": built["title"],
             "status": "discovered",
             "progress": 10,
-            "score": p.get("total_score"),
-            "tier": p.get("tier"),
-            "size": p.get("size"),
-            "representative_quotes": p.get("representative_quotes", [])[:3],
-            "scores": scores,
-            "mvp": mvp,
+            "score": total_score,
+            "tier": tier,
+            "size": built["size"],
+            "representative_quotes": built["quotes"],
+            "scores": built["scores"],
+            "mvp": built["mvp"],
             "card_path": str(card_path),
             "discovered_at": datetime.now().isoformat(),
         })

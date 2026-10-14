@@ -56,7 +56,7 @@ def _load_input(input_file=None, platform=None, limit=1000, inputs=None):
         return query_comments(platform=platform, limit=limit)
     return []
 
-def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, inputs=None):
+def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, inputs=None, output=None):
     raw = _load_input(input_file, platform, limit, inputs)
     print(f"📥 载入 {len(raw)} 条评论")
 
@@ -77,13 +77,18 @@ def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, 
         for m in c["members"]:
             for s in m.get("pain_signals", []):
                 sig_counter[s["label"]] = sig_counter.get(s["label"], 0) + 1
+        quotes = c["representative"]
+        top_signal = max(sig_counter.items(), key=lambda kv: kv[1])[0] if sig_counter else "共性诉求"
+        best_quote = (quotes[0] if quotes else "").strip().strip("，。！？、；：,.!?;: ")
+        pain_summary = f"{c['size']}条评论集中反映「{top_signal}」" + (f"：{best_quote}" if best_quote else "")
         pains.append({
             "cluster_id": c["cluster_id"],
             "size": c["size"],
             "avg_pain": c["avg_pain"],
             "total_pain": c["total_pain"],
             "signal_distribution": sig_counter,
-            "representative_quotes": c["representative"],
+            "pain_summary": pain_summary,
+            "representative_quotes": quotes,
             "evidence_ids": [m.get("id") for m in c["members"][:5]],
             "method": c["method"],
         })
@@ -91,13 +96,15 @@ def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M")
     tag = platform or Path(input_file).stem if input_file else "all"
-    out_file = OUTPUT_DIR / f"pains_{tag}_{ts}.json"
+    out_file = Path(output) if output else OUTPUT_DIR / f"pains_{tag}_{ts}.json"
+    if out_file.parent != Path(""):
+        out_file.parent.mkdir(parents=True, exist_ok=True)
     out_file.write_text(json.dumps(pains, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\n💾 已保存 → {out_file}")
 
     print("\n📊 Top 3 痛点簇：")
     for p in pains[:3]:
-        print(f"  - 簇{p['cluster_id']} | {p['size']}条 | 平均痛点 {p['avg_pain']} | {list(p['signal_distribution'].keys())}")
+        print(f"  - 簇{p['cluster_id']} | {p['size']}条 | 平均痛点 {p['avg_pain']} | {p.get('pain_summary', '')}")
         for q in p["representative_quotes"][:2]:
             print(f"      「{q[:50]}」")
     return pains
@@ -110,5 +117,6 @@ if __name__ == "__main__":
     p.add_argument("--limit", type=int, default=1000)
     p.add_argument("--min-pain", type=int, default=3)
     p.add_argument("--min-cluster", type=int, default=3)
+    p.add_argument("--output", help="输出 JSON 路径（默认 data/pains/自动命名）")
     args = p.parse_args()
-    mine(args.input, args.platform, args.limit, args.min_pain, args.min_cluster, inputs=args.inputs)
+    mine(args.input, args.platform, args.limit, args.min_pain, args.min_cluster, inputs=args.inputs, output=args.output)
