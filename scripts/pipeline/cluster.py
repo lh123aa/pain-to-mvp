@@ -160,15 +160,24 @@ def cluster_comments(comments: List[Dict], min_size: int = 3) -> List[Dict]:
         return []
     texts = [c.get("clean_content") or c.get("content") or "" for c in comments]
     if len(texts) < min_size:
+        # 短路径字段必须与主路径一致（mine 无条件读 avg_pain/total_pain/method）
+        total_pain = sum(c.get("pain_score", 0) for c in comments)
         return [{"cluster_id": 0, "size": len(texts), "members": comments,
-                 "representative": _select_representative(comments)}]
+                 "representative": _select_representative(comments),
+                 "total_pain": total_pain,
+                 "avg_pain": round(total_pain / len(comments), 2),
+                 "method": "shortpath_under_min_size"}]
 
     # 噪音过滤：标签串/灌水不参与聚类（T6）
     kept = [(c, t) for c, t in zip(comments, texts) if not _is_noise(t)]
     if not kept:
-        # 全噪音：保留原始成员，避免空结果
+        # 全噪音：保留原始成员，避免空结果（字段同样必须齐全）
+        total_pain = sum(c.get("pain_score", 0) for c in comments)
         return [{"cluster_id": 0, "size": len(comments), "members": comments,
-                 "representative": _select_representative(comments)}]
+                 "representative": _select_representative(comments),
+                 "total_pain": total_pain,
+                 "avg_pain": round(total_pain / len(comments), 2),
+                 "method": "all_noise_fallback"}]
     comments, texts = [c for c, _ in kept], [t for _, t in kept]
 
     try:
