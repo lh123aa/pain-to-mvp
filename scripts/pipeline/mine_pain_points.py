@@ -75,7 +75,23 @@ def _dedup_by_text(comments):
     return out
 
 
-def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, inputs=None, output=None):
+def _keep_topics(comments, topics=None):
+    """主题聚焦过滤（T10）：多视频混合评论中剔除与目标领域无关的闲聊。
+
+    数据源常为多个视频的评论区合并，闲聊/玩梗评论（"超市菜价""包工头"）
+    命中通用痛感词后会污染聚类。指定主题词后只保留命中任一词的评论。
+    """
+    if not topics:
+        return comments
+    out = []
+    for c in comments:
+        text = c.get("clean_content") or c.get("content") or ""
+        if any(t in text for t in topics):
+            out.append(c)
+    return out
+
+
+def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, inputs=None, output=None, topics=None):
     raw = _load_input(input_file, platform, limit, inputs)
     print(f"📥 载入 {len(raw)} 条评论")
 
@@ -86,6 +102,11 @@ def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, 
     if len(deduped) < len(cleaned):
         print(f"🔁 文本去重 {len(cleaned) - len(deduped)} 条（跨视频重复评论）")
         cleaned = deduped
+
+    if topics:
+        before = len(cleaned)
+        cleaned = _keep_topics(cleaned, topics)
+        print(f"🎯 主题聚焦「{'/'.join(topics)}」保留 {len(cleaned)}/{before} 条")
 
     painful = filter_painful(cleaned, min_score=min_pain)
     print(f"🔥 痛点评论 {len(painful)} 条")
@@ -142,5 +163,6 @@ if __name__ == "__main__":
     p.add_argument("--min-pain", type=int, default=3)
     p.add_argument("--min-cluster", type=int, default=3)
     p.add_argument("--output", help="输出 JSON 路径（默认 data/pains/自动命名）")
+    p.add_argument("--topics", nargs="+", help="主题词列表：只保留命中任一词的评论（多视频混合源聚焦领域）")
     args = p.parse_args()
-    mine(args.input, args.platform, args.limit, args.min_pain, args.min_cluster, inputs=args.inputs, output=args.output)
+    mine(args.input, args.platform, args.limit, args.min_pain, args.min_cluster, inputs=args.inputs, output=args.output, topics=args.topics)

@@ -68,16 +68,36 @@ def _select_representative(members: List[Dict], top: int = 3) -> List[str]:
         ordered = pool
     else:
         bgs = {id(m): _bigrams(text(m)) for m in pool}
+        max_pain = max((m.get("pain_score", 0) for m in pool), default=1) or 1
         def rep_score(m):
-            mine = bgs[id(m)]
+            mine_b = bgs[id(m)]
             sims = []
             for o in pool:
                 if o is m:
                     continue
                 other = bgs[id(o)]
-                sims.append(len(mine & other) / (len(mine | other) or 1))
-            return sum(sims) / len(sims) if sims else 0.0
-        ordered = sorted(pool, key=lambda m: (rep_score(m), m.get("pain_score", 0)), reverse=True)
+                sims.append(len(mine_b & other) / (len(mine_b | other) or 1))
+            avg = sum(sims) / len(sims) if sims else 0.0
+            # 乘性组合：相似度为门槛（sim=0 的离群句直接出局），痛点强度做加成。
+            # 加性组合下 sim=0 但 pain 满分的离群句仍能靠 pain 贡登顶（T9/T10）
+            return avg * (0.5 + 0.5 * (m.get("pain_score", 0) / max_pain))
+        ordered = sorted(pool, key=rep_score, reverse=True)
+        # MMR 去冗余：后续代表句须与已选句有差异，覆盖簇内不同侧面
+        picked = []
+        for m in ordered:
+            if len(picked) >= top:
+                break
+            if any(len(bgs[id(m)] & bgs[id(o)]) / (len(bgs[id(m)] | bgs[id(o)]) or 1) > 0.25
+                   for o in picked):
+                continue
+            picked.append(m)
+        # 不足 top 时用剩余最高分补齐（避免空缺）
+        for m in ordered:
+            if len(picked) >= top:
+                break
+            if m not in picked:
+                picked.append(m)
+        ordered = picked
     return [text(m) for m in ordered[:top]]
 # --- 结束痛点信号过滤 ---
 
