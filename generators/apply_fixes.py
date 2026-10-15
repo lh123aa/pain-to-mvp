@@ -551,7 +551,7 @@ def fix_scoring() -> None:
         "demand": demand, "competition": None,
         "feasibility": feasibility, "reach": None, "ai_leverage": None
     }''',
-        marker='"competition": None,',
+        marker='"reach": None',
         desc="score: 启发式只输出有数据维度",
     )
     patch_text(
@@ -963,7 +963,8 @@ def copy_canonical_modules() -> None:
 
     generators/fixes/{cluster,mine_pain_points,score_opportunity,export_card}.py
     是已含全部 overlay + iteration-1 T6-T10 修复（噪音过滤/兜底聚类/pain_summary/
-    _build_card/score_confidence/文本去重/--topics/代表句 MMR）的最终版本。
+    _build_card/score_confidence/文本去重/--topics/代表句 MMR）+ 0.3.0 证据驱动
+    评分维度（竞争=对比+失望 / AI杠杆=形态词表，见 score_opportunity）的最终版本。
     生成器重跑后由本步骤覆盖回去，防止模板回退丢失修复。必须在各 patch 之后执行。
     """
     for name in ("cluster.py", "mine_pain_points.py", "score_opportunity.py", "export_card.py"):

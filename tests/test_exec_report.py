@@ -154,6 +154,56 @@ def test_report_written_and_mentions_key_facts(tmp_path, monkeypatch):
     assert "未评" in body or "competition" in body, "必须标出未评维度"
 
 
+def test_section2_formula_text_matches_actual_conf(tmp_path, monkeypatch):
+    """第 2 节公式文案必须与现行 conf 公式一致。
+
+    历史缺陷：1b1e2d5 把斜率 0.04 调到 0.008，公式文案没跟着改 ——
+    报告展示的公式与真实计算各说各话（数字与解释不符）。
+    须给 scored（公式行只在有卡片时渲染）。
+    """
+    monkeypatch.setattr(er, "REPORT_DIR", tmp_path)
+    scored = tmp_path / "scored_f.json"
+    scored.write_text(json.dumps([{
+        "size": 60, "avg_pain": 6.0, "signal_distribution": {"求助": 20},
+        "scores": {"demand": 3, "competition": None, "feasibility": 3,
+                   "reach": None, "ai_leverage": None},
+        "total_score": 60.0, "tier": "B",
+        "representative_quotes": ["太难了"],
+    }], ensure_ascii=False), encoding="utf-8")
+    out = er.generate(keyword="测试关键词", discovered=None, raw_files=[], scored=scored)
+    body = out.read_text(encoding="utf-8")
+    assert "0.6+0.008×size" in body, "公式文案必须用现行 conf 斜率 0.008"
+    assert "0.6+0.04×size" not in body, "过期公式 0.04 残留在报告里"
+
+
+def test_section2_table_exposes_evidence_dims(tmp_path, monkeypatch):
+    """竞争/AI杠杆进了均值，拆解表必须展示数值与「证据驱动」口径。
+
+    旧表只有 需求/可行性 两列（当时其余三维恒 None）—— 维度进均值后
+    不上表就是不可核对；旧的「三维恒为 None」说明也变成谎话。
+    """
+    monkeypatch.setattr(er, "REPORT_DIR", tmp_path)
+    scored = tmp_path / "scored_ev.json"
+    # 竞争=5 的算术：(4+5+3)/3×20 = 80.0，conf(60)=1.0 → 80.0 自洽
+    scored.write_text(json.dumps([{
+        "size": 60, "avg_pain": 6.0,
+        "signal_distribution": {"求助": 30, "对比": 10, "失望": 10},
+        "scores": {"demand": 4, "competition": 5, "feasibility": 3,
+                   "reach": None, "ai_leverage": None},
+        "total_score": 80.0, "tier": "A",
+        "representative_quotes": ["求个工具"],
+    }], ensure_ascii=False), encoding="utf-8")
+    out = er.generate(keyword="测试关键词", discovered=None, raw_files=[], scored=scored)
+    sec2 = out.read_text(encoding="utf-8").split("## 2.")[1].split("## 3.")[0]
+
+    assert "| 4 | 5 | 3 (size=60<200) |" in sec2, (
+        f"拆解行必须依次展示 需求4/竞争5/可行性3，实际：{sec2[:400]}")
+    assert "竞争" in sec2 and "AI杠杆" in sec2, "表头缺证据维度列"
+    assert "证据驱动" in sec2, "参与口径须改为证据驱动"
+    assert "竞争空缺 / 触达难度 / AI杠杆` 恒为 `None`" not in sec2, (
+        "旧的「三维恒 None」说明已过期（竞争/AI杠杆现在证据驱动）")
+
+
 def test_report_filename_contains_keyword(tmp_path, monkeypatch):
     monkeypatch.setattr(er, "REPORT_DIR", tmp_path)
     out = er.generate(keyword="独立开发者", discovered=None, raw_files=[], scored=None)

@@ -106,8 +106,11 @@ def breakdown(p: dict) -> dict:
 
     return {
         "demand": scores.get("demand"),
+        "competition": scores.get("competition"),
         "feasibility": scores.get("feasibility"),
         "feas_basis": basis,
+        "reach": scores.get("reach"),
+        "ai_leverage": scores.get("ai_leverage"),
         "conf": conf,
         "raw": round(raw, 1),
         "recomputed": recomputed,
@@ -255,22 +258,25 @@ def _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
     if not cards:
         A("_无评分数据。_")
     else:
-        A("公式：`total = 有效维度均值 / 5 × 100 × min(1.0, 0.6+0.04×size)`")
+        A("公式：`total = 有效维度均值 / 5 × 100 × min(1.0, 0.6+0.008×size)`")
         A("")
-        A("| # | 分 | 档 | 需求 | 可行性 | conf | 反推总分 | 未评维度 |")
-        A("|---|---:|---|---:|---|---:|---:|---|")
+        A("| # | 分 | 档 | 需求 | 竞争 | 可行性 | AI杠杆 | conf | 反推总分 | 未评维度 |")
+        A("|---|---:|---|---:|---:|---|---:|---:|---:|---|")
         for i, c in enumerate(cards, 1):
             b = breakdown(c)
             une = ", ".join(f"{DIM_ZH.get(k, k)}" for k in b["unevaluated"]) or "—"
             feas = f"{b['feasibility']} ({b['feas_basis']})" if b["feasibility"] is not None else "—"
+            comp = b["competition"] if b["competition"] is not None else "—"
+            ai = b["ai_leverage"] if b["ai_leverage"] is not None else "—"
             A(f"| {i} | {c.get('total_score')} | {b['tier']} | "
-              f"{b['demand'] if b['demand'] is not None else '—'} | {feas} | "
-              f"{b['conf']:.2f} | {b['recomputed']} | {une} |")
+              f"{b['demand'] if b['demand'] is not None else '—'} | {comp} | {feas} | "
+              f"{ai} | {b['conf']:.2f} | {b['recomputed']} | {une} |")
         A("")
         b0 = breakdown(cards[0])
-        A(f"**只有 {b0['dims_used']}/{b0['dims_total']} 个评分维度参与** —— "
-          "启发式路径下 `竞争空缺 / 触达难度 / AI杠杆` 恒为 `None`，"
-          '被均值运算剔除（不是"没打分"，是"没参与"）。')
+        A(f"**评分维度按证据参与** —— 本卡 {b0['dims_used']}/{b0['dims_total']} 维进均值："
+          "`竞争空缺`（对比+失望信号）与 `AI杠杆`（代表句产品形态词）**证据驱动** —— "
+          "有证据才评、无证据为 `None` 被均值剔除（不是「没打分」，是「没参与」）；"
+          "`触达难度` 无独立数据来源，启发式路径恒为 `None`。")
         A("")
         A(f"**`个人可行性` 由簇大小决定**（{b0['feas_basis']}），不是对内容的判断 —— "
           "簇小反而容易拿满分 5。")
@@ -347,7 +353,7 @@ def _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
     A(f"| 痛点过滤 | 信号词权重和 ≥ {min_pain} 才保留 | `pain_rules.filter_painful` |")
     A("| 簇主题 | **取频次最高信号**（求助量大恒压付费/失望） | `mine_pain_points.py:126` |")
     A("| 代表句 | `avg × (0.5+0.5×pain/max)` 乘性打分 + MMR，**无长度上限** | `cluster.py:71-83` |")
-    A("| 评分 | 2/5 维参与；`feasibility` 看 size；`conf` 看 size | `score_opportunity.py:33-95` |")
+    A("| 评分 | **证据驱动**：需求=痛点+付费量级、竞争=对比+失望、可行看 size、AI杠杆=形态词表、触达恒 None；`conf` 看 size | `score_opportunity._heuristic_scores` |")
     A("| MVP 类型 | 取信号 dict **第一个键**（插入顺序，非主导信号） | `design_mvp.py:39` |")
     A("| 主题聚焦 | `--topics` 可选，**run_all 默认不启用** | `run_all.py:72` |")
     A("| 域校验前置 | 娱乐域关键词 → 爬取前警告（**不阻断**） | `run_all.domain_precheck` |")
@@ -532,30 +538,37 @@ def _render_html(keyword, ts, st, dropped, items, cards, raw_files, min_pain) ->
         A('<div class="card"><p class="note">无评分数据。</p></div>')
     else:
         A('<div class="card">')
-        A('<p class="formula">total = 有效维度均值 / 5 × 100 × min(1.0, 0.6+0.04×size)</p>')
+        A('<p class="formula">total = 有效维度均值 / 5 × 100 × min(1.0, 0.6+0.008×size)</p>')
         A('<div class="tbl-wrap"><table class="tbl"><thead><tr>'
           '<th class="num">#</th><th class="num">分</th><th>档</th><th class="num">需求</th>'
-          '<th>可行性</th><th class="num">conf</th><th class="num">反推总分</th>'
+          '<th class="num">竞争</th><th>可行性</th><th class="num">AI杠杆</th>'
+          '<th class="num">conf</th><th class="num">反推总分</th>'
           "<th>未评维度</th></tr></thead><tbody>")
         for i, (c, b) in enumerate(zip(cards, bds), 1):
             tier_cls = "tier a" if b["tier"] == "A" else "tier"
             feas = ("—" if b["feasibility"] is None else
                     f'{b["feasibility"]} <span class="basis">({e(b["feas_basis"])})</span>')
+            comp = "—" if b.get("competition") is None else b["competition"]
+            ai = "—" if b.get("ai_leverage") is None else b["ai_leverage"]
             chips = "".join(
                 f'<span class="chip">{e(DIM_ZH.get(k, k))}</span>' for k in b["unevaluated"])
             A(f'<tr><td class="num">{i}</td><td class="num">{e(str(c.get("total_score")))}</td>'
               f'<td><span class="{tier_cls}">{b["tier"]}</span></td>'
               f'<td class="num">{b["demand"] if b["demand"] is not None else "—"}</td>'
+              f'<td class="num">{comp}</td>'
               f"<td>{feas}</td>"
+              f'<td class="num">{ai}</td>'
               f'<td class="num">{b["conf"]:.2f}</td>'
               f'<td class="num">{b["recomputed"]}</td>'
               f'<td>{chips or "—"}</td></tr>')
         A("</tbody></table></div>")
         b0 = bds[0]
         A("<ul class='notes'>")
-        A(f'<li><strong>只有 {b0["dims_used"]}/{b0["dims_total"]} 个评分维度参与</strong> —— '
-          "启发式路径下 <code>竞争空缺 / 触达难度 / AI杠杆</code> 恒为 <code>None</code>，"
-          "被均值运算剔除（不是「没打分」，是「没参与」）。</li>")
+        A(f'<li><strong>评分维度按证据参与</strong> —— 本卡 {b0["dims_used"]}/{b0["dims_total"]} 维进均值：'
+          "<code>竞争空缺</code>（对比+失望信号）与 <code>AI杠杆</code>（代表句产品形态词）"
+          "<strong>证据驱动</strong> —— 有证据才评、无证据为 <code>None</code> 被均值剔除"
+          "（不是「没打分」，是「没参与」）；<code>触达难度</code> 无独立数据来源，"
+          "启发式路径恒为 <code>None</code>。</li>")
         A(f'<li><strong>个人可行性由簇大小决定</strong>（{e(b0["feas_basis"])}），'
           "不是对内容的判断 —— 簇小反而容易拿满分 5。</li>")
         A("<li><strong>conf 封顶规则</strong>：<code>size ≥ 50</code> 才到 1.00，"
@@ -658,7 +671,9 @@ def _render_html(keyword, ts, st, dropped, items, cards, raw_files, min_pain) ->
         ("痛点过滤", f"信号词权重和 ≥ {min_pain} 才保留", "pain_rules.filter_painful"),
         ("簇主题", "取频次最高信号（求助量大恒压付费/失望）", "mine_pain_points.py:126"),
         ("代表句", "乘性打分 + MMR，<strong>无长度上限</strong>", "cluster.py:71-83"),
-        ("评分", "2/5 维参与；可行性看 size；conf 看 size", "score_opportunity.py:33-95"),
+        ("评分", "<strong>证据驱动</strong>：需求=痛点+付费量级、竞争=对比+失望、"
+         "可行看 size、AI杠杆=形态词表、触达恒 None；conf 看 size",
+         "score_opportunity._heuristic_scores"),
         ("MVP 类型", "取信号 dict <strong>第一个键</strong>（插入顺序，非主导信号）",
          "design_mvp.py:39"),
         ("主题聚焦", "<code>--topics</code> 可选，<strong>run_all 默认不启用</strong>",

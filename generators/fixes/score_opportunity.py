@@ -30,6 +30,68 @@ from pathlib import Path
 # 属死代码，已清理为维度元组（OPEN_ISSUES #4）。
 DIMS = ("demand", "competition", "feasibility", "reach", "ai_leverage")
 
+# AI杠杆的代表句形态词表（OPEN_ISSUES #21 方向A收窄版，2026-10-15 批准）：
+# 软件形态词 → AI 可 10x；硬件/线下形态词 → AI 难杠杆。匹配前文本统一 lower()。
+AI_LEVERAGE_HIGH = (
+    "工具", "网站", "小程序", "app", "插件", "模板", "脚本",
+    "自动", "一键", "在线", "查询", "生成", "转换", "数据", "教程", "攻略",
+)
+AI_LEVERAGE_LOW = (
+    "硬件", "实体", "线下", "门店", "上门", "维修", "物流", "快递", "手工", "工厂",
+)
+
+
+def _competition_score(pain: dict):
+    """竞争空缺（1-5 或 None）：现有方案是否不足。返回 (score, 证据描述)。
+
+    证据 = 簇内「对比」（用户在比较现有方案）与「失望」（对方案不满）信号：
+    - 双证据且 (对比+失望)/size ≥ 15% → 竞品在被比较且被不满 → 空缺大（5）
+    - 双证据稀疏（4）/ 单证据（3）→ 中档，不虚高
+    - 零证据 → None：无证据不评，不伪造（方向A红线，与旧「恒 None」的区别是
+      有证据时真的评）
+    """
+    sigs = pain.get("signal_distribution") or {}
+    size = max(1, int(pain.get("size") or 1))
+    cmp_n = int(sigs.get("对比") or 0)
+    dsp_n = int(sigs.get("失望") or 0)
+    if cmp_n == 0 and dsp_n == 0:
+        return None, "无对比/失望证据（不参与均值）"
+    score = 2
+    if cmp_n:
+        score += 1
+    if dsp_n:
+        score += 1
+    density = (cmp_n + dsp_n) / size
+    if cmp_n and dsp_n and density >= 0.15:
+        score += 1
+    return min(5, score), f"对比 {cmp_n}+失望 {dsp_n} 条(密度 {density:.0%})"
+
+
+def _ai_leverage_score(pain: dict):
+    """AI杠杆（1-5 或 None）：代表句里有无产品形态证据。返回 (score, 证据描述)。
+
+    软件形态词命中越多分越高（3+2=5），硬件/线下越多越低（3-2=1），
+    两类命中取中间；都没有 → None —— 纯痛点句评不出杠杆，不硬凑。
+    """
+    text = " ".join(pain.get("representative_quotes") or []).lower()
+    hi = sorted({w for w in AI_LEVERAGE_HIGH if w in text})
+    lo = sorted({w for w in AI_LEVERAGE_LOW if w in text})
+    if not hi and not lo:
+        return None, "代表句无产品形态词（不参与均值）"
+    score = 3
+    if hi:
+        score += 2 if len(hi) >= 2 else 1
+    if lo:
+        score -= 2 if len(lo) >= 2 else 1
+    score = max(1, min(5, score))
+    if hi and lo:
+        ev = f"软件词 {len(hi)}+线下词 {len(lo)} 个"
+    elif hi:
+        ev = f"软件形态词 {len(hi)} 个({'/'.join(hi[:3])})"
+    else:
+        ev = f"线下形态词 {len(lo)} 个({'/'.join(lo[:3])})"
+    return score, ev
+
 def _paid_bonus(paid) -> int:
     """付费信号量级加成：1-5 条 +1，6 条以上 +2，无 +0。
 
@@ -50,7 +112,12 @@ def _feas_basis(size) -> str:
 
 
 def _heuristic_scores(pain: dict) -> dict:
-    """启发式打分（无 LLM 时使用）。同时产出 reason，供 score_reason 落卡。"""
+    """启发式打分（无 LLM 时使用）。同时产出 reason，供 score_reason 落卡。
+
+    维度参与规则（方向A收窄版）：demand/feasibility 恒评；
+    competition/ai_leverage 证据驱动（有证据才评，无证据 None）；
+    reach 无独立数据来源，恒为 None（诚实留空，不硬凑）。
+    """
     avg_pain = pain.get("avg_pain", 0)
     size = pain.get("size", 0)
     sigs = pain.get("signal_distribution", {})
@@ -61,14 +128,21 @@ def _heuristic_scores(pain: dict) -> dict:
     demand = min(5, max(1, round(avg_pain / 2 + bonus)))
     # 个人可行性：聚类规模小通常更聚焦
     feasibility = 5 if size < 50 else (4 if size < 200 else 3)
+    competition, comp_ev = _competition_score(pain)
+    ai_leverage, ai_ev = _ai_leverage_score(pain)
+    comp_part = (f"竞争空缺 = {comp_ev} → {competition}/5" if competition is not None
+                 else f"竞争空缺 {comp_ev}")
+    ai_part = (f"AI杠杆 = {ai_ev} → {ai_leverage}/5" if ai_leverage is not None
+               else f"AI杠杆 {ai_ev}")
     reason = (
         f"启发式：需求强度 = 平均痛点 {avg_pain}/2 + 付费信号 {paid} 条(+{bonus}) "
         f"→ {demand}/5；个人可行性 = 簇规模 {size} 条({_feas_basis(size)}) "
-        f"→ {feasibility}/5；竞争/触达/AI杠杆 无数据来源（不参与均值）"
+        f"→ {feasibility}/5；{comp_part}；{ai_part}；"
+        f"触达难度 无数据来源（不参与均值）"
     )
     return {
-        "demand": demand, "competition": None,
-        "feasibility": feasibility, "reach": None, "ai_leverage": None,
+        "demand": demand, "competition": competition,
+        "feasibility": feasibility, "reach": None, "ai_leverage": ai_leverage,
         "reason": reason,
     }
 

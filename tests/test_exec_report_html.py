@@ -210,3 +210,28 @@ def test_section6_lists_domain_rules(tmp_path, monkeypatch):
     for loc in ("run_all.domain_precheck", "domain_check.is_adult",
                 "domain_check.domain_overlap"):
         assert loc in html_body, f"HTML 第 6 节规则表缺 {loc}"
+
+
+def test_html_section2_exposes_evidence_dims(tmp_path, monkeypatch):
+    """HTML 第 2 节与 md 同口径：现行 conf 公式 + 证据维度上表 + 证据驱动说明。"""
+    monkeypatch.setattr(er, "REPORT_DIR", tmp_path)
+    scored = tmp_path / "scored_ev.json"
+    scored.write_text(json.dumps([{
+        "size": 60, "avg_pain": 6.0,
+        "signal_distribution": {"求助": 30, "对比": 10, "失望": 10},
+        "scores": {"demand": 4, "competition": 5, "feasibility": 3,
+                   "reach": None, "ai_leverage": None},
+        "total_score": 80.0, "tier": "A",
+        "representative_quotes": ["求个工具"],
+    }], ensure_ascii=False), encoding="utf-8")
+    er.generate(keyword="测试关键词", discovered=None, raw_files=[], scored=scored)
+    html_body = _html(tmp_path)
+    sec2 = html_body.split("分数拆解")[1].split('<span class="n">3')[0]
+
+    assert "0.6+0.008×size" in sec2, "HTML 公式文案必须用现行斜率 0.008"
+    assert "0.6+0.04×size" not in sec2, "HTML 残留过期公式 0.04"
+    assert "竞争</th>" in sec2, "HTML 拆解表缺竞争列"
+    assert "AI杠杆</th>" in sec2, "HTML 拆解表缺 AI杠杆列"
+    assert "证据驱动" in sec2, "HTML 参与口径须改为证据驱动"
+    assert "竞争空缺 / 触达难度 / AI杠杆</code> 恒为" not in sec2, (
+        "HTML 旧「三维恒 None」说明已过期")
