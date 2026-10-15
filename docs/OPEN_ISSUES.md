@@ -34,15 +34,15 @@
 | 9 | `update_progress.py` / `dashboard.json` 落实 PRD §6.1 六阶段状态机 + `schema_version` + 单向流转校验 | PRD 决策（Q7） | 非法状态/回退被拒绝；schema_version 写入顶层 | ✅ 六阶段单向流转 + dropped 终态 + progress 只增不减 + schema_version + 旧枚举自动迁移（0.3.1，test_dashboard_state.py 8 项） |
 | 10 | python-dotenv 接线：代码统一从 `.env` 读凭证 | PRD 决策（Q8） | `.env` 可用，文档不再是"计划" | ✅ `env_loader.py` + `pipeline/__init__.py` 零接线全入口覆盖；shell 优先、fail-safe（0.3.1，test_env_loader.py 3 项）；USAGE §五已更新为"已接线" |
 | 11 | 评分校准闭环落地：抽检记录格式 + 回看脚本/流程（`data/calibration/` 已有 2 条真实记录） | PRD §五（Q6） | 抽检可记录、累计 20 条可回看命中率 | ✅ `calibration.py` record/review 两命令（0.3.1）：格式契约 SCHEMA_FIELDS、fail-close 校验、信号级/top3 命中率回看、满 20 条提示；真实数据冒烟通过（现 2/20） |
-| 12 | SQLite 主键仅 id 与 JSONL 去重键 (platform,source_id,id) 不一致，跨平台同 id 静默丢弃 | deferred | 主键/唯一键与去重键对齐 + 测试 |
-| 13 | serve.py 不解码 %xx，含中文资源名 403 | deferred | 中文资源名可访问 + 测试 |
-| 14 | daily-audit.yml 处置：仍定时跑且 auto commit&push，与「自优化不投入」决策冲突 | PRD §三（Q3） | 去定时改手动，或删除；二选一留记录 |
-| 15 | heal_runner `load_bugs` 无坏行保护；subprocess 死导入 | deferred | 坏行跳过；死导入清除 |
+| 12 | SQLite 主键仅 id 与 JSONL 去重键 (platform,source_id,id) 不一致，跨平台同 id 静默丢弃 | deferred | 主键/唯一键与去重键对齐 + 测试 | ✅ 复合主键 `(platform, source_id, id)` + `_migrate_pk` 旧库自动迁移保数（PRAGMA table_info 检测单键旧库→重建表）；fix_storage patch3 防回退；test_storage.py 新增 3 项（跨平台共存/同键仍去重/迁移保数） |
+| 13 | serve.py 不解码 %xx，含中文资源名 403 | deferred | 中文资源名可访问 + 测试 | ✅ unquote 进 `resolve_asset`（解码先于边界检查，`%2e%2e%2f` 穿越仍被拦）；fix_serve 补 import patch + resolve_asset patch 同步；test_serve_asset.py 新增 2 项 |
+| 14 | daily-audit.yml 处置：仍定时跑且 auto commit&push，与「自优化不投入」决策冲突 | PRD §三（Q3） | 去定时改手动，或删除；二选一留记录 | ✅ 去定时仅留 workflow_dispatch，结果改 artifact 上传不再 auto commit&push（与 self-heal.yml 只读原则一致）；决策注释留 yml 头部；test_workflow_guards.py 守卫 2 项防回退 |
+| 15 | heal_runner `load_bugs` 无坏行保护；subprocess 死导入 | deferred | 坏行跳过；死导入清除 | ✅ 坏行 try/except JSONDecodeError 跳过；subprocess 死导入清除（canonical + fixes/ 双改）；test_heal.py 补坏行测试 + `not hasattr(heal_runner, "subprocess")` 守卫 |
 | 22 | `--topics` 未从 run_all 接线（mine 支持但入口不传，域内聚焦默认关闭） | 2026-10-14 报告追查 | run_all 透传或显式决策不启用并记录 | ✅ run_all 新增 `--topics` 透传 mine（0.3.1，test_topics_wiring.py 3 项；未给参数行为不变） |
-| 23 | `min_cluster=3` 过松：3 条同句式玩梗即可成簇进卡片 | 报告追查 | 阈值提高或加簇内多样性校验 |
-| 24 | `design_mvp.py` MVP 类型取信号 dict **第一个键**（插入顺序，非主导信号） | 报告第 6 节已标注 | 取频次最高信号 |
-| 25 | 同日卡片覆盖：`data/cards/` 按日期命名，同日二次跑批覆盖前次 | 报告追查 | 加时间戳或 run id |
-| 26 | `score_confidence` 已写入数据但卡片不显示 | 2026-10-14 修复附带发现 | 卡片展示置信度 |
+| 23 | `min_cluster=3` 过松：3 条同句式玩梗即可成簇进卡片 | 报告追查 | 阈值提高或加簇内多样性校验 | ✅ 簇内多样性校验 `_is_homogeneous_repetition`：成员两两 bigram Jaccard 全 ≥0.5 判复读簇丢弃（存在一对差异表达即保留，不误杀"同痛点不同说法"）；test_cluster_diversity.py 4 项 |
+| 24 | `design_mvp.py` MVP 类型取信号 dict **第一个键**（插入顺序，非主导信号） | 报告第 6 节已标注 | 取频次最高信号 | ✅ sigs 按频次降序 sorted；fix_design_mvp patch 防生成器重建回退；test_design_mvp.py 2 项 |
+| 25 | 同日卡片覆盖：`data/cards/` 按日期命名，同日二次跑批覆盖前次 | 报告追查 | 加时间戳或 run id | ✅ `_next_card_id_seq` 同日续接序号（扫描已有 `{date}-NNN` 从最大值继续）；首跑文件保留、id 不重复；test_card_confidence_overwrite.py 覆盖 |
+| 26 | `score_confidence` 已写入数据但卡片不显示 | 2026-10-14 修复附带发现 | 卡片展示置信度 | ✅ 机会评分表加「样本置信度」行：有值 `f"{conf:.2f}"`、缺值渲染 `—` 不伪造；canonical export_card 双改（与 fixes/ 字节一致） |
 
 ## P3 — 有空再清（已有兜底，风险低）
 

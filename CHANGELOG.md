@@ -3,6 +3,22 @@
 版本策略（PRD §八）：自 0.1.0 起按 semver 计；生成器时代的 5.x 版本号已废弃，仅作历史留档。
 每次合并 master 必须更新本文件。
 
+## [0.3.2] - 2026-10-15
+
+iteration-3 前半：P2 技术债清账（OPEN_ISSUES #12-#15、#23-#26 全部闭环）。
+
+### Fixed
+- **SQLite 复合主键**（OPEN_ISSUES #12）：comments 主键 `id` → `(platform, source_id, id)`，跨平台同 id（bilibili '1' vs reddit '1'）不再被 `INSERT OR IGNORE` 静默互覆；`_migrate_pk` 检测旧单键库自动重建表保数；`fix_storage` patch3 防生成器重建回退；+3 测试（test_storage.py）
+- **serve %xx 解码**（OPEN_ISSUES #13）：`unquote` 进 `resolve_asset`，解码先于边界检查（`%2e%2e%2f` 穿越仍被拦），中文资源名不再 403；fix_serve 补 import patch；+2 测试（test_serve_asset.py）
+- **heal_runner 坏行跳过 + 死导入清除**（OPEN_ISSUES #15）：`load_bugs` 坏行 try/except JSONDecodeError 跳过不炸整份诊断；`import subprocess` 死导入清除（canonical + fixes/ 双改）；test_heal.py 改全局 subprocess patch + `not hasattr` 守卫；+1 测试
+- **design_mvp 主导信号**（OPEN_ISSUES #24）：sigs 按频次降序而非 dict 插入顺序，首推与 deliverable_hint 跟随票数最高信号；新增 `fix_design_mvp` patch 防回退；+2 测试（test_design_mvp.py）
+- **卡片置信度上卡**（OPEN_ISSUES #26）：机会评分表加「样本置信度」行，有值 `:.2f`、缺值 `—` 不伪造；canonical export_card 与 fixes/ 字节一致
+- **同日卡片不覆盖**（OPEN_ISSUES #25）：`_next_card_id_seq` 扫描已有 `{date}-NNN` 续接序号，同日二次跑批保留首跑文件、id 不重复
+- **簇内多样性校验**（OPEN_ISSUES #23）：`_is_homogeneous_repetition` 成员两两 bigram Jaccard 全 ≥0.5 判同句式复读簇丢弃，存在一对差异表达即保留（不误杀同痛点不同说法）；canonical cluster 与 fixes/ 双改；+4 测试（test_cluster_diversity.py）
+
+### Changed
+- **daily-audit.yml 去定时**（OPEN_ISSUES #14 / PRD §三 Q3「自优化不投入」）：仅留 workflow_dispatch，审计结果改 artifact 上传不再 auto commit&push（与 self-heal.yml 只读原则一致）；决策注释留 yml；+2 守卫测试（test_workflow_guards.py）防定时回退
+
 ## [0.3.1] - 2026-10-15
 
 ### Added
