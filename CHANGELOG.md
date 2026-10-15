@@ -15,25 +15,30 @@ iteration-2：产出可信化 —— 排序正确、评分理由可核对、标�
   - Layer 1 `classify_keyword` + `run_all.domain_precheck`：娱乐域关键词爬取前警告（不阻断，合规红线）（7893441 / cd56a5a）
   - Layer 2 `is_adult`：成人擦边黑名单在 `preprocess.is_valid` 清洗层硬拦截（7893441）
   - Layer 3 `domain_overlap`：召回标题域重合度 < 50% 判 `domain_mismatch`，报告第 4 节展示（7893441 / 2f7cdb3）
+- **证据驱动评分维度**（OPEN_ISSUES #21 方向A收窄版）：评分从 2/5 维参与升级 —— `竞争空缺` = 簇内对比+失望信号（零证据 `None` 不伪造，双证据且密度 ≥15% 加成，单证据中档 3）；`AI杠杆` = 代表句形态词表（软件词加分 / 线下词减分，类内 ≥2 词权重翻倍，无词 `None`）；`触达难度` 诚实留空恒 `None`；reason 逐维交代证据来源（b229b7b）
 
 ### Changed
 - 评分置信度封顶延后：`0.6+0.04*size`（10 条即封顶）→ `0.6+0.008*size`（50 条封顶）+ 付费量级加成，112 条真实需求簇不再被 11 条玩梗簇压过（1b1e2d5）
 - 卡片标题：过滤 `[表情]` 标签与 <8 字候选，取最长合格句，全不合格退 `_topic_title`（1b1e2d5）
 - 报告第 4 节说明句随 verdict 分支（判"通过"不再同页写"跑偏"）；第 6 节规则表列入域校验三层位置；漏斗清洗层说明补"成人擦边"（8657ab7 / 2b80de8 / cc69f0f）
+- 报告第 2 节拆解表增 `竞争` / `AI杠杆` 列（进了均值不上表 = 不可核对）；"只有 X/5 参与、三维恒 None"旧口径改为"证据驱动"说明；第 6 节规则行 md+html 同步（b229b7b）
 
 ### Fixed
+- 报告第 2 节过期公式文案 `0.6+0.04×size` → `0.6+0.008×size`（1b1e2d5 改斜率时漏改文案，报告展示的公式与真实计算各说各话）（b229b7b）
+- `apply_fixes.fix_scoring` marker `'competition': None,` 被证据驱动返回值弄丢 → 丢失即抛"未找到锚点"；改锚 `'reach': None`（模板态缺席 → 打补丁，工作区命中 → 跳过，最终 copy_canonical 兜底）（b229b7b）
 - `exec_report.breakdown` 与评分共用 `_confidence_factor`（第二处硬编码公式消除）（1b1e2d5）
 - `_topic_title` 空信号拼成"痛点痛点"；长度阈值 12→8（12 误伤"预算有限投不起广告"9 字真实诉求）（1b1e2d5）
 - 报告 emoji 红线：✅(U+2705) 从旧码位范围洞漏过 → 测试范围补 0x2600-0x27BF / 0x2B00-0x2BFF / FE0F；旧测试用 unknown 关键词不渲染 verdict 行属假绿，改用触发 domain_match 的数据（8657ab7）
 - **crawl JSONL 跨 run comment_id 去重**（OPEN_ISSUES #20）：`save_records` 的 SQLite 侧 `INSERT OR IGNORE` 去重而 JSONL 无条件追加 → 同视频反复爬 raw 每轮长一截，漏斗 loaded=703 是累积数（下游 608 文本去重兜住产出，但报告口径失真）；改写前读入已有 id + 批内边写边加，JSONL 自身为去重权威（DB 被清也失守不了）；apply_fixes overlay patch2 防生成器重跑回退，测试走模板→patch1→patch2 全链路断言与权威版逐字节一致（50e491e）
 
 ### Verification
-- 全量 pytest **130 passed / 0 failed**（0.2.0 的 65 → 91 → 105 → 126 → 130）
+- 全量 pytest **143 passed / 0 failed**（0.2.0 的 65 → 91 → 105 → 126 → 130 → 143）
 - 真实数据端到端：问题域「独立开发者怎么接单」703 载入 → 147 痛点（23.6%）；112 条真实需求簇 70.0 A(第2) → 80.0 A(第1)，11 条玩梗簇 80.0 A → 55.0 B
+- 证据驱动评分真实数据回归（问题域 20:30 真实三簇）：112 簇 85.0 **S**（真实代表句 7 个软件形态词 → ai=5，四维均值过 S 线）/ 11 簇 59.6 B（competition=5 但 conf 0.688 压住）/ 3 簇 43.7 C（无证据留 None），112 反超格局保持，触达全员 None（b229b7b）
 - 域校验真实数据验证：娱乐域 discovered 80% 判定/文案一致、全文零 emoji（8657ab7 附报告样例）
 
 ### Known Issues（未修，诚实清单见 docs/OPEN_ISSUES.md）
-- 评分 3 维恒 None（2/5 维参与）；`--topics` 未从 run_all 接线；`min_cluster=3` 过松；MVP 取 dict 首键；同日卡片覆盖
+- `触达难度` 无数据来源恒 None（方向A收窄版有意留空）；`--topics` 未从 run_all 接线；`min_cluster=3` 过松；MVP 取 dict 首键；同日卡片覆盖
 - **apply_fixes 回退陷阱**：改 `score_opportunity.py` / `export_card.py` / `cluster.py` / `mine_pain_points.py` 必须先同步 `generators/fixes/` 权威副本再跑全量测试（测试内 apply_fixes 会用 canonical 覆盖工作区，改动被静默回退）
 
 ## [0.2.0] - 2026-10-14
