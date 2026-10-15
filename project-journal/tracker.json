@@ -11,10 +11,11 @@
   "counters": {
     "decision": 3,
     "risk": 1,
-    "milestone": 1
+    "milestone": 1,
+    "solution": 1
   },
   "last_entry": "2026-10-15",
-  "last_touch": "2026-10-15T11:42:39",
+  "last_touch": "2026-10-15T13:27:54",
   "stage_history": [
     {
       "date": "2026-10-15",
