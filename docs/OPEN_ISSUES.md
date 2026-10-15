@@ -1,6 +1,6 @@
 # OPEN ISSUES — 技术债与风险登记
 
-更新：2026-10-13 ｜ 策略（PRD §九）：**P6 重验前只清 P1**，其余按需。
+更新：2026-10-15 ｜ 策略（PRD §九）：**P6 重验前只清 P1**，其余按需。
 来源：`docs/superpowers/ledger-2026-10-11-fix-and-first-run.md` 的 10 项 deferred minors + PRD 决策新增 + `docs/acceptance-2026-10-13.md` 验收发现。
 
 ---
@@ -38,6 +38,13 @@
 | 13 | serve.py 不解码 %xx，含中文资源名 403 | deferred | 中文资源名可访问 + 测试 |
 | 14 | daily-audit.yml 处置：仍定时跑且 auto commit&push，与「自优化不投入」决策冲突 | PRD §三（Q3） | 去定时改手动，或删除；二选一留记录 |
 | 15 | heal_runner `load_bugs` 无坏行保护；subprocess 死导入 | deferred | 坏行跳过；死导入清除 |
+| 20 | **crawl 跨 run 累积**：raw 层按 run append 不去重，漏斗第一层数字虚高（下游 608 文本去重兜住产出，但报告口径失真） | 2026-10-14 报告追查 | 写入前按 `comment_id` 去重（或 run 覆盖）；漏斗 loaded 数字可信 |
+| 21 | 评分 3 维恒 None（competition/reach/ai_leverage），仅 2/5 维参与均值 | 2026-10-14 报告追查 | 启发式补齐 3 维或明确改 2 维制；报告不再标"未评" |
+| 22 | `--topics` 未从 run_all 接线（mine 支持但入口不传，域内聚焦默认关闭） | 2026-10-14 报告追查 | run_all 透传或显式决策不启用并记录 |
+| 23 | `min_cluster=3` 过松：3 条同句式玩梗即可成簇进卡片 | 报告追查 | 阈值提高或加簇内多样性校验 |
+| 24 | `design_mvp.py` MVP 类型取信号 dict **第一个键**（插入顺序，非主导信号） | 报告第 6 节已标注 | 取频次最高信号 |
+| 25 | 同日卡片覆盖：`data/cards/` 按日期命名，同日二次跑批覆盖前次 | 报告追查 | 加时间戳或 run id |
+| 26 | `score_confidence` 已写入数据但卡片不显示 | 2026-10-14 修复附带发现 | 卡片展示置信度 |
 
 ## P3 — 有空再清（已有兜底，风险低）
 
@@ -52,6 +59,7 @@
 |---|---|---|
 | 18 | 合并 `feat/prospecting-fixes` → `master`（前置：P1 清完 + `make test` 全绿） | P6 重验前 |
 | 19 | 加 `.github/workflows/test.yml`（push/PR 跑 pytest） | 推 GitHub 后 |
+| 27 | **apply_fixes 回退陷阱**：`test_apply_fixes_stays_idempotent_with_exec_report` 在测试内跑 apply_fixes，末尾 `copy_canonical_modules()` 用 canonical 覆盖工作区 —— 改 `score_opportunity.py`/`export_card.py`/`cluster.py`/`mine_pain_points.py` **必须先同步 `generators/fixes/` 再跑全量测试**，否则改动被静默回退 | 改上述 4 文件时必查；长期：测试改用临时目录不污染工作区 |
 
 ## 已闭环（原 spec 开放项，留档）
 
@@ -59,6 +67,9 @@
 - ✅ heal_runner 处置：改只读诊断，保留未接线
 - ✅ 验收关键词：默认 "独立开发者"（可用 --keyword 换）
 - ✅ P6 首轮验收已执行（2026-10-13）：工程通过、价值未通过，报告见 `docs/acceptance-2026-10-13.md`
+- ✅ **执行报告可解释化**（2026-10-14/15，9af0243/44141fb）：六节自动报告（漏斗/分数拆解/被过滤理由/域自查/异常/规则表），HTML 单文件 + md 成对
+- ✅ **排序与可信修复**（2026-10-14，1b1e2d5）：conf 封顶 10→50 条 + 付费量级加成（112 条真实需求簇反超 11 条玩梗簇）；`score_reason` 可核对；标题过滤表情标签与短句
+- ✅ **P0 域校验三层防线**（2026-10-15，7893441/cc69f0f）：关键词前置警告 / 成人黑名单清洗层拦截 / 召回域重合度报告；真实数据验证判定与文案一致、全文零 emoji；阈值 0.5（1/3 命中不再判"基本一致"）
 
 ## 外部风险登记（不受本仓库控制，只登记不解决）
 

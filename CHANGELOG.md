@@ -3,6 +3,38 @@
 版本策略（PRD §八）：自 0.1.0 起按 semver 计；生成器时代的 5.x 版本号已废弃，仅作历史留档。
 每次合并 master 必须更新本文件。
 
+## [0.3.0] - 2026-10-15
+
+iteration-2：产出可信化 —— 排序正确、评分理由可核对、标题不误导、域错可见（分支内发布，待合并 master）。
+
+### Added
+- **执行报告 HTML 单文件**：`exec_report.py` 内部同产 `.md`（git 存档）+ `.html`（浏览器直开、可分享、断网可用），同名成对；版式单一青灰强调、等宽数字、无 emoji 图标、全插值转义（44141fb / 31a38af）
+- **自动执行报告**：每次 run_all 跑批产出「决策漏斗 + 分数拆解 + 被过滤评论词级理由 + 召回视频域自查 + 异常 + 规则清单」六节报告，过程可见是"系统学会筛选"的前置（9af0243 / 7f5fbbb）
+- **`score_reason`**：每张卡写入算式 + 样本置信度；`_fallback_reason` 取代"启发式评分"空话（1b1e2d5）
+- **P0 域校验三层防线** `domain_check.py`（词表规则，实测依据：问题域痛点率 23.6% vs 娱乐域 4.5%，5.2 倍杠杆）：
+  - Layer 1 `classify_keyword` + `run_all.domain_precheck`：娱乐域关键词爬取前警告（不阻断，合规红线）（7893441 / cd56a5a）
+  - Layer 2 `is_adult`：成人擦边黑名单在 `preprocess.is_valid` 清洗层硬拦截（7893441）
+  - Layer 3 `domain_overlap`：召回标题域重合度 < 50% 判 `domain_mismatch`，报告第 4 节展示（7893441 / 2f7cdb3）
+
+### Changed
+- 评分置信度封顶延后：`0.6+0.04*size`（10 条即封顶）→ `0.6+0.008*size`（50 条封顶）+ 付费量级加成，112 条真实需求簇不再被 11 条玩梗簇压过（1b1e2d5）
+- 卡片标题：过滤 `[表情]` 标签与 <8 字候选，取最长合格句，全不合格退 `_topic_title`（1b1e2d5）
+- 报告第 4 节说明句随 verdict 分支（判"通过"不再同页写"跑偏"）；第 6 节规则表列入域校验三层位置；漏斗清洗层说明补"成人擦边"（8657ab7 / 2b80de8 / cc69f0f）
+
+### Fixed
+- `exec_report.breakdown` 与评分共用 `_confidence_factor`（第二处硬编码公式消除）（1b1e2d5）
+- `_topic_title` 空信号拼成"痛点痛点"；长度阈值 12→8（12 误伤"预算有限投不起广告"9 字真实诉求）（1b1e2d5）
+- 报告 emoji 红线：✅(U+2705) 从旧码位范围洞漏过 → 测试范围补 0x2600-0x27BF / 0x2B00-0x2BFF / FE0F；旧测试用 unknown 关键词不渲染 verdict 行属假绿，改用触发 domain_match 的数据（8657ab7）
+
+### Verification
+- 全量 pytest **126 passed / 0 failed**（0.2.0 的 65 → 91 → 105 → 126）
+- 真实数据端到端：问题域「独立开发者怎么接单」703 载入 → 147 痛点（23.6%）；112 条真实需求簇 70.0 A(第2) → 80.0 A(第1)，11 条玩梗簇 80.0 A → 55.0 B
+- 域校验真实数据验证：娱乐域 discovered 80% 判定/文案一致、全文零 emoji（8657ab7 附报告样例）
+
+### Known Issues（未修，诚实清单见 docs/OPEN_ISSUES.md）
+- crawl 跨 run 累积（comment_id 去重未根治）；评分 3 维恒 None（2/5 维参与）；`--topics` 未从 run_all 接线；`min_cluster=3` 过松；MVP 取 dict 首键；同日卡片覆盖
+- **apply_fixes 回退陷阱**：改 `score_opportunity.py` / `export_card.py` / `cluster.py` / `mine_pain_points.py` 必须先同步 `generators/fixes/` 权威副本再跑全量测试（测试内 apply_fixes 会用 canonical 覆盖工作区，改动被静默回退）
+
 ## [0.2.0] - 2026-10-14
 
 iteration-1：工具全链路跑通 + 最终结果价值有效性（分支内发布，待合并 master）。
