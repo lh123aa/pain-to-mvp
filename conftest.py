@@ -23,6 +23,25 @@ _DATA_FILES = ["dashboard.json", "pain_to_mvp.db", "toolkit.json",
                "heal-report.md"]
 
 
+@pytest.fixture
+def workspace_clone(tmp_path):
+    """工作区副本（剔除 .git/vendor/data/docs/project-journal）。
+
+    会改文件的测试（apply_fixes 重跑等）必须在此副本上运行，不得碰真实
+    工作区（OPEN_ISSUES #27）：apply_fixes 末尾 copy_canonical_modules()
+    会用 generators/fixes/ 覆盖 canonical 4 文件——在真实树上跑，忘同步时
+    改动被静默回退（丢工作）。
+    """
+    skip = {".git", "vendor", "data", "docs", "project-journal", "__pycache__"}
+
+    def _ignore(directory, names):
+        return {n for n in names if n in skip}
+
+    clone = tmp_path / "repo"
+    shutil.copytree(ROOT, clone, ignore=_ignore)
+    return clone
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _restore_data_after_tests():
     backup = Path(tempfile.mkdtemp(prefix="pain-mvp-backup-"))

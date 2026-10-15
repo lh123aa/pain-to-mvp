@@ -1,0 +1,21 @@
+name: Test
+
+# 单元测试套件（pytest）。不跑 Makefile 的 `make test`——那是 B 站端到端
+# 爬取，需网络凭证且有风控暴露，不进 CI。
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: pip install -r requirements-dev.txt
+      - name: Run unit suite
+        run: python -m pytest tests/ -q

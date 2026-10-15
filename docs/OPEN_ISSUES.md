@@ -56,8 +56,8 @@
 | # | 事项 | 时机 |
 |---|---|---|
 | 18 | 合并 `feat/prospecting-fixes` → `master`（前置：P1 清完 + `make test` 全绿） | P6 重验前 | ✅ 2026-10-15 合并完成（3c214be，--no-ff 双亲合并，50 个提交/0.3.0→0.3.2 全部成果，187 测试全绿） |
-| 19 | 加 `.github/workflows/test.yml`（push/PR 跑 pytest） | 推 GitHub 后 |
-| 27 | **apply_fixes 回退陷阱**：`test_apply_fixes_stays_idempotent_with_exec_report` 在测试内跑 apply_fixes，末尾 `copy_canonical_modules()` 用 canonical 覆盖工作区 —— 改 `score_opportunity.py`/`export_card.py`/`cluster.py`/`mine_pain_points.py` **必须先同步 `generators/fixes/` 再跑全量测试**，否则改动被静默回退 | 改上述 4 文件时必查；长期：测试改用临时目录不污染工作区 |
+| 19 | 加 `.github/workflows/test.yml`（push/PR 跑 pytest） | 推 GitHub 后 | ✅ test.yml 已落地（master push + PR 触发，pytest 单元套件；不跑 make test——那是 B 端到端需网络凭证） |
+| 27 | **apply_fixes 回退陷阱**：`test_apply_fixes_stays_idempotent_with_exec_report` 在测试内跑 apply_fixes，末尾 `copy_canonical_modules()` 用 canonical 覆盖工作区 —— 改 `score_opportunity.py`/`export_card.py`/`cluster.py`/`mine_pain_points.py` **必须先同步 `generators/fixes/` 再跑全量测试**，否则改动被静默回退 | 改上述 4 文件时必查；长期：测试改用临时目录不污染工作区 | ✅ 长期解落地：`workspace_clone` fixture（conftest）复制工作区到临时目录，两个幂等测试改在副本上跑（真实树零写入）；新增 `test_canonical_four_match_fixes_overlays` 字节级断言 4 文件与 fixes/ 一致——忘同步在测试红并直指 RK-0001，而非静默丢工作（已做故意不同步 RED 验证） |
 
 ## 已闭环（原 spec 开放项，留档）
 

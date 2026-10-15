@@ -258,13 +258,16 @@ def test_run_all_wires_exec_report():
     assert src.index("export_card") < src.index("exec_report")
 
 
-def test_apply_fixes_stays_idempotent_with_exec_report():
-    """改动后重跑 apply_fixes 不得破坏 run_all 的 exec_report 步骤。"""
+def test_apply_fixes_stays_idempotent_with_exec_report(workspace_clone):
+    """改动后重跑 apply_fixes 不得破坏 run_all 的 exec_report 步骤。
+
+    OPEN_ISSUES #27：在工作区副本上跑（子进程 ROOT 指向副本），不再碰真实树。
+    """
     import subprocess
-    p = ROOT / "scripts" / "pipeline" / "run_all.py"
+    p = workspace_clone / "scripts" / "pipeline" / "run_all.py"
     before = p.read_text(encoding="utf-8")
-    r = subprocess.run([sys.executable, str(ROOT / "generators" / "apply_fixes.py")],
-                       capture_output=True, text=True, cwd=str(ROOT), timeout=300)
+    r = subprocess.run([sys.executable, str(workspace_clone / "generators" / "apply_fixes.py")],
+                       capture_output=True, text=True, cwd=str(workspace_clone), timeout=300)
     after = p.read_text(encoding="utf-8")
     assert r.returncode == 0, r.stderr[-400:]
     assert "exec_report" in after, "apply_fixes 重跑把 exec_report 接入打掉了"

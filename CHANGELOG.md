@@ -3,6 +3,17 @@
 版本策略（PRD §八）：自 0.1.0 起按 semver 计；生成器时代的 5.x 版本号已废弃，仅作历史留档。
 每次合并 master 必须更新本文件。
 
+## [0.3.3] - 2026-10-15
+
+阶段 6 工程收尾：CI + 回退陷阱长期解（OPEN_ISSUES #19/#27），合并 master 后首批。
+
+### Added
+- **CI** `.github/workflows/test.yml`（OPEN_ISSUES #19）：master push + PR 触发 pytest 单元套件（Python 3.12）；不跑 Makefile 的 `make test`（那是 B 站端到端爬取，需网络凭证且有风控暴露）
+- **canonical 同步字节级护栏** `test_canonical_four_match_fixes_overlays`（OPEN_ISSUES #27）：断言 cluster/mine_pain_points/score_opportunity/export_card 与 `generators/fixes/` 逐字节一致——忘同步在测试红并直指 RK-0001，而非测试跑完静默丢工作（已做故意不同步 RED→GREEN 验证）
+
+### Changed
+- **apply_fixes 幂等测试改工作区副本**（OPEN_ISSUES #27 长期解）：conftest 新增 `workspace_clone` fixture（复制工作区剔除 .git/vendor/data/docs/project-journal），`test_apply_fixes_idempotent` 与 `test_exec_report` 的 apply_fixes 重跑测试改为在副本上执行——真实工作区零写入，RK-0001 陷阱从"跑测试前必须手动同步"降级为"字节断言守门"
+
 ## [0.3.2] - 2026-10-15
 
 iteration-3 前半：P2 技术债清账（OPEN_ISSUES #12-#15、#23-#26 全部闭环）。
