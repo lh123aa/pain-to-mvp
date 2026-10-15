@@ -79,6 +79,16 @@ python scripts/pipeline/export_card.py --input data/scored/xxx_mvp.json --top 5
 python scripts/pipeline/run_all.py --keyword "独立开发者" --platforms bilibili --limit 20 --comments 200
 ```
 
+### 评分校准闭环（PRD §五，每轮跑完必做）
+```bash
+# 1. 抽检当轮 top3 卡片，逐张记录（verdict 只允许 real/fake，note 必填）
+python scripts/pipeline/calibration.py record --card-id 20261015-001 --verdict real --note "痛点真实、可据卡行动" --run e2e-A5 --rank 1 --quotes-traceable
+
+# 2. 回看命中率（总体 + top3 口径 + 信号级；满 20 条提示达回看线）
+python scripts/pipeline/calibration.py review
+```
+记录落 `data/calibration/calibration.jsonl`；每满 20 条据信号级命中率决定是否调 `pain_rules.SIGNALS` / 权重，调权以抽检记录为回归依据。
+
 ### 看板
 ```bash
 # 从卡片重建数据

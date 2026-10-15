@@ -33,7 +33,7 @@
 |---|---|---|---|
 | 9 | `update_progress.py` / `dashboard.json` 落实 PRD §6.1 六阶段状态机 + `schema_version` + 单向流转校验 | PRD 决策（Q7） | 非法状态/回退被拒绝；schema_version 写入顶层 |
 | 10 | python-dotenv 接线：代码统一从 `.env` 读凭证 | PRD 决策（Q8） | `.env` 可用，文档不再是"计划" |
-| 11 | 评分校准闭环落地：抽检记录格式 + 回看脚本/流程（`data/calibration/` 已有 2 条真实记录） | PRD §五（Q6） | 抽检可记录、累计 20 条可回看命中率 |
+| 11 | 评分校准闭环落地：抽检记录格式 + 回看脚本/流程（`data/calibration/` 已有 2 条真实记录） | PRD §五（Q6） | 抽检可记录、累计 20 条可回看命中率 | ✅ `calibration.py` record/review 两命令（0.3.1）：格式契约 SCHEMA_FIELDS、fail-close 校验、信号级/top3 命中率回看、满 20 条提示；真实数据冒烟通过（现 2/20） |
 | 12 | SQLite 主键仅 id 与 JSONL 去重键 (platform,source_id,id) 不一致，跨平台同 id 静默丢弃 | deferred | 主键/唯一键与去重键对齐 + 测试 |
 | 13 | serve.py 不解码 %xx，含中文资源名 403 | deferred | 中文资源名可访问 + 测试 |
 | 14 | daily-audit.yml 处置：仍定时跑且 auto commit&push，与「自优化不投入」决策冲突 | PRD §三（Q3） | 去定时改手动，或删除；二选一留记录 |

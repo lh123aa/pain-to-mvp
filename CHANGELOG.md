@@ -3,6 +3,11 @@
 版本策略（PRD §八）：自 0.1.0 起按 semver 计；生成器时代的 5.x 版本号已废弃，仅作历史留档。
 每次合并 master 必须更新本文件。
 
+## [0.3.1] - 2026-10-15
+
+### Added
+- **评分校准闭环** `calibration.py`（OPEN_ISSUES #11 / PRD §五）：`record` 记录 top 卡片抽检（verdict 仅 real/fake、note 必填、同卡重复拒绝——fail-close 不写脏数据；signals 自动从卡片 md 抽取），`review` 回看命中率（总体 + top3 成功线口径 + 信号级命中率，低命中信号即调权候选），满 20 条提示达回看线；坏行跳过不崩溃；10 项测试（test_calibration.py）
+
 ## [0.3.0] - 2026-10-15
 
 iteration-2：产出可信化 —— 排序正确、评分理由可核对、标题不误导、域错可见（分支内发布，待合并 master）。
