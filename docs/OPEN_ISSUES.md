@@ -55,7 +55,7 @@
 
 | # | 事项 | 时机 |
 |---|---|---|
-| 18 | 合并 `feat/prospecting-fixes` → `master`（前置：P1 清完 + `make test` 全绿） | P6 重验前 |
+| 18 | 合并 `feat/prospecting-fixes` → `master`（前置：P1 清完 + `make test` 全绿） | P6 重验前 | ✅ 2026-10-15 合并完成（3c214be，--no-ff 双亲合并，50 个提交/0.3.0→0.3.2 全部成果，187 测试全绿） |
 | 19 | 加 `.github/workflows/test.yml`（push/PR 跑 pytest） | 推 GitHub 后 |
 | 27 | **apply_fixes 回退陷阱**：`test_apply_fixes_stays_idempotent_with_exec_report` 在测试内跑 apply_fixes，末尾 `copy_canonical_modules()` 用 canonical 覆盖工作区 —— 改 `score_opportunity.py`/`export_card.py`/`cluster.py`/`mine_pain_points.py` **必须先同步 `generators/fixes/` 再跑全量测试**，否则改动被静默回退 | 改上述 4 文件时必查；长期：测试改用临时目录不污染工作区 |
 
