@@ -8,3 +8,5 @@ date,metric,value,unit,source,confidence,note
 2026-10-15,open_issues,14,count,OPEN_ISSUES 活跃表：#11/#9/#10/#22 闭环后 P2x9+P3x2+工程x3,high,
 2026-10-15,tests_passed,184,,,medium,
 2026-10-15,open_issues,5,,,medium,
+2026-10-15,tests_passed,187,,,medium,
+2026-10-15,open_issues,3,,,medium,
