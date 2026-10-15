@@ -25,14 +25,15 @@ iteration-2：产出可信化 —— 排序正确、评分理由可核对、标�
 - `exec_report.breakdown` 与评分共用 `_confidence_factor`（第二处硬编码公式消除）（1b1e2d5）
 - `_topic_title` 空信号拼成"痛点痛点"；长度阈值 12→8（12 误伤"预算有限投不起广告"9 字真实诉求）（1b1e2d5）
 - 报告 emoji 红线：✅(U+2705) 从旧码位范围洞漏过 → 测试范围补 0x2600-0x27BF / 0x2B00-0x2BFF / FE0F；旧测试用 unknown 关键词不渲染 verdict 行属假绿，改用触发 domain_match 的数据（8657ab7）
+- **crawl JSONL 跨 run comment_id 去重**（OPEN_ISSUES #20）：`save_records` 的 SQLite 侧 `INSERT OR IGNORE` 去重而 JSONL 无条件追加 → 同视频反复爬 raw 每轮长一截，漏斗 loaded=703 是累积数（下游 608 文本去重兜住产出，但报告口径失真）；改写前读入已有 id + 批内边写边加，JSONL 自身为去重权威（DB 被清也失守不了）；apply_fixes overlay patch2 防生成器重跑回退，测试走模板→patch1→patch2 全链路断言与权威版逐字节一致（50e491e）
 
 ### Verification
-- 全量 pytest **126 passed / 0 failed**（0.2.0 的 65 → 91 → 105 → 126）
+- 全量 pytest **130 passed / 0 failed**（0.2.0 的 65 → 91 → 105 → 126 → 130）
 - 真实数据端到端：问题域「独立开发者怎么接单」703 载入 → 147 痛点（23.6%）；112 条真实需求簇 70.0 A(第2) → 80.0 A(第1)，11 条玩梗簇 80.0 A → 55.0 B
 - 域校验真实数据验证：娱乐域 discovered 80% 判定/文案一致、全文零 emoji（8657ab7 附报告样例）
 
 ### Known Issues（未修，诚实清单见 docs/OPEN_ISSUES.md）
-- crawl 跨 run 累积（comment_id 去重未根治）；评分 3 维恒 None（2/5 维参与）；`--topics` 未从 run_all 接线；`min_cluster=3` 过松；MVP 取 dict 首键；同日卡片覆盖
+- 评分 3 维恒 None（2/5 维参与）；`--topics` 未从 run_all 接线；`min_cluster=3` 过松；MVP 取 dict 首键；同日卡片覆盖
 - **apply_fixes 回退陷阱**：改 `score_opportunity.py` / `export_card.py` / `cluster.py` / `mine_pain_points.py` 必须先同步 `generators/fixes/` 权威副本再跑全量测试（测试内 apply_fixes 会用 canonical 覆盖工作区，改动被静默回退）
 
 ## [0.2.0] - 2026-10-14
