@@ -27,6 +27,18 @@ import time
 from pathlib import Path
 
 from run_inputs import collect_raw_files, safe_filename
+from domain_check import classify_keyword
+
+def domain_precheck(keyword):
+    """Layer 1 前置判定：搜索前判关键词域，跑偏即警告（不阻断，合规红线不封死主路径）。
+
+    实测依据：问题域痛点率 23.6% vs 娱乐域 4.5%，域错是 5 倍杠杆。
+    """
+    kw_type = classify_keyword(keyword)
+    if kw_type == "entertainment":
+        print(f"⚠️ 域校验：关键词「{keyword}」被判为娱乐域 —— "
+              "实测娱乐域痛点率仅 4.5%（问题域 23.6%），召回大概率跑偏，"
+              "建议改用问题域关键词")
 
 def run(cmd):
     print(f"\n$ {' '.join(cmd)}")
@@ -39,6 +51,9 @@ def run(cmd):
 def main(args):
     base = Path(__file__).parent
     run_started_at = time.time()
+
+    # 0. 域校验前置判定（Layer 1）：娱乐域关键词跑偏即警告，不阻断
+    domain_precheck(args.keyword)
 
     # 1. 发现（失败即中止，绝不消费旧产物）
     run([sys.executable, str(base / "discover_content.py"),

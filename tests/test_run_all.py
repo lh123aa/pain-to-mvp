@@ -79,3 +79,18 @@ def test_run_failure_raises_systemexit(monkeypatch):
                         lambda cmd, text=True: type("R", (), {"returncode": 1})())
     with pytest.raises(SystemExit):
         run_all.run(["python", "-c", "pass"])
+
+
+def test_domain_precheck_warns_entertainment(capsys):
+    """娱乐域关键词必须打印域校验警告（不阻断，合规红线不封死主路径）"""
+    run_all.domain_precheck("女孩喜欢的物件")
+    out = capsys.readouterr().out
+    assert "域校验" in out
+    assert "娱乐" in out
+
+
+def test_domain_precheck_passes_problem(capsys):
+    """问题域关键词不应打印域校验警告"""
+    run_all.domain_precheck("独立开发者怎么接单")
+    out = capsys.readouterr().out
+    assert "域校验" not in out
