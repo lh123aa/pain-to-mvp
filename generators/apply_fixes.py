@@ -732,10 +732,14 @@ OUTPUT_DIR = Path("data/discovered")''',
     )
 
 
-def fix_storage() -> None:
-    """入库计数诚实化：conn.total_changes 是连接级累计值，会把 IGNORE 的重复
-    误计为新增；改用 cursor.rowcount（新插=1，IGNORE=0）。"""
-    p = ROOT / "scripts" / "pipeline" / "storage.py"
+def fix_storage(p: Path = None) -> None:
+    """storage 两段修复（overlay 为权威，extract 覆盖模板不影响）：
+    1. 入库计数诚实化：conn.total_changes 是连接级累计值，会把 IGNORE 的重复
+       误计为新增；改用 cursor.rowcount（新插=1，IGNORE=0）。
+    2. JSONL 跨 run 去重（OPEN_ISSUES #20）：模板无条件追加导致重复
+       comment_id 跨 run 累积、漏斗 loaded 虚高；改为写前读入已有 id，
+       批内边写边加。"""
+    p = p or (ROOT / "scripts" / "pipeline" / "storage.py")
     patch_text(
         p,
         old='''            try:
@@ -778,6 +782,125 @@ def fix_storage() -> None:
                 skipped += 1''',
         marker="cur.rowcount",
         desc="storage: 计数改 cursor.rowcount",
+    )
+    patch_text(
+        p,
+        old='''def save_records(records: Iterable[Dict[str, Any]], platform: str, source_id: str = ""):
+    """批量写入 JSONL + SQLite，自动去重"""
+    JSONL_DIR.mkdir(parents=True, exist_ok=True)
+    jsonl_path = JSONL_DIR / f"{platform}_{source_id or 'all'}.jsonl"
+
+    conn = init_db()
+    inserted = 0
+    skipped = 0
+
+    with open(jsonl_path, "a", encoding="utf-8") as f:
+        for r in records:
+            norm = _normalize(r)
+            norm["platform"] = norm.get("platform") or platform
+            if not norm.get("id"):
+                skipped += 1
+                continue
+            try:
+                cur = conn.execute(
+                    """INSERT OR IGNORE INTO comments
+                       (id, platform, source_id, source_title, content, author,
+                        likes, replies, timestamp, url, extra)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        norm["id"], norm["platform"], norm.get("source_id") or source_id,
+                        norm.get("source_title"), norm.get("content"), norm.get("author"),
+                        norm.get("likes") or 0, norm.get("replies") or 0,
+                        norm.get("timestamp"), norm.get("url"),
+                        json.dumps(norm.get("extra") or {}, ensure_ascii=False)
+                    )
+                )
+                if cur.rowcount:
+                    inserted += 1
+                f.write(json.dumps(norm, ensure_ascii=False) + "\\n")
+            except sqlite3.Error:
+                skipped += 1
+
+    conn.commit()
+    conn.close()
+    print(f"💾 写入 {inserted} 条（跳过 {skipped}）→ {jsonl_path}")
+    return inserted''',
+        new='''def _existing_jsonl_ids(jsonl_path: Path) -> set:
+    """读取 JSONL 中已有的 comment_id —— JSONL 是漏斗数据源，自身即去重权威。
+
+    依赖 SQLite 行数会失守：DB 被清后重爬，INSERT 全算新行，JSONL 照样重复追加。
+    """
+    ids = set()
+    if not jsonl_path.exists():
+        return ids
+    with open(jsonl_path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rid = json.loads(line).get("id")
+            except json.JSONDecodeError:
+                continue  # 坏行不阻断去重（与 mine 坏行跳过一致）
+            if rid:
+                ids.add(rid)
+    return ids
+
+
+def save_records(records: Iterable[Dict[str, Any]], platform: str, source_id: str = ""):
+    """批量写入 JSONL + SQLite，自动去重（批内 + 跨 run，OPEN_ISSUES #20）"""
+    JSONL_DIR.mkdir(parents=True, exist_ok=True)
+    jsonl_path = JSONL_DIR / f"{platform}_{source_id or 'all'}.jsonl"
+
+    conn = init_db()
+    inserted = 0
+    skipped = 0
+    deduped = 0
+    seen_ids = _existing_jsonl_ids(jsonl_path)
+
+    with open(jsonl_path, "a", encoding="utf-8") as f:
+        for r in records:
+            norm = _normalize(r)
+            norm["platform"] = norm.get("platform") or platform
+            if not norm.get("id"):
+                skipped += 1
+                continue
+            if norm["id"] in seen_ids:
+                # 跨 run 重爬 / 分页重叠的重复 —— 不追加，漏斗 loaded 不再虚高
+                deduped += 1
+                continue
+            try:
+                cur = conn.execute(
+                    """INSERT OR IGNORE INTO comments
+                       (id, platform, source_id, source_title, content, author,
+                        likes, replies, timestamp, url, extra)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        norm["id"], norm["platform"], norm.get("source_id") or source_id,
+                        norm.get("source_title"), norm.get("content"), norm.get("author"),
+                        norm.get("likes") or 0, norm.get("replies") or 0,
+                        norm.get("timestamp"), norm.get("url"),
+                        json.dumps(norm.get("extra") or {}, ensure_ascii=False)
+                    )
+                )
+                if cur.rowcount:
+                    inserted += 1
+                f.write(json.dumps(norm, ensure_ascii=False) + "\\n")
+                seen_ids.add(norm["id"])  # 批内去重：分页重叠的同 id 只写一次
+            except sqlite3.Error:
+                skipped += 1
+
+    conn.commit()
+    conn.close()
+    msg = f"💾 写入 {inserted} 条"
+    if deduped:
+        msg += f"（去重 {deduped} 条）"
+    if skipped:
+        msg += f"（跳过 {skipped} 条）"
+    print(f"{msg} → {jsonl_path}")
+    return inserted''',
+        marker="_existing_jsonl_ids",
+        desc="storage: JSONL 跨 run comment_id 去重（#20）",
     )
 
 

@@ -76,14 +76,38 @@ def init_db():
     conn.commit()
     return conn
 
+def _existing_jsonl_ids(jsonl_path: Path) -> set:
+    """读取 JSONL 中已有的 comment_id —— JSONL 是漏斗数据源，自身即去重权威。
+
+    依赖 SQLite 行数会失守：DB 被清后重爬，INSERT 全算新行，JSONL 照样重复追加。
+    """
+    ids = set()
+    if not jsonl_path.exists():
+        return ids
+    with open(jsonl_path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rid = json.loads(line).get("id")
+            except json.JSONDecodeError:
+                continue  # 坏行不阻断去重（与 mine 坏行跳过一致）
+            if rid:
+                ids.add(rid)
+    return ids
+
+
 def save_records(records: Iterable[Dict[str, Any]], platform: str, source_id: str = ""):
-    """批量写入 JSONL + SQLite，自动去重"""
+    """批量写入 JSONL + SQLite，自动去重（批内 + 跨 run，OPEN_ISSUES #20）"""
     JSONL_DIR.mkdir(parents=True, exist_ok=True)
     jsonl_path = JSONL_DIR / f"{platform}_{source_id or 'all'}.jsonl"
 
     conn = init_db()
     inserted = 0
     skipped = 0
+    deduped = 0
+    seen_ids = _existing_jsonl_ids(jsonl_path)
 
     with open(jsonl_path, "a", encoding="utf-8") as f:
         for r in records:
@@ -91,6 +115,10 @@ def save_records(records: Iterable[Dict[str, Any]], platform: str, source_id: st
             norm["platform"] = norm.get("platform") or platform
             if not norm.get("id"):
                 skipped += 1
+                continue
+            if norm["id"] in seen_ids:
+                # 跨 run 重爬 / 分页重叠的重复 —— 不追加，漏斗 loaded 不再虚高
+                deduped += 1
                 continue
             try:
                 cur = conn.execute(
@@ -109,12 +137,18 @@ def save_records(records: Iterable[Dict[str, Any]], platform: str, source_id: st
                 if cur.rowcount:
                     inserted += 1
                 f.write(json.dumps(norm, ensure_ascii=False) + "\n")
+                seen_ids.add(norm["id"])  # 批内去重：分页重叠的同 id 只写一次
             except sqlite3.Error:
                 skipped += 1
 
     conn.commit()
     conn.close()
-    print(f"💾 写入 {inserted} 条（跳过 {skipped}）→ {jsonl_path}")
+    msg = f"💾 写入 {inserted} 条"
+    if deduped:
+        msg += f"（去重 {deduped} 条）"
+    if skipped:
+        msg += f"（跳过 {skipped} 条）"
+    print(f"{msg} → {jsonl_path}")
     return inserted
 
 def query_comments(platform=None, source_id=None, limit=1000):
