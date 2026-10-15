@@ -59,6 +59,8 @@ CARD_TMPL = """# 机会卡片 #{id}
 | 触达难度 | {reach} |
 | AI杠杆 | {ai_leverage} |
 
+- **样本置信度**：{confidence}
+
 {reason}
 
 ## MVP 方案
@@ -156,6 +158,8 @@ def _build_card(p, total_score, tier):
         or title \
         or next((q for q in (p.get("representative_quotes") or []) if q), "（暂无描述）")
     scores = p.get("scores") or {}  # 旧格式容错：缺键不崩，维度渲染 —（OPEN_ISSUES #4）
+    conf = p.get("score_confidence")
+    conf_txt = f"{conf:.2f}" if conf is not None else "—"  # 缺数据不伪造（#26）
     mvp = p.get("mvp", {})
     mvp_rec = (mvp.get("recommended_mvp") or [{}])[0]
     card_id = f"{datetime.now().strftime('%Y%m%d')}-{hash(description) % 1000:03d}"
@@ -175,6 +179,7 @@ def _build_card(p, total_score, tier):
         feasibility=format_dim(scores.get("feasibility")),
         reach=format_dim(scores.get("reach")),
         ai_leverage=format_dim(scores.get("ai_leverage")),
+        confidence=conf_txt,
         reason=f"\n**评分理由**：{p.get('score_reason') or _fallback_reason(total_score, p)}\n",
         mvp_type=mvp_rec.get("type", "咨询/模板"),
         mvp_rationale=mvp_rec.get("rationale", ""),
@@ -189,16 +194,34 @@ def _build_card(p, total_score, tier):
             "size": p.get("size", 0), "quotes": p.get("representative_quotes", [])[:3]}
 
 
+def _next_card_id_seq() -> int:
+    """同日续接序号：避开已存在的 {date}-NNN 卡片（OPEN_ISSUES #25）。
+
+    旧逻辑每次从 001 起编号，同日二次跑批直接覆盖首跑卡片。
+    """
+    date = datetime.now().strftime("%Y%m%d")
+    highest = 0
+    for p in CARD_DIR.glob(f"{date}-*.md"):
+        try:
+            highest = max(highest, int(p.stem.split("-")[-1]))
+        except ValueError:
+            continue
+    return highest
+
+
 def export(input_file, top=5):
     scored = json.loads(Path(input_file).read_text(encoding="utf-8"))
     CARD_DIR.mkdir(parents=True, exist_ok=True)
 
+    date = datetime.now().strftime("%Y%m%d")
+    seq = _next_card_id_seq()
     cards = []
     for i, p in enumerate(scored[:top], 1):
         total_score = p.get("total_score")
         tier = p.get("tier", "?")
         built = _build_card(p, total_score, tier)
-        card_id = f"{datetime.now().strftime('%Y%m%d')}-{i:03d}"
+        seq += 1
+        card_id = f"{date}-{seq:03d}"
         built["content"] = built["content"].replace(f"#{built['id']}", f"#{card_id}", 1)
         built["id"] = card_id
         card_path = CARD_DIR / f"{card_id}.md"

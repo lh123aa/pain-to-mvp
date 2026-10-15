@@ -34,7 +34,11 @@ SIGNAL_TO_MVP = {
 }
 
 def design_mvp(pain: dict) -> dict:
-    sigs = list(pain.get("signal_distribution", {}).keys())
+    # 按频次降序取主导信号（OPEN_ISSUES #24）：dict 插入顺序不等于主导，
+    # 首推与 deliverable_hint 都应跟随票数最高的信号。
+    sigs = [k for k, _ in sorted(
+        (pain.get("signal_distribution") or {}).items(),
+        key=lambda kv: kv[1], reverse=True)]
     quotes = pain.get("representative_quotes", [])
 
     # 推荐 MVP 类型

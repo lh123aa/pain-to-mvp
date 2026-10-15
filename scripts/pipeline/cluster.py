@@ -54,6 +54,24 @@ def _bigrams(t: str) -> set:
     t = "".join(t.split())
     return {t[i:i + 2] for i in range(max(1, len(t) - 1))}
 
+def _is_homogeneous_repetition(members: List[Dict], threshold: float = 0.5) -> bool:
+    """簇内多样性校验（OPEN_ISSUES #23）：成员两两 bigram Jaccard 全部 ≥ threshold
+    判定为同句式复读（玩梗变体），不得成簇进卡片。
+
+    只要存在一对差异明显的真实表达即返回 False（保留），避免误杀
+    「同一痛点的不同说法」这一正当簇。单成员/空簇不是复读。
+    """
+    if len(members) < 2:
+        return False
+    bgs = [_bigrams(m.get("clean_content") or m.get("content") or "")
+           for m in members]
+    for i in range(len(bgs)):
+        for j in range(i + 1, len(bgs)):
+            union = len(bgs[i] | bgs[j]) or 1
+            if len(bgs[i] & bgs[j]) / union < threshold:
+                return False
+    return True
+
 def _select_representative(members: List[Dict], top: int = 3) -> List[str]:
     """代表句：非噪音成员中，优先选与簇内其他成员平均相似度高的（有代表性），
     相近时按 pain_score 降序；全噪音时回退全部成员。
@@ -198,6 +216,11 @@ def cluster_comments(comments: List[Dict], min_size: int = 3) -> List[Dict]:
     result = []
     for cid, members in clusters.items():
         if len(members) < min_size:
+            continue
+        if _is_homogeneous_repetition(members):
+            # 同句式复读簇不进卡片（#23）：丢弃而非当成真实共识
+            print(f"  ⛔ 丢弃复读簇 #{cid}（{len(members)} 条同句式，"
+                  f"代表：{(members[0].get('clean_content') or members[0].get('content') or '')[:30]}）")
             continue
         # 代表文本：非噪音成员中痛点分最高的 3 条
         representative = _select_representative(members)
