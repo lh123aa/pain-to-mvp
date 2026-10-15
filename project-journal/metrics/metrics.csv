@@ -13,3 +13,6 @@ date,metric,value,unit,source,confidence,note
 2026-10-15,tests_passed,187,,,medium,
 2026-10-15,tests_passed,188,,,medium,
 2026-10-15,open_issues,1,,,medium,
+2026-10-15,tests_passed,195,,,medium,
+2026-10-15,calibration_records,5,,,medium,
+2026-10-15,a5_top3_hit_rate,33,,,medium,
