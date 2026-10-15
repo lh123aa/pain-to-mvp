@@ -91,6 +91,15 @@ def _keep_topics(comments, topics=None):
     return out
 
 
+def _output_tag(platform, input_file):
+    """输出文件名 tag：三元优先级低于 or，显式括号固定意图（OPEN_ISSUES #17）。
+
+    `platform or stem if input_file else 'all'` 实为 `(platform or stem) if input_file else 'all'`。
+    语义保持不变：无 input_file 时恒 'all'，有 input_file 时 platform 优先。
+    """
+    return (platform or Path(input_file).stem) if input_file else "all"
+
+
 def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, inputs=None, output=None, topics=None):
     raw = _load_input(input_file, platform, limit, inputs)
     print(f"📥 载入 {len(raw)} 条评论")
@@ -140,7 +149,7 @@ def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, 
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M")
-    tag = platform or Path(input_file).stem if input_file else "all"
+    tag = _output_tag(platform, input_file)
     out_file = Path(output) if output else OUTPUT_DIR / f"pains_{tag}_{ts}.json"
     if out_file.parent != Path(""):
         out_file.parent.mkdir(parents=True, exist_ok=True)

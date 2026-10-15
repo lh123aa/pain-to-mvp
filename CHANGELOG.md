@@ -18,6 +18,7 @@ iteration-3 前半：P2 技术债清账（OPEN_ISSUES #12-#15、#23-#26 全部�
 
 ### Changed
 - **daily-audit.yml 去定时**（OPEN_ISSUES #14 / PRD §三 Q3「自优化不投入」）：仅留 workflow_dispatch，审计结果改 artifact 上传不再 auto commit&push（与 self-heal.yml 只读原则一致）；决策注释留 yml；+2 守卫测试（test_workflow_guards.py）防定时回退
+- **P3 清账**（OPEN_ISSUES #16/#17）：fix_run_all marker "import time" → "crawl_started_at"（新代码独有文本，AST 守卫测试断言全部 marker 独有）；mine tag 计算抽 `_output_tag` 显式括号固定优先级语义（语义不变，canonical + fixes/ 双改）；+3 测试（test_p3_cleanup.py）
 
 ## [0.3.1] - 2026-10-15
 

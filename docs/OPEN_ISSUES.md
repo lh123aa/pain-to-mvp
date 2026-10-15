@@ -48,8 +48,8 @@
 
 | # | 事项 | 来源 | 完成标准 |
 |---|---|---|---|
-| 16 | apply_fixes `fix_run_all` 补丁 marker="import time" 偏通用（幂等测试已兜底） | deferred | marker 换成新代码独有文本 |
-| 17 | mine tag 运算符优先级别扭（无害） | deferred | 加括号，语义不变 |
+| 16 | apply_fixes `fix_run_all` 补丁 marker="import time" 偏通用（幂等测试已兜底） | deferred | marker 换成新代码独有文本 | ✅ marker 改 `crawl_started_at`（0.3.2）；AST 守卫测试断言 fix_run_all 全部 marker 为新代码独有且出现在 run_all.py（test_p3_cleanup.py） |
+| 17 | mine tag 运算符优先级别扭（无害） | deferred | 加括号，语义不变 | ✅ 抽 `_output_tag(platform, input_file)` 显式括号固定意图（语义不变：无 input_file 恒 'all'）；canonical + fixes/ 双改；语义测试 4 断言 |
 
 ## 工程待办
 
