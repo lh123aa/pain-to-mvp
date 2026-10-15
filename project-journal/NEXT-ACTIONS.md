@@ -5,11 +5,12 @@
 
 ## 进行中（按优先级）
 - [ ] 校准记录累计：每轮 run_all 后 record top3（现 2/20，满 20 条做首次规则回看，成功线口径 top3 ≥70%）
-- [ ] 看板阶段 5 余项（非阻塞，按需清）：P2 #12 SQLite 主键对齐、#13 serve.py 中文 403、#14 daily-audit.yml 处置、#15 heal_runner 坏行；P2 #23 min_cluster、#24 MVP 首键、#25 卡片覆盖、#26 conf 上卡
+- [ ] 看板阶段 6：P3 #16 fix_run_all marker 换独有文本、#17 mine tag 加括号（低风险，顺手清）；随后 #18 合并 master（前置 P3 清完 + 全量绿）
 
 ## 等待中（被外部阻塞）
 
 ## 已完成（本周期，保留 2 周便于复盘）
+- [x] 2026-10-15 阶段 5 全部清账：P2 剩余 8 项 #12-#15/#23-#26（048a6f9 / 36d5b32 / 95e11a6 / c67052d，**184 passed**，OPEN_ISSUES P2 表清零）
 - [x] 2026-10-15 阶段 5 首批：#9 状态机 + #10 .env 接线 + #22 topics 透传（9ba0c6f，167 passed）
 - [x] 2026-10-15 阶段 4：#11 校准闭环机制落地（calibration.py record/review，7660a67，153 passed；记录累计是持续动作非阻塞）
 - [x] 2026-10-15 建立项目记录目录（BOOTSTRAP：CHARTER 三标尺 + 锚点 + 首批 6 档案）
