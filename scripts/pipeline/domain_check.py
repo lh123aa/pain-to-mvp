@@ -103,8 +103,9 @@ def is_adult(text: str) -> bool:
 
 # ---------------- Layer 3: 召回后域重合度 ----------------
 
-# 域重合度阈值
-OVERLAP_THRESHOLD = 0.3
+# 域重合度阈值：半数召回必须命中才判 domain_match（低于此判跑偏）
+# 0.3 时 1/3 命中即显示"基本一致"，三分之二跑偏被掩盖 —— 报告可信优先
+OVERLAP_THRESHOLD = 0.5
 
 
 def domain_overlap(keyword: str, titles: list) -> dict:

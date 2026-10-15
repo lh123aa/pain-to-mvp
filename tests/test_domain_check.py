@@ -104,6 +104,23 @@ def test_domain_overlap_empty_titles():
     assert result["total_titles"] == 0
 
 
+def test_domain_overlap_majority_offdomain_is_mismatch():
+    """多数召回跑偏时不得判为 domain_match（33% 命中曾被判"基本一致"，是误导）。"""
+    result = domain_overlap("独立开发者",
+                            ["独立开发者如何接单", "女孩喜欢的物件", "美食探店"])
+    assert result["overlap_ratio"] == 0.333
+    assert result["verdict"] == "domain_mismatch", (
+        "2/3 召回是娱乐域，报告不能写「基本一致」")
+
+
+def test_domain_overlap_half_ondomain_matches():
+    """半数命中到阈值即判 domain_match。"""
+    result = domain_overlap("独立开发者",
+                            ["独立开发者如何接单", "独立开发者获客", "美食探店"])
+    assert result["overlap_ratio"] >= 0.5
+    assert result["verdict"] == "domain_match"
+
+
 # ---------- 集成：exec_report 域重合度 ----------
 
 def test_exec_report_shows_domain_verdict(tmp_path, monkeypatch):
