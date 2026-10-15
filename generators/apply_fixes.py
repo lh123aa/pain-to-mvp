@@ -744,6 +744,85 @@ OUTPUT_DIR = Path("data/discovered")''',
     )
 
 
+def fix_discover_failclose(p: Path = None) -> None:
+    """discover fail-close（P6 重验 2026-10-15 发现）：全部平台失败时模板态
+    仍 exit 0 + 写空 [] 文件，e2e Step 1 据 returncode 判 ✅ 假成功，真正失败
+    被推到 crawl 步误报。改为零发现即在源头退出非 0 并点名失败平台（NFR 4.1）。"""
+    p = p or (ROOT / "scripts" / "pipeline" / "discover_content.py")
+    patch_text(
+        p,
+        old='''import argparse
+import json
+from datetime import datetime''',
+        new='''import argparse
+import json
+import sys
+from datetime import datetime''',
+        marker="import sys\nfrom datetime import datetime",
+        desc="discover: import sys",
+    )
+    patch_text(
+        p,
+        old='''def discover(keyword, platforms, limit):
+    all_results = []
+    for p in platforms:''',
+        new='''def discover(keyword, platforms, limit):
+    all_results = []
+    failed = []       # 异常失败平台（风控/网络）
+    unavailable = []  # 依赖未装或未配置
+    for p in platforms:''',
+        marker="failed = []       # 异常失败平台",
+        desc="discover: 失败/不可用平台记账",
+    )
+    patch_text(
+        p,
+        old='''                print(f"⚠️ {p} 适配器不可用（依赖未装或未配置）")
+                continue''',
+        new='''                print(f"⚠️ {p} 适配器不可用（依赖未装或未配置）")
+                unavailable.append(p)
+                continue''',
+        marker="unavailable.append(p)",
+        desc="discover: 记录不可用平台",
+    )
+    patch_text(
+        p,
+        old='''        except Exception as e:
+            print(f"❌ {p} 失败：{e}")''',
+        new='''        except Exception as e:
+            print(f"❌ {p} 失败：{e}")
+            failed.append(p)''',
+        marker="failed.append(p)",
+        desc="discover: 记录异常失败平台",
+    )
+    patch_text(
+        p,
+        old='''    out_file.write_text(json.dumps(ranked, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"\\n💾 已保存 {len(ranked)} 条 → {out_file}")
+
+    print("\\n📊 Top 5 值得爬取：")''',
+        new='''    # 零产出也照写（占位空文件），防止下游 latest() 复用上一轮旧产物（NFR 4.1）
+    out_file.write_text(json.dumps(ranked, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"\\n💾 已保存 {len(ranked)} 条 → {out_file}")
+
+    if not ranked:
+        # fail-close：零发现必须在源头以退出码说话，不许 exit 0 + 空文件
+        # 假装成功把失败推给下游误报（P6 重验 2026-10-15 发现的 v_voucher 路径）
+        causes = []
+        if failed:
+            causes.append(f"失败平台：{', '.join(failed)}")
+        if unavailable:
+            causes.append(f"适配器不可用：{', '.join(unavailable)}")
+        if not causes:
+            causes.append("全部平台返回 0 条候选")
+        print(f"❌ 零发现，fail-close 退出非 0（{'；'.join(causes)}）")
+        sys.exit(1)
+
+    print("\\n📊 Top 5 值得爬取：")''',
+        marker="fail-close 退出非 0",
+        desc="discover: 零发现 fail-close 退出非 0",
+    )
+
+
 def fix_storage(p: Path = None) -> None:
     """storage 两段修复（overlay 为权威，extract 覆盖模板不影响）：
     1. 入库计数诚实化：conn.total_changes 是连接级累计值，会把 IGNORE 的重复
@@ -1096,6 +1175,7 @@ def main():
     fix_export_card()
     fix_serve()
     fix_safe_filename_wiring()
+    fix_discover_failclose()
     fix_run_all_failfast()
     fix_compliance_failclose()
     fix_mine_badlines()

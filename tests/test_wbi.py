@@ -83,16 +83,24 @@ def test_crawl_pagination_uses_cursor_not_page_number(requests_only):
     assert len(ids) == 30, "评论 id 必须唯一"
 
 
-def test_discover_failure_does_not_break_pipeline(monkeypatch):
-    """回归守卫：某平台整体风控失败时，discover 必须返回空并继续，不能崩。"""
+def test_discover_failure_does_not_break_pipeline(monkeypatch, tmp_path):
+    """回归守卫：平台风控失败时 discover 不得抛未处理异常（不能崩）。
+
+    契约升级（OPEN_ISSUES #28，2026-10-15）：旧断言"返回 [] 继续"已被证伪——
+    exit 0 + 空文件会被 e2e 当成功，把真失败推给下游误报。新契约：零发现
+    必须 sys.exit(1) 点名失败平台（fail-close），仍不抛 RuntimeError 裸崩。
+    """
     import adapters.bilibili as bili
     import discover_content
 
     def boom(self, keyword, limit=20):
         raise RuntimeError("风控 -352")
 
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(bili.BilibiliAdapter, "discover", boom)
-    assert discover_content.discover("kw", ["bilibili"], 5) == []
+    with pytest.raises(SystemExit) as exc:
+        discover_content.discover("kw", ["bilibili"], 5)
+    assert exc.value.code != 0, "零发现却 exit 0——空文件假成功（NFR 4.1 违例）"
 
 
 def test_v_voucher_risk_control_raises_clear_error(requests_only):

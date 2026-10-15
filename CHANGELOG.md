@@ -3,6 +3,20 @@
 版本策略（PRD §八）：自 0.1.0 起按 semver 计；生成器时代的 5.x 版本号已废弃，仅作历史留档。
 每次合并 master 必须更新本文件。
 
+## [0.3.4] - 2026-10-15
+
+P6 重验期间发现并修复的 fail-close 缺口（OPEN_ISSUES #28）。
+
+### Fixed
+- **discover fail-close**（NFR 4.1 补全）：全部平台失败（如 B站 v_voucher 风控）时旧代码捕获异常后仍 exit 0 + 写空 `[]` 文件，e2e Step 1 据 returncode 判 ✅ 假成功，失败被推到 crawl 步误报"未找到评论数据"。现零发现即 `sys.exit(1)` 并点名失败/不可用平台；空文件照写防下游 `latest()` 复用上轮旧产物
+
+### Added
+- `generators/apply_fixes.py` 新增 `fix_discover_failclose`（5 段锚点 patch，注册于 `fix_safe_filename_wiring` 之后），防 extract 重新提取模板打回
+- `tests/test_discover_failclose.py`：7 测试——全平台失败退出非 0 / 报错点名平台 / 有产出不中断 / 一成一败不中断 / 全部不可用也算 fail-close / 模板恢复 + 重跑幂等 / 工作区 marker 守卫
+
+### Changed
+- `test_wbi.py::test_discover_failure_does_not_break_pipeline` 契约升级：旧断言"失败返回 `[]` 继续"正是被证伪的假成功路径，改为断言 `SystemExit(非0)`——"不能崩"的本意保留（不抛裸 RuntimeError），失败改由退出码说话
+
 ## [0.3.3] - 2026-10-15
 
 阶段 6 工程收尾：CI + 回退陷阱长期解（OPEN_ISSUES #19/#27），合并 master 后首批。

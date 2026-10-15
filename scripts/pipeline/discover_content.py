@@ -22,6 +22,7 @@ except Exception:
 # --- 结束 UTF-8 入口稳定化 ---
 import argparse
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -35,18 +36,22 @@ OUTPUT_DIR = Path("data/discovered")
 
 def discover(keyword, platforms, limit):
     all_results = []
+    failed = []       # 异常失败平台（风控/网络）
+    unavailable = []  # 依赖未装或未配置
     for p in platforms:
         print(f"\n🌐 平台：{p}")
         try:
             adapter = get_adapter(p)
             if not adapter.is_available():
                 print(f"⚠️ {p} 适配器不可用（依赖未装或未配置）")
+                unavailable.append(p)
                 continue
             results = adapter.discover(keyword, limit=limit)
             print(f"✅ 发现 {len(results)} 条候选")
             all_results.extend(results)
         except Exception as e:
             print(f"❌ {p} 失败：{e}")
+            failed.append(p)
             # 记录 bug
             try:
                 from healing.capture_bug import capture_bug
@@ -57,8 +62,22 @@ def discover(keyword, platforms, limit):
     ranked = filter_and_rank(all_results)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     out_file = OUTPUT_DIR / f"{safe_filename(keyword)}_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
+    # 零产出也照写（占位空文件），防止下游 latest() 复用上一轮旧产物（NFR 4.1）
     out_file.write_text(json.dumps(ranked, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\n💾 已保存 {len(ranked)} 条 → {out_file}")
+
+    if not ranked:
+        # fail-close：零发现必须在源头以退出码说话，不许 exit 0 + 空文件
+        # 假装成功把失败推给下游误报（P6 重验 2026-10-15 发现的 v_voucher 路径）
+        causes = []
+        if failed:
+            causes.append(f"失败平台：{', '.join(failed)}")
+        if unavailable:
+            causes.append(f"适配器不可用：{', '.join(unavailable)}")
+        if not causes:
+            causes.append("全部平台返回 0 条候选")
+        print(f"❌ 零发现，fail-close 退出非 0（{'；'.join(causes)}）")
+        sys.exit(1)
 
     print("\n📊 Top 5 值得爬取：")
     for r in ranked[:5]:

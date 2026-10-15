@@ -58,6 +58,7 @@
 | 18 | 合并 `feat/prospecting-fixes` → `master`（前置：P1 清完 + `make test` 全绿） | P6 重验前 | ✅ 2026-10-15 合并完成（3c214be，--no-ff 双亲合并，50 个提交/0.3.0→0.3.2 全部成果，187 测试全绿） |
 | 19 | 加 `.github/workflows/test.yml`（push/PR 跑 pytest） | 推 GitHub 后 | ✅ test.yml 已落地（master push + PR 触发，pytest 单元套件；不跑 make test——那是 B 端到端需网络凭证） |
 | 27 | **apply_fixes 回退陷阱**：`test_apply_fixes_stays_idempotent_with_exec_report` 在测试内跑 apply_fixes，末尾 `copy_canonical_modules()` 用 canonical 覆盖工作区 —— 改 `score_opportunity.py`/`export_card.py`/`cluster.py`/`mine_pain_points.py` **必须先同步 `generators/fixes/` 再跑全量测试**，否则改动被静默回退 | 改上述 4 文件时必查；长期：测试改用临时目录不污染工作区 | ✅ 长期解落地：`workspace_clone` fixture（conftest）复制工作区到临时目录，两个幂等测试改在副本上跑（真实树零写入）；新增 `test_canonical_four_match_fixes_overlays` 字节级断言 4 文件与 fixes/ 一致——忘同步在测试红并直指 RK-0001，而非静默丢工作（已做故意不同步 RED 验证） |
+| 28 | **discover fail-close 缺失**（P6 重验 2026-10-15 发现）：全部平台失败（如 v_voucher 风控）时 discover 捕获异常后仍 **exit 0 + 写空 `[]` 文件** → e2e Step 1 据 returncode 判 ✅ 假成功 → 真正失败被推到 crawl 步误报"未找到评论数据"，错误归因混乱 | P6 重验期间必查 | ✅ 已修：零发现即 `sys.exit(1)` 并点名失败/不可用平台；空文件照写（防 `latest()` 复用旧产物）；overlay patch `fix_discover_failclose`（5 段锚点）防 extract 回退；`test_discover_failclose.py` 7 测试（全败退出非 0 / 部分成功不中断 / 不可用≠链路故障 / 模板恢复+幂等 / 工作区 marker 守卫） |
 
 ## 已闭环（原 spec 开放项，留档）
 
