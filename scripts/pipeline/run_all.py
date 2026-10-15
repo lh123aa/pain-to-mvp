@@ -83,9 +83,13 @@ def main(args):
         print("❌ 未找到本次运行的爬取结果")
         raise SystemExit("❌ 未找到本次运行的爬取结果")
 
-    # 4. 挖掘痛点
-    run([sys.executable, str(base / "mine_pain_points.py"),
-         "--inputs", *[str(p) for p in raw_files]])
+    # 4. 挖掘痛点（--topics 域内聚焦：OPEN_ISSUES #22 接线，未给则行为不变）
+    mine_cmd = [sys.executable, str(base / "mine_pain_points.py"),
+                "--inputs", *[str(p) for p in raw_files]]
+    topics = getattr(args, "topics", None)  # 旧调用方无 topics 属性不崩
+    if topics:
+        mine_cmd += ["--topics", *topics]
+    run(mine_cmd)
 
     # 5. 找最新 pains 文件（仅本次运行产出，旧文件一律不消费）
     pains_dir = Path("data/pains")
@@ -138,5 +142,7 @@ if __name__ == "__main__":
     p.add_argument("--platforms", nargs="+", default=["bilibili"])
     p.add_argument("--limit", type=int, default=20)
     p.add_argument("--comments", type=int, default=200)
+    p.add_argument("--topics", nargs="+",
+                   help="主题词列表：只保留命中任一词的评论（域内聚焦，透传 mine --topics）")
     args = p.parse_args()
     main(args)

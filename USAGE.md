@@ -77,6 +77,8 @@ python scripts/pipeline/export_card.py --input data/scored/xxx_mvp.json --top 5
 ### 一键跑通
 ```bash
 python scripts/pipeline/run_all.py --keyword "独立开发者" --platforms bilibili --limit 20 --comments 200
+# 域内聚焦（可选）：只保留命中主题词的评论
+python scripts/pipeline/run_all.py --keyword "独立开发者" --topics 独立开发 接单
 ```
 
 ### 评分校准闭环（PRD §五，每轮跑完必做）
@@ -95,14 +97,14 @@ python scripts/pipeline/calibration.py review
 python scripts/dashboard/write_dashboard.py
 # 启动服务
 python scripts/dashboard/serve.py --port 8787
-# 手动更新某条需求
-python scripts/dashboard/update_progress.py --id 20261011-001 --status analyzing --progress 45 --stage "痛点提炼完成" --next "机会评分"
+# 手动更新某条需求（状态机：pending→discovering→crawling→mining→scoring→designing→done，单向流转；dropped 终态）
+python scripts/dashboard/update_progress.py --id 20261011-001 --status scoring --progress 45 --stage "痛点提炼完成" --next "机会评分"
 ```
 
 ## 五、平台配置
 
 > 规范（PRD §七）：所有凭证统一写仓库根 `.env`（已 gitignore，模板见 `.env.example`），不要写进脚本或截图。
-> 当前代码读取 shell 环境变量；`.env` 自动读取接线见 `docs/OPEN_ISSUES.md` #10。
+> **已接线**（2026-10-15，OPEN_ISSUES #10 闭环）：全部 CLI 入口自动加载 `.env`（`scripts/pipeline/env_loader.py`，经包导入零接线）；shell 环境变量优先不被覆盖。自检：`python scripts/pipeline/env_loader.py`（只打印键是否设置，不打印值）。
 
 ### 小红书 / 抖音
 需要 MediaCrawler 或 TikTokDownloader（当前阶段未接入，见 PRD 范围表）：

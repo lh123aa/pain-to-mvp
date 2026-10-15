@@ -7,6 +7,11 @@
 
 ### Added
 - **评分校准闭环** `calibration.py`（OPEN_ISSUES #11 / PRD §五）：`record` 记录 top 卡片抽检（verdict 仅 real/fake、note 必填、同卡重复拒绝——fail-close 不写脏数据；signals 自动从卡片 md 抽取），`review` 回看命中率（总体 + top3 成功线口径 + 信号级命中率，低命中信号即调权候选），满 20 条提示达回看线；坏行跳过不崩溃；10 项测试（test_calibration.py）
+- **dashboard 状态机**（OPEN_ISSUES #9 / PRD §6.1）：`update_progress.py` 落实六阶段单向流转（pending→discovering→crawling→mining→scoring→designing→done + dropped 终态），非法状态/回退/终态流转一律拒绝不写盘；progress 只增不减；`schema_version` 写入顶层；旧枚举（discovered/analyzing/mvp_design/validating/completed/in_progress）加载时自动迁移；`add_requirement` 从 pending 起步；CLI 失败退出码非 0；8 项测试（test_dashboard_state.py）
+- **.env 接线**（OPEN_ISSUES #10 / PRD §七）：`env_loader.py` 统一加载仓库根 `.env`（python-dotenv，shell 环境变量优先不覆盖，缺文件/缺依赖 fail-safe 跳过）；经 `pipeline/__init__.py` 零接线覆盖全部 CLI 入口（凡带 UTF-8 稳定化块的脚本必经 pipeline 包导入）；`python env_loader.py` 自检打印已设置凭证键（不打印值）；3 项测试（test_env_loader.py）
+
+### Changed
+- `run_all.py` 新增 `--topics` 透传至 mine（OPEN_ISSUES #22）：域内聚焦从"mine 支持但入口不传"变为可用；未给参数行为不变，旧调用方无 `topics` 属性不崩（getattr 兜底）；3 项测试（test_topics_wiring.py）
 
 ## [0.3.0] - 2026-10-15
 
