@@ -1,0 +1,139 @@
+
+#!/usr/bin/env python3
+"""
+B站适配器：直接调用 API，所有请求带 WBI 签名（2023 年后 B站强制要求，
+否则返回 -403/风控码）。Cookie（SESSDATA）可选，从环境变量 BILI_SESSDATA 读。
+传输层：优先 Scrapling（TLS/JA3 指纹伪装，降低 v_voucher 风控概率），
+缺依赖时回退 requests。合规逻辑（WBI/v_voucher 不绕过）两条路径共用。
+"""
+import os
+import requests
+from typing import List, Dict, Any
+
+from .base import BaseAdapter
+from compliance import RateLimiter, anonymize
+from wbi import enc_wbi, NAV_URL
+
+# Scrapling 可选传输层（vendor 副本见 vendor/Scrapling，pip 安装亦可）
+try:
+    from scrapling.fetchers import Fetcher as _SCRAPLING
+except Exception:
+    _SCRAPLING = None
+
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+SEARCH_URL = "https://api.bilibili.com/x/web-interface/wbi/search/type"
+REPLY_URL = "https://api.bilibili.com/x/v2/reply/main"
+
+
+class BilibiliAdapter(BaseAdapter):
+    platform = "bilibili"
+
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.headers.update({"User-Agent": UA})
+        sess = os.getenv("BILI_SESSDATA")
+        if sess:
+            self.session.cookies.set("SESSDATA", sess, domain=".bilibili.com")
+        self.limiter = RateLimiter(1.0)
+        self._img_key = None
+        self._sub_key = None
+
+    def is_available(self):
+        return True
+
+    def _wbi_keys(self):
+        """获取 WBI 签名用的 img_key/sub_key（内存缓存）。"""
+        if self._img_key and self._sub_key:
+            return self._img_key, self._sub_key
+        try:
+            r = self.session.get(NAV_URL, timeout=15)
+            wbi_img = r.json().get("data", {}).get("wbi_img", {})
+        except Exception as e:
+            raise RuntimeError(f"B站 WBI keys 获取失败：{e}")
+        img = wbi_img.get("img_url", "").rsplit("/", 1)[-1].split(".")[0]
+        sub = wbi_img.get("sub_url", "").rsplit("/", 1)[-1].split(".")[0]
+        if not img or not sub:
+            raise RuntimeError("B站 WBI keys 解析失败")
+        self._img_key, self._sub_key = img, sub
+        return img, sub
+
+    def _http_get(self, url: str, params: dict) -> dict:
+        """HTTP 传输：优先 Scrapling（指纹伪装），回退 requests session。"""
+        if _SCRAPLING is not None:
+            headers = {"User-Agent": UA, "Referer": "https://search.bilibili.com/"}
+            cookies = {}
+            sess = os.getenv("BILI_SESSDATA")
+            if sess:
+                cookies["SESSDATA"] = sess
+            r = _SCRAPLING.get(url, headers=headers, cookies=cookies or None,
+                               params=params, timeout=15)
+            return r.json()
+        return self.session.get(url, params=params, timeout=15).json()
+
+    def _get(self, url: str, params: dict) -> dict:
+        """带 WBI 签名请求；B站 HTTP 200 也可能带业务错误码，统一检查。"""
+        img, sub = self._wbi_keys()
+        self.limiter.wait()
+        try:
+            data = self._http_get(url, enc_wbi(params, img, sub))
+        except Exception as e:
+            raise RuntimeError(f"B站请求失败：{e}")
+        code = data.get("code", 0)
+        if code != 0:
+            raise RuntimeError(f"B站接口返回错误码 {code}：{data.get('message', '')}")
+        payload = data.get("data") or {}
+        if "v_voucher" in payload:
+            # B站风控人机验证票据：不绕过验证码，明确报错交人工处置
+            raise RuntimeError(
+                "B站风控人机验证（v_voucher）：当前 IP/会话被限制。"
+                "请稍后重试、降低频率，或配置 BILI_SESSDATA 登录态。"
+                "本系统按合规要求不绕过验证码。"
+            )
+        return data
+
+    def discover(self, keyword: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """搜索视频（WBI 签名端点）"""
+        data = self._get(SEARCH_URL,
+                         {"search_type": "video", "keyword": keyword, "page": 1})
+        results = []
+        for item in (data.get("data", {}).get("result") or [])[:limit]:
+            results.append({
+                "source_id": str(item.get("aid")),
+                "title": item.get("title", "").replace("<em class=\"keyword\">", "").replace("</em>", ""),
+                "url": f"https://www.bilibili.com/video/{item.get('bvid')}",
+                "author": anonymize(item.get("author")),
+                "comment_count": item.get("review", 0),
+                "play": item.get("play", 0),
+                "platform": self.platform,
+            })
+        return results
+
+    def crawl_comments(self, source_id: str, limit: int = 500) -> List[Dict[str, Any]]:
+        """爬取视频评论（aid）：WBI 签名 + 游标分页（next 取 data.cursor.next）。"""
+        results = []
+        cursor = 0
+        while len(results) < limit:
+            data = self._get(REPLY_URL, {
+                "type": 1, "oid": source_id, "mode": 3, "ps": 20, "next": cursor,
+            })
+            page = data.get("data", {})
+            replies = page.get("replies") or []
+            if not replies:
+                break
+            for item in replies:
+                results.append({
+                    "id": str(item.get("rpid")),
+                    "platform": self.platform,
+                    "source_id": source_id,
+                    "content": item.get("content", {}).get("message", ""),
+                    "author": anonymize(item.get("member", {}).get("uname")),
+                    "likes": item.get("like", 0),
+                    "replies": item.get("rcount", 0),
+                    "timestamp": str(item.get("ctime", "")),
+                    "url": f"https://www.bilibili.com/video/av{source_id}",
+                })
+            cursor = (page.get("cursor") or {}).get("next", 0)
+            if not cursor:
+                break
+        return results[:limit]

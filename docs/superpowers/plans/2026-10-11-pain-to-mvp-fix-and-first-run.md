@@ -241,8 +241,13 @@ def test_mine_empty_input_returns_empty(tmp_path):
 
 def test_safe_filename():
     assert safe_filename('a/b:c*d?"<>|') == "a_b_c_d_____"
+
+def test_collect_raw_files_returns_all(tmp_path):
+    from scripts.pipeline.run_inputs import collect_raw_files
+    for n in ("a.jsonl", "b.jsonl", "c.jsonl"):
+        (tmp_path / n).write_text('{"id":"1","platform":"p","source_id":"s"}\n')
+    assert len(collect_raw_files(tmp_path)) == 3
 ```
-+ `test_collect_raw_files_returns_all`：目录放 3 个 jsonl → 返回 3 个（不是最新 1 个）。
 
 - [ ] **Step 2: 运行确认失败**
 
@@ -251,7 +256,7 @@ Expected: FAIL（模块不存在）
 
 - [ ] **Step 3: 实现 `scripts/pipeline/run_inputs.py`**
 
-三个函数按 Interfaces 签名实现。`merge_jsonl_records` 逐行 json.loads，坏行跳过并计数，key 用 `(r.get("platform"), r.get("source_id"), r.get("id"))`；`safe_filename` 用正则替换非法字符。
+三个函数按 Interfaces 签名实现。`merge_jsonl_records` 逐行 json.loads，坏行跳过并计数，key 用 `(r.get("platform"), r.get("source_id"), r.get("id"))`；`safe_filename` 用正则替换非法字符。**同时给 `scripts/pipeline/cluster.py` 的 `cluster_comments` 加空输入守卫**：`if not texts: return []`（否则空输入会产出 size=0 的伪簇，Task 4 Step 1 的空输入测试永远红——ledger: Plan-fix 1）。
 
 - [ ] **Step 4: 改造 mine / run_all / e2e_test**
 
@@ -299,7 +304,10 @@ def test_total_over_available_dims_only():
 
 def test_format_title():
     from scripts.pipeline.export_card import format_title
-    assert format_title(["", "这个工具太难用了，我找了好久都没找到解决方案"]) == "这个工具太难用了，我找了好久都没找到解…"
+    long_quote = "独立开发者半年了一分钱没赚到产品也没人用到底该不该继续坚持这个问题每天晚上都在脑子里转"
+    title = format_title(["", long_quote])
+    assert len(title) <= 31 and title.endswith("…")
+    assert len(title) < len(long_quote)
 ```
 
 - [ ] **Step 2: 运行确认失败**

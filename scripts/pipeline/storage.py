@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+"""
+标准存储层：统一 JSONL + SQLite 写入，字段标准化。
+所有工具的输出都应经过这里，保证下游可消费。
+"""
+# --- UTF-8 入口稳定化（fix_utf8.py 自动插入） ---
+import os as _os
+import sys as _sys
+
+_here = _os.path.dirname(_os.path.abspath(__file__))
+for _cand in (_here, _os.path.dirname(_here), _os.path.join(_os.path.dirname(_here), "scripts")):
+    if _os.path.isdir(_os.path.join(_cand, "pipeline")) and _cand not in _sys.path:
+        _sys.path.insert(0, _cand)
+        break
+try:
+    from pipeline.encoding import ensure_utf8
+
+    ensure_utf8()
+except Exception:
+    pass
+# --- 结束 UTF-8 入口稳定化 ---
+import json
+import sqlite3
+from datetime import datetime
+from pathlib import Path
+from typing import Iterable, Dict, Any
+
+DATA_DIR = Path("data")
+DB_PATH = DATA_DIR / "pain_to_mvp.db"
+JSONL_DIR = DATA_DIR / "raw"
+
+STANDARD_FIELDS = [
+    "id", "platform", "source_id", "source_title", "content",
+    "author", "likes", "replies", "timestamp", "url", "extra"
+]
+
+def _normalize(record: Dict[str, Any]) -> Dict[str, Any]:
+    """把任意工具的字段映射到标准格式"""
+    out = {k: record.get(k) for k in STANDARD_FIELDS}
+    # 兼容常见字段名
+    mapping = {
+        "comment_id": "id", "cid": "id", "rpid": "id",
+        "text": "content", "body": "content", "reply": "content",
+        "nickname": "author", "uname": "author", "user": "author",
+        "like_count": "likes", "score": "likes", "digg_count": "likes", "votes": "likes",
+        "create_time": "timestamp", "created_utc": "timestamp", "time": "timestamp",
+        "reply_count": "replies", "rcount": "replies",
+    }
+    for src, dst in mapping.items():
+        if not out.get(dst) and record.get(src) is not None:
+            out[dst] = record[src]
+    out["extra"] = {k: v for k, v in record.items() if k not in STANDARD_FIELDS}
+    return out
+
+COMMENTS_DDL = """CREATE TABLE IF NOT EXISTS comments (
+            id TEXT,
+            platform TEXT,
+            source_id TEXT,
+            source_title TEXT,
+            content TEXT,
+            author TEXT,
+            likes INTEGER,
+            replies INTEGER,
+            timestamp TEXT,
+            url TEXT,
+            extra TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (platform, source_id, id)
+        )"""
+
+def _migrate_pk(conn):
+    """旧库升级：单 id 主键 → (platform, source_id, id) 复合主键（OPEN_ISSUES #12）。
+
+    跨平台同 id（bilibili '1' 与 reddit '1'）在旧 PK 下被 INSERT OR IGNORE
+    静默互覆。PRAGMA table_info 检测旧 schema 后重建表并保数。
+    """
+    cols = conn.execute("PRAGMA table_info(comments)").fetchall()
+    if not cols:
+        return  # 空库，建表即新 schema
+    pk = [c[1] for c in cols if c[5]]
+    if set(pk) == {"platform", "source_id", "id"}:
+        return  # 已是复合主键
+    conn.execute("ALTER TABLE comments RENAME TO comments_legacy")
+    conn.execute(COMMENTS_DDL.replace("IF NOT EXISTS ", ""))
+    conn.execute("""INSERT OR IGNORE INTO comments
+        (id, platform, source_id, source_title, content, author,
+         likes, replies, timestamp, url, extra, created_at)
+        SELECT id, COALESCE(platform,''), COALESCE(source_id,''), source_title,
+               content, author, likes, replies, timestamp, url, extra, created_at
+        FROM comments_legacy""")
+    conn.execute("DROP TABLE comments_legacy")
+
+def init_db():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    _migrate_pk(conn)
+    conn.execute(COMMENTS_DDL)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_platform ON comments(platform)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_source ON comments(source_id)")
+    conn.commit()
+    return conn
+
+def _existing_jsonl_ids(jsonl_path: Path) -> set:
+    """读取 JSONL 中已有的 comment_id —— JSONL 是漏斗数据源，自身即去重权威。
+
+    依赖 SQLite 行数会失守：DB 被清后重爬，INSERT 全算新行，JSONL 照样重复追加。
+    """
+    ids = set()
+    if not jsonl_path.exists():
+        return ids
+    with open(jsonl_path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rid = json.loads(line).get("id")
+            except json.JSONDecodeError:
+                continue  # 坏行不阻断去重（与 mine 坏行跳过一致）
+            if rid:
+                ids.add(rid)
+    return ids
+
+
+def save_records(records: Iterable[Dict[str, Any]], platform: str, source_id: str = ""):
+    """批量写入 JSONL + SQLite，自动去重（批内 + 跨 run，OPEN_ISSUES #20）"""
+    JSONL_DIR.mkdir(parents=True, exist_ok=True)
+    jsonl_path = JSONL_DIR / f"{platform}_{source_id or 'all'}.jsonl"
+
+    conn = init_db()
+    inserted = 0
+    skipped = 0
+    deduped = 0
+    seen_ids = _existing_jsonl_ids(jsonl_path)
+
+    with open(jsonl_path, "a", encoding="utf-8") as f:
+        for r in records:
+            norm = _normalize(r)
+            norm["platform"] = norm.get("platform") or platform
+            if not norm.get("id"):
+                skipped += 1
+                continue
+            if norm["id"] in seen_ids:
+                # 跨 run 重爬 / 分页重叠的重复 —— 不追加，漏斗 loaded 不再虚高
+                deduped += 1
+                continue
+            try:
+                cur = conn.execute(
+                    """INSERT OR IGNORE INTO comments
+                       (id, platform, source_id, source_title, content, author,
+                        likes, replies, timestamp, url, extra)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        norm["id"], norm["platform"], norm.get("source_id") or source_id,
+                        norm.get("source_title"), norm.get("content"), norm.get("author"),
+                        norm.get("likes") or 0, norm.get("replies") or 0,
+                        norm.get("timestamp"), norm.get("url"),
+                        json.dumps(norm.get("extra") or {}, ensure_ascii=False)
+                    )
+                )
+                if cur.rowcount:
+                    inserted += 1
+                f.write(json.dumps(norm, ensure_ascii=False) + "\n")
+                seen_ids.add(norm["id"])  # 批内去重：分页重叠的同 id 只写一次
+            except sqlite3.Error:
+                skipped += 1
+
+    conn.commit()
+    conn.close()
+    msg = f"💾 写入 {inserted} 条"
+    if deduped:
+        msg += f"（去重 {deduped} 条）"
+    if skipped:
+        msg += f"（跳过 {skipped} 条）"
+    print(f"{msg} → {jsonl_path}")
+    return inserted
+
+def query_comments(platform=None, source_id=None, limit=1000):
+    conn = init_db()
+    sql = "SELECT * FROM comments WHERE 1=1"
+    params = []
+    if platform:
+        sql += " AND platform=?"; params.append(platform)
+    if source_id:
+        sql += " AND source_id=?"; params.append(source_id)
+    sql += " LIMIT ?"; params.append(limit)
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+    cols = ["id","platform","source_id","source_title","content","author",
+            "likes","replies","timestamp","url","extra","created_at"]
+    return [dict(zip(cols, r)) for r in rows]
+
+def stats():
+    conn = init_db()
+    total = conn.execute("SELECT COUNT(*) FROM comments").fetchone()[0]
+    by_platform = conn.execute(
+        "SELECT platform, COUNT(*) FROM comments GROUP BY platform"
+    ).fetchall()
+    conn.close()
+    return {"total": total, "by_platform": dict(by_platform)}
+
+if __name__ == "__main__":
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("--stats", action="store_true")
+    args = p.parse_args()
+    if args.stats:
+        print(json.dumps(stats(), ensure_ascii=False, indent=2))

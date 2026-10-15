@@ -1,0 +1,14 @@
+# 数据（PRD §四.1：data 产物全部不入库；已入库的需 git rm --cached，见 OPEN_ISSUES #5）
+data/
+pain_to_mvp.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
