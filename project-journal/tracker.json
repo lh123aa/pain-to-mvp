@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "project": "pain-to-mvp 痛点→MVP机会发现管线",
+  "slug": "pain-to-mvp",
+  "created": "2026-10-15",
+  "stage": "S2",
+  "currency": "CNY",
+  "hypothesis": "从B站评论挖真实痛点，产出可执行的MVP机会报告；做成可售工具/服务",
+  "success_line": "累计20条抽检记录、top3推荐命中率≥70%",
+  "stop_loss": "连续2周无阶段推进即暂停并复盘去留",
+  "counters": {
+    "decision": 3,
+    "risk": 1,
+    "milestone": 1
+  },
+  "last_entry": "2026-10-15",
+  "last_touch": "2026-10-15T11:42:39",
+  "stage_history": [
+    {
+      "date": "2026-10-15",
+      "from": "",
+      "to": "S2",
+      "why": "立项"
+    }
+  ],
+  "outcome": null,
+  "skill_version": "1.5.0",
+  "upgrades": [],
+  "protocol_hash": "d338b88277d2162856b0662b82d5bedb45be9a78",
+  "protocol_version": "1.5.0"
+}

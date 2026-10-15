@@ -1,0 +1,4 @@
+date,metric,value,unit,source,confidence,note
+2026-10-15,tests_passed,143,count,pytest 全量 2026-10-15,high,
+2026-10-15,calibration_records,2,count,data/calibration/ 现有，目标 20,high,
+2026-10-15,open_issues,17,count,OPEN_ISSUES 活跃表 P2x12+P3x2+工程x3,high,
