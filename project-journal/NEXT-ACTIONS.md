@@ -4,13 +4,14 @@
 > 规则：只保留"下一步真的要做的"；已完成的勾掉或删除；空的分区保留标题即可，不要留空 checkbox。
 
 ## 进行中（按优先级）
-- [ ] 校准记录累计：每轮 run_all 后 record top3（现 2/20，满 20 条做首次规则回看，成功线口径 top3 ≥70%）
-- [ ] 阶段 6 余项：#19 CI（.github/workflows/test.yml，推 GitHub 后）→ #27 canonical 长期解（测试改临时目录，消除回退陷阱）
-- [ ] #27 canonical 长期解：apply_fixes 测试改用临时目录，消除"改 canonical 4 文件必须先同步 fixes/ 才能跑测试"的回退陷阱（RK-0001）
+- [ ] 校准记录累计：每轮 run_all 后 record top3（现 2/20，满 20 条做首次规则回看，成功线口径 top3 ≥70%）——唯一剩余项（OPEN_ISSUES #11 持续动作）
+- [ ] 推 GitHub：remote 就绪后 `git push -u origin master`（CI test.yml 即生效）
 
 ## 等待中（被外部阻塞）
+- [ ] #19 CI 验证：需推 GitHub 后首次 push/PR 才能观察绿勾（文件已就绪）
 
 ## 已完成（本周期，保留 2 周便于复盘）
+- [x] 2026-10-15 阶段 6 工程收尾：#19 CI test.yml + #27 回退陷阱长期解（workspace_clone 副本隔离 + canonical 4 字节断言护栏，188 passed，SL-0003，162b6be）
 - [x] 2026-10-15 **#18 合并 master**：feat/prospecting-fixes → master（3c214be --no-ff，50 提交，0.3.0/0.3.1/0.3.2 全部成果进入主线，MS-0004）
 - [x] 2026-10-15 阶段 6 前置：P3 #16/#17 清零 + 真实数据全链验证（1124 条迁移零丢失 / 卡片续号 / 置信度上卡 / 主导信号正确，187 passed，MS-0003）
 - [x] 2026-10-15 阶段 5 全部清账：P2 剩余 8 项 #12-#15/#23-#26（048a6f9 / 36d5b32 / 95e11a6 / c67052d，**184 passed**，OPEN_ISSUES P2 表清零）
