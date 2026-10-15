@@ -345,6 +345,9 @@ def _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
     A("| 评分 | 2/5 维参与；`feasibility` 看 size；`conf` 看 size | `score_opportunity.py:33-95` |")
     A("| MVP 类型 | 取信号 dict **第一个键**（插入顺序，非主导信号） | `design_mvp.py:39` |")
     A("| 主题聚焦 | `--topics` 可选，**run_all 默认不启用** | `run_all.py:72` |")
+    A("| 域校验前置 | 娱乐域关键词 → 爬取前警告（**不阻断**） | `run_all.domain_precheck` |")
+    A("| 成人黑名单 | 命中成人擦边词 → 清洗层丢弃（合规红线不绕过） | `domain_check.is_adult` |")
+    A("| 召回域重合 | 标题命中域词 < 50% → 判 `domain_mismatch` | `domain_check.domain_overlap` |")
     A("")
     A("---")
     A("_由 `exec_report.py` 自动产出。规则有误 → 改对应源文件后重跑。_")
@@ -649,6 +652,12 @@ def _render_html(keyword, ts, st, dropped, items, cards, raw_files, min_pain) ->
          "design_mvp.py:39"),
         ("主题聚焦", "<code>--topics</code> 可选，<strong>run_all 默认不启用</strong>",
          "run_all.py:72"),
+        ("域校验前置", "娱乐域关键词 → 爬取前警告（<strong>不阻断</strong>）",
+         "run_all.domain_precheck"),
+        ("成人黑名单", "命中成人擦边词 → 清洗层丢弃（合规红线不绕过）",
+         "domain_check.is_adult"),
+        ("召回域重合", "标题命中域词 &lt; 50% → 判 <code>domain_mismatch</code>",
+         "domain_check.domain_overlap"),
     ]
     for step, rule, loc in rules:
         A(f"<tr><td>{e(step)}</td><td>{rule}</td><td><code>{e(loc)}</code></td></tr>")

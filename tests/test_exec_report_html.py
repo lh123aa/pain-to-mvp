@@ -158,3 +158,20 @@ def test_html_output_has_no_emoji_icons(tmp_path, monkeypatch):
     body = _html(tmp_path)
     emoji = [c for c in body if ord(c) > 0x1F000 and 0x1F300 <= ord(c) <= 0x1FAFF]
     assert not emoji, f"HTML 含 emoji 图标：{emoji[:5]}"
+
+
+def test_section6_lists_domain_rules(tmp_path, monkeypatch):
+    """第 6 节规则表必须列出域校验三层防线的规则与位置（可核对性）。"""
+    monkeypatch.setattr(er, "REPORT_DIR", tmp_path)
+    disc, raw, scored = _seed(tmp_path)
+    md = er.generate(keyword="测试关键词", discovered=disc, raw_files=[raw], scored=scored)
+    body = md.read_text(encoding="utf-8")
+
+    # 三层防线各自的位置必须可查
+    for loc in ("run_all.domain_precheck", "domain_check.is_adult",
+                "domain_check.domain_overlap"):
+        assert loc in body, f"第 6 节规则表缺 {loc}"
+    html_body = _html(tmp_path)
+    for loc in ("run_all.domain_precheck", "domain_check.is_adult",
+                "domain_check.domain_overlap"):
+        assert loc in html_body, f"HTML 第 6 节规则表缺 {loc}"
