@@ -642,6 +642,13 @@ def fix_serve() -> None:
     p = ROOT / "scripts" / "dashboard" / "serve.py"
     patch_text(
         p,
+        old='''from urllib.parse import urlparse''',
+        new='''from urllib.parse import unquote, urlparse''',
+        marker="import unquote",
+        desc="serve: import unquote（%xx 解码，OPEN_ISSUES #13）",
+    )
+    patch_text(
+        p,
         old='''ASSETS = ROOT / "assets" / "dashboard"
 
 class Handler(BaseHTTPRequestHandler):''',
@@ -649,7 +656,12 @@ class Handler(BaseHTTPRequestHandler):''',
 
 
 def resolve_asset(rel: str):
-    """把 URL 相对路径解析为 ASSETS 内的文件；越界返回 None（防路径穿越）。"""
+    """把 URL 相对路径解析为 ASSETS 内的文件；越界返回 None（防路径穿越）。
+
+    先 %xx 解码再做边界检查（OPEN_ISSUES #13）：浏览器对中文名发的是
+    percent-encoded 路径，不解码永远 403；解码若晚于检查，%2e%2e%2f 可绕过穿越防线。
+    """
+    rel = unquote(rel)
     try:
         candidate = (ASSETS / rel).resolve()
         candidate.relative_to(ASSETS.resolve())
@@ -902,6 +914,83 @@ def save_records(records: Iterable[Dict[str, Any]], platform: str, source_id: st
         marker="_existing_jsonl_ids",
         desc="storage: JSONL 跨 run comment_id 去重（#20）",
     )
+    # patch3：SQLite 复合主键 (platform, source_id, id) + 旧库迁移（#12）。
+    # 模板仍是单 id TEXT PRIMARY KEY，跨平台同 id 被 INSERT OR IGNORE 静默互覆。
+    patch_text(
+        p,
+        old='''def init_db():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS comments (
+            id TEXT PRIMARY KEY,
+            platform TEXT,
+            source_id TEXT,
+            source_title TEXT,
+            content TEXT,
+            author TEXT,
+            likes INTEGER,
+            replies INTEGER,
+            timestamp TEXT,
+            url TEXT,
+            extra TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_platform ON comments(platform)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_source ON comments(source_id)")
+    conn.commit()
+    return conn''',
+        new='''COMMENTS_DDL = """CREATE TABLE IF NOT EXISTS comments (
+            id TEXT,
+            platform TEXT,
+            source_id TEXT,
+            source_title TEXT,
+            content TEXT,
+            author TEXT,
+            likes INTEGER,
+            replies INTEGER,
+            timestamp TEXT,
+            url TEXT,
+            extra TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (platform, source_id, id)
+        )"""
+
+def _migrate_pk(conn):
+    """旧库升级：单 id 主键 → (platform, source_id, id) 复合主键（OPEN_ISSUES #12）。
+
+    跨平台同 id（bilibili '1' 与 reddit '1'）在旧 PK 下被 INSERT OR IGNORE
+    静默互覆。PRAGMA table_info 检测旧 schema 后重建表并保数。
+    """
+    cols = conn.execute("PRAGMA table_info(comments)").fetchall()
+    if not cols:
+        return  # 空库，建表即新 schema
+    pk = [c[1] for c in cols if c[5]]
+    if set(pk) == {"platform", "source_id", "id"}:
+        return  # 已是复合主键
+    conn.execute("ALTER TABLE comments RENAME TO comments_legacy")
+    conn.execute(COMMENTS_DDL.replace("IF NOT EXISTS ", ""))
+    conn.execute("""INSERT OR IGNORE INTO comments
+        (id, platform, source_id, source_title, content, author,
+         likes, replies, timestamp, url, extra, created_at)
+        SELECT id, COALESCE(platform,''), COALESCE(source_id,''), source_title,
+               content, author, likes, replies, timestamp, url, extra, created_at
+        FROM comments_legacy""")
+    conn.execute("DROP TABLE comments_legacy")
+
+def init_db():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    _migrate_pk(conn)
+    conn.execute(COMMENTS_DDL)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_platform ON comments(platform)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_source ON comments(source_id)")
+    conn.commit()
+    return conn''',
+        marker="PRIMARY KEY (platform, source_id, id)",
+        desc="storage: 复合主键 + 旧库迁移（#12）",
+    )
 
 
 def fix_bilibili() -> None:
@@ -926,6 +1015,26 @@ def fix_heal() -> None:
     shutil.copyfile(FIXES_SRC / "self-heal.yml",
                     ROOT / ".github" / "workflows" / "self-heal.yml")
     report.append("🔧 self-heal.yml → 手动触发 + artifact 上传")
+
+
+def fix_design_mvp() -> None:
+    """MVP 推荐按主导信号（频次降序），而非 dict 插入顺序（OPEN_ISSUES #24）。"""
+    p = ROOT / "scripts" / "pipeline" / "design_mvp.py"
+    patch_text(
+        p,
+        old='''def design_mvp(pain: dict) -> dict:
+    sigs = list(pain.get("signal_distribution", {}).keys())
+    quotes = pain.get("representative_quotes", [])''',
+        new='''def design_mvp(pain: dict) -> dict:
+    # 按频次降序取主导信号（OPEN_ISSUES #24）：dict 插入顺序不等于主导，
+    # 首推与 deliverable_hint 都应跟随票数最高的信号。
+    sigs = [k for k, _ in sorted(
+        (pain.get("signal_distribution") or {}).items(),
+        key=lambda kv: kv[1], reverse=True)]
+    quotes = pain.get("representative_quotes", [])''',
+        marker="按频次降序取主导信号",
+        desc="design_mvp: 主导信号排序（#24）",
+    )
 
 
 def fix_exec_report_wire() -> None:
@@ -996,6 +1105,7 @@ def main():
     fix_bilibili()
     fix_demo()
     fix_heal()
+    fix_design_mvp()
     fix_exec_report_wire()
     copy_canonical_modules()
     # 生成后断言：bilibili overlay 必须生效（否则 MVP.md 覆盖模板且 overlay 失效）

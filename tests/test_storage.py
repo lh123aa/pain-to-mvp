@@ -57,6 +57,63 @@ def test_jsonl_does_not_accumulate_across_runs(tmp_path, monkeypatch):
     assert sorted(ids) == ["r1", "r2", "r3", "r4"]
 
 
+def test_cross_platform_same_id_both_kept(tmp_path, monkeypatch):
+    """跨平台同 id 不得互覆（OPEN_ISSUES #12）：bilibili 的 '1' 与 reddit 的 '1'
+    是两条不同评论，SQLite 主键必须是 (platform, source_id, id) 复合键。"""
+    monkeypatch.chdir(tmp_path)
+    bili = {"id": "1", "platform": "bilibili", "source_id": "s1", "content": "B端评论"}
+    redt = {"id": "1", "platform": "reddit", "source_id": "s2", "content": "R端评论"}
+    inserted_b = storage.save_records([bili], platform="bilibili")
+    inserted_r = storage.save_records([redt], platform="reddit")
+    assert inserted_b == 1 and inserted_r == 1, (
+        f"两条跨平台同 id 都应入库，实际 {inserted_b}/{inserted_r}")
+    stats = storage.stats()
+    assert stats["total"] == 2, f"跨平台同 id 应共存，实际 {stats['total']} 条"
+
+
+def test_same_key_still_deduped(tmp_path, monkeypatch):
+    """复合键内重复（同平台同源同 id）仍须去重，不得因改 PK 放水。"""
+    monkeypatch.chdir(tmp_path)
+    rec = {"id": "1", "platform": "bilibili", "source_id": "s1", "content": "x"}
+    storage.save_records([dict(rec), dict(rec)], platform="bilibili")
+    storage.save_records([dict(rec)], platform="bilibili")
+    assert storage.stats()["total"] == 1
+    lines = _jsonl_lines(tmp_path)
+    assert len(lines) == 1, f"JSONL 同键重复不应追加，实际 {len(lines)} 行"
+
+
+def test_legacy_single_pk_db_migrates(tmp_path, monkeypatch):
+    """旧库迁移：单 id 主键的老 DB 打开后自动升复合主键，且数据不丢。"""
+    import sqlite3
+
+    monkeypatch.chdir(tmp_path)
+    db = Path(tmp_path) / "data" / "pain_to_mvp.db"
+    db.parent.mkdir(parents=True, exist_ok=True)
+    legacy = sqlite3.connect(db)
+    legacy.execute("""
+        CREATE TABLE comments (
+            id TEXT PRIMARY KEY, platform TEXT, source_id TEXT,
+            source_title TEXT, content TEXT, author TEXT,
+            likes INTEGER, replies INTEGER, timestamp TEXT, url TEXT,
+            extra TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    legacy.execute(
+        "INSERT INTO comments (id, platform, source_id, content) VALUES (?,?,?,?)",
+        ("9", "bilibili", "s1", "老数据"))
+    legacy.commit()
+    legacy.close()
+
+    storage.init_db()  # 触发迁移
+    conn = sqlite3.connect(db)
+    pk_cols = [r[1] for r in conn.execute("PRAGMA table_info(comments)") if r[5]]
+    total = conn.execute("SELECT COUNT(*) FROM comments").fetchone()[0]
+    conn.close()
+    assert set(pk_cols) == {"platform", "source_id", "id"}, (
+        f"迁移后主键应为复合键，实际 {pk_cols}")
+    assert total == 1, f"迁移必须保数，实际 {total} 条"
+
+
 def test_jsonl_still_writable_after_db_wipe(tmp_path, monkeypatch):
     """DB 被清后重爬：JSONL 自身是去重权威，已有 id 不重复、新 id 照写。"""
     monkeypatch.chdir(tmp_path)

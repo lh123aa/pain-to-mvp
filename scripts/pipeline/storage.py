@@ -52,12 +52,8 @@ def _normalize(record: Dict[str, Any]) -> Dict[str, Any]:
     out["extra"] = {k: v for k, v in record.items() if k not in STANDARD_FIELDS}
     return out
 
-def init_db():
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS comments (
-            id TEXT PRIMARY KEY,
+COMMENTS_DDL = """CREATE TABLE IF NOT EXISTS comments (
+            id TEXT,
             platform TEXT,
             source_id TEXT,
             source_title TEXT,
@@ -68,9 +64,37 @@ def init_db():
             timestamp TEXT,
             url TEXT,
             extra TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (platform, source_id, id)
+        )"""
+
+def _migrate_pk(conn):
+    """旧库升级：单 id 主键 → (platform, source_id, id) 复合主键（OPEN_ISSUES #12）。
+
+    跨平台同 id（bilibili '1' 与 reddit '1'）在旧 PK 下被 INSERT OR IGNORE
+    静默互覆。PRAGMA table_info 检测旧 schema 后重建表并保数。
+    """
+    cols = conn.execute("PRAGMA table_info(comments)").fetchall()
+    if not cols:
+        return  # 空库，建表即新 schema
+    pk = [c[1] for c in cols if c[5]]
+    if set(pk) == {"platform", "source_id", "id"}:
+        return  # 已是复合主键
+    conn.execute("ALTER TABLE comments RENAME TO comments_legacy")
+    conn.execute(COMMENTS_DDL.replace("IF NOT EXISTS ", ""))
+    conn.execute("""INSERT OR IGNORE INTO comments
+        (id, platform, source_id, source_title, content, author,
+         likes, replies, timestamp, url, extra, created_at)
+        SELECT id, COALESCE(platform,''), COALESCE(source_id,''), source_title,
+               content, author, likes, replies, timestamp, url, extra, created_at
+        FROM comments_legacy""")
+    conn.execute("DROP TABLE comments_legacy")
+
+def init_db():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    _migrate_pk(conn)
+    conn.execute(COMMENTS_DDL)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_platform ON comments(platform)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_source ON comments(source_id)")
     conn.commit()
