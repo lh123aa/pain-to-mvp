@@ -239,7 +239,7 @@ def _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
         A("| 层 | 保留 | 本层丢弃 | 为什么丢 |")
         A("|---|---:|---:|---|")
         A(f"| 载入 raw | {st['loaded']} | — | 坏行 / 空行不计数 |")
-        A(f"| 清洗 | {st['cleaned']} | -{st['dropped_clean']} | `is_valid` 不过：短于 4 字、纯表情、广告 |")
+        A(f"| 清洗 | {st['cleaned']} | -{st['dropped_clean']} | `is_valid` 不过：短于 4 字、纯表情、广告、成人擦边 |")
         A(f"| 跨视频去重 | {st['deduped']} | -{st['dropped_dup']} | T9：跨视频文本完全相同的重复评论 |")
         A(f"| 痛点过滤 | {st['painful']} | -{st['dropped_pain']} | `pain_score < {min_pain}`：规则词权重和不足 |")
         A("")
@@ -342,7 +342,7 @@ def _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
     A("")
     A("| 步骤 | 规则 | 位置 |")
     A("|---|---|---|")
-    A("| 清洗 | `len<4` / 纯表情 / 广告 → 丢 | `preprocess.is_valid` |")
+    A("| 清洗 | `len<4` / 纯表情 / 广告 / 成人擦边 → 丢 | `preprocess.is_valid` |")
     A("| 去重 | 跨视频 `clean_content` 完全相同 → 丢 | `mine._dedup_by_text` |")
     A(f"| 痛点过滤 | 信号词权重和 ≥ {min_pain} 才保留 | `pain_rules.filter_painful` |")
     A("| 簇主题 | **取频次最高信号**（求助量大恒压付费/失望） | `mine_pain_points.py:126` |")
@@ -653,7 +653,7 @@ def _render_html(keyword, ts, st, dropped, items, cards, raw_files, min_pain) ->
     A('<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr>'
       "<th>步骤</th><th>规则</th><th>位置</th></tr></thead><tbody>")
     rules = [
-        ("清洗", "<code>len&lt;4</code> / 纯表情 / 广告 → 丢", "preprocess.is_valid"),
+        ("清洗", "<code>len&lt;4</code> / 纯表情 / 广告 / 成人擦边 → 丢", "preprocess.is_valid"),
         ("去重", "跨视频 <code>clean_content</code> 完全相同 → 丢", "mine._dedup_by_text"),
         ("痛点过滤", f"信号词权重和 ≥ {min_pain} 才保留", "pain_rules.filter_painful"),
         ("簇主题", "取频次最高信号（求助量大恒压付费/失望）", "mine_pain_points.py:126"),

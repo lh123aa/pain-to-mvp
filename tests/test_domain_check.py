@@ -205,3 +205,30 @@ def test_section4_text_flags_mismatch(tmp_path, monkeypatch):
 
     assert "域重合度 0%" in sec4
     assert "跑偏" in sec4, "mismatch 判定必须明说跑偏"
+
+
+def test_funnel_clean_layer_mentions_adult_rule(tmp_path, monkeypatch):
+    """清洗层丢弃计数含成人黑名单命中 —— 说明若不提「成人」则数字与解释不符。"""
+    import exec_report as er
+
+    raw = tmp_path / "b.jsonl"
+    raw.write_text(
+        '{"content": "为什么这么贵，太坑了，失望"}\n'
+        '{"content": "福利姬写真集高清资源分享"}\n', encoding="utf-8")
+    monkeypatch.setattr(er, "REPORT_DIR", tmp_path)
+
+    md = er.generate(keyword="独立开发者", raw_files=[raw])
+    body = md.read_text(encoding="utf-8")
+
+    # 漏斗清洗行：为什么丢 必须包含成人黑名单
+    funnel_line = [ln for ln in body.splitlines()
+                   if ln.startswith("| 清洗 |") and "is_valid" in ln]
+    assert funnel_line, "漏斗清洗行缺失"
+    assert "成人" in funnel_line[0], (
+        f"清洗层丢弃解释必须含成人黑名单（Layer 2 在这层丢弃），实际：{funnel_line[0]}")
+
+    # 第 6 节清洗规则行同样
+    rules_line = [ln for ln in body.splitlines()
+                  if ln.startswith("| 清洗 |") and "len<4" in ln]
+    assert rules_line and "成人" in rules_line[0], (
+        f"第6节清洗规则行必须含成人黑名单，实际：{rules_line}")
