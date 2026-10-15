@@ -28,7 +28,7 @@ import mimetypes
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).parent.parent.parent
 DASHBOARD_JSON = ROOT / "data" / "dashboard.json"
@@ -36,7 +36,12 @@ ASSETS = ROOT / "assets" / "dashboard"
 
 
 def resolve_asset(rel: str):
-    """把 URL 相对路径解析为 ASSETS 内的文件；越界返回 None（防路径穿越）。"""
+    """把 URL 相对路径解析为 ASSETS 内的文件；越界返回 None（防路径穿越）。
+
+    先 %xx 解码再做边界检查（OPEN_ISSUES #13）：浏览器对中文名发的是
+    percent-encoded 路径，不解码永远 403；解码若晚于检查，%2e%2e%2f 可绕过穿越防线。
+    """
+    rel = unquote(rel)
     try:
         candidate = (ASSETS / rel).resolve()
         candidate.relative_to(ASSETS.resolve())

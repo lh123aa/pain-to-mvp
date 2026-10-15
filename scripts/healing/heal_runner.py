@@ -25,7 +25,6 @@ except Exception:
     pass
 # --- 结束 UTF-8 入口稳定化 ---
 import json
-import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -36,13 +35,19 @@ MAX_REPORTED = 30
 
 
 def load_bugs():
+    """读 Bug 日志；坏行（截断/非 JSON）跳过不阻断整份诊断（OPEN_ISSUES #15）。"""
     if not BUG_LOG.exists():
         return []
     bugs = []
     with open(BUG_LOG, "r", encoding="utf-8") as f:
         for line in f:
-            if line.strip():
+            line = line.strip()
+            if not line:
+                continue
+            try:
                 bugs.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue  # 坏行跳过：一条损坏记录不得炸掉全部诊断
     return bugs
 
 

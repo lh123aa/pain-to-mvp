@@ -1,8 +1,9 @@
 name: Daily Audit
 
+# OPEN_ISSUES #14 处置记录（2026-10-15）：PRD §三（Q3）决策「自优化不投入」，
+# 原 cron 定时 + auto commit&push 与该决策冲突 → 去定时改仅手动触发，
+# 且审计结果只上传 artifact 不再自动提交推送（与 self-heal.yml 只读原则一致）。
 on:
-  schedule:
-    - cron: '0 2 * * *'   # 每天 UTC 02:00（北京时间 10:00）
   workflow_dispatch:
 
 jobs:
@@ -17,10 +18,11 @@ jobs:
         run: pip install requests pyyaml
       - name: Run audit
         run: python scripts/self_improve/audit_runner.py
-      - name: Commit changes
-        run: |
-          git config user.name "audit-bot"
-          git config user.email "bot@pain-to-mvp.local"
-          git add -A
-          git diff --quiet && git diff --staged --quiet || git commit -m "chore: daily audit $(date +%Y-%m-%d)"
-          git push
+      - name: Upload audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report
+          path: |
+            data/audit/**
+            docs/audit/**
+          if-no-files-found: ignore
