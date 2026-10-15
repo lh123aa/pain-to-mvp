@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>执行报告 — 独立开发者怎么接单</title>
+<style>
+:root{
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"SFMono-Regular",monospace;
+  --paper:#FBFBFC;--card:#FFFFFF;
+  --ink:#16181D;--ink2:#454A54;--ink3:#767C88;
+  --line:#E4E6EA;--line2:#F0F1F4;
+  --accent:#0F766E;--accent-soft:#E7F2F1;
+  --warn:#B45309;--warn-soft:#FBF1E6;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font:400 15px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+.page{max-width:960px;margin:0 auto;padding:56px 32px 80px}
+code,.mono{font-family:var(--mono);font-size:.92em;font-variant-numeric:tabular-nums}
+code{background:var(--line2);padding:1px 5px;border-radius:4px}
+
+.head{border-bottom:1px solid var(--line);padding-bottom:24px;margin-bottom:48px}
+.kicker{font:600 12px/1.4 var(--mono);letter-spacing:.14em;color:var(--accent);margin-bottom:8px}
+h1{font:700 30px/1.2 var(--sans);letter-spacing:-.02em;margin:0 0 8px}
+.meta{font-size:13px;color:var(--ink3);margin:0}
+.meta code{background:none;padding:0;color:var(--ink2)}
+
+section{margin-bottom:48px}
+h2{font:650 19px/1.35 var(--sans);margin:0 0 16px;display:flex;align-items:baseline;gap:10px}
+h2 .n{font:600 12px/1 var(--mono);color:var(--accent);letter-spacing:.08em;
+  border:1px solid var(--accent);border-radius:4px;padding:4px 6px;flex:none}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px}
+.callout{border-left:2px solid var(--warn);background:var(--warn-soft);color:#7A3B06;
+  padding:12px 16px;border-radius:0 4px 4px 0;font-size:14px;margin:16px 0 0}
+.callout strong{color:var(--warn);font-family:var(--mono)}
+.note{font-size:13px;color:var(--ink3);margin:16px 0 0;line-height:1.7}
+.formula{font:500 13px/1.6 var(--mono);color:var(--ink2);background:var(--line2);
+  padding:10px 12px;border-radius:4px;margin:0 0 20px;overflow-x:auto}
+
+.funnel{display:grid;gap:10px}
+.stage{display:grid;grid-template-columns:88px 1fr 64px 76px;align-items:center;gap:12px}
+.stage .lab{font-size:13px;color:var(--ink2);text-align:right}
+.track{height:26px;background:var(--line2);border-radius:3px;overflow:hidden}
+.fill{height:100%;background:rgba(15,118,110,.22);border-right:2px solid var(--accent)}
+.stage .cnt{font:600 15px/1 var(--mono);text-align:right;color:var(--ink)}
+.stage .drop{font:500 13px/1 var(--mono);text-align:right;color:var(--ink3)}
+.stage .drop.on{color:var(--warn)}
+
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{font:600 12px/1.4 var(--sans);color:var(--ink3);letter-spacing:.06em;
+  text-align:left;padding:0 12px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--line2);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl .num{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.tbl th.num{text-align:right}
+.tier{display:inline-block;font:600 12px/1 var(--mono);padding:5px 7px;border-radius:4px;
+  background:var(--line2);color:var(--ink2)}
+.tier.a{background:var(--accent);color:#FFFFFF}
+.basis{font-size:12px;color:var(--ink3);font-family:var(--mono)}
+.chip{display:inline-block;font-size:12px;color:var(--ink3);border:1px dashed var(--line);
+  border-radius:4px;padding:2px 6px;margin:0 4px 4px 0}
+.chip.on{border-style:solid;color:var(--ink2);border-color:var(--line)}
+
+ul.notes{margin:20px 0 0;padding:0;list-style:none;font-size:14px;color:var(--ink2)}
+ul.notes li{padding-left:16px;position:relative;margin-bottom:8px}
+ul.notes li:before{content:"";position:absolute;left:0;top:.75em;width:6px;height:1px;background:var(--ink3)}
+ul.notes li:last-child{margin-bottom:0}
+ul.notes strong{color:var(--ink)}
+
+ul.samples{margin:0;padding:0;list-style:none}
+.grp + .grp{margin-top:20px;padding-top:20px;border-top:1px solid var(--line2)}
+.grp-h{font:600 12px/1.5 var(--sans);color:var(--ink3);letter-spacing:.06em;margin-bottom:12px}
+ul.samples li{padding:12px 0;border-bottom:1px solid var(--line2)}
+ul.samples li:first-child{padding-top:0}
+ul.samples li:last-child{border-bottom:none;padding-bottom:0}
+.s{display:inline-block;font:600 12px/1 var(--mono);padding:5px 6px;border-radius:4px;
+  background:var(--line2);color:var(--ink2);margin-right:8px;vertical-align:1px}
+.s.lo{background:var(--warn-soft);color:var(--warn)}
+.q{color:var(--ink);font-size:14px}
+.rsn{font-size:13px;color:var(--ink3);margin-top:4px;padding-left:48px}
+
+ol.videos{margin:0;padding:0;list-style:none;counter-reset:v}
+ol.videos li{display:flex;gap:12px;align-items:baseline;padding:8px 0;
+  border-bottom:1px solid var(--line2);font-size:14px}
+ol.videos li:first-child{padding-top:0}
+ol.videos li:last-child{border-bottom:none;padding-bottom:0}
+ol.videos li:before{counter-increment:v;content:counter(v,decimal-leading-zero);
+  font:500 12px/1 var(--mono);color:var(--ink3);flex:none}
+.vt{flex:1;color:var(--ink);min-width:0}
+.vid{font:500 12px/1 var(--mono);color:var(--ink3);flex:none}
+
+.foot{border-top:1px solid var(--line);padding-top:16px;font-size:12px;color:var(--ink3)}
+@media (max-width:640px){
+  .page{padding:32px 16px 56px}
+  h1{font-size:24px}
+  .stage{grid-template-columns:60px 1fr 44px 68px;gap:8px}
+  .stage .lab{font-size:12px}
+}
+@media print{
+  body{background:#FFFFFF}
+  section{break-inside:avoid}
+}
+</style>
+</head>
+<body><div class='page'>
+<header class="head">
+<div class="kicker">EXEC REPORT</div>
+<h1>独立开发者怎么接单</h1>
+<p class="meta">生成 20261015-0929 ｜ 入口 <code>run_all.py</code> ｜ 本报告只读重算，不改任何步骤</p>
+</header>
+<section>
+<h2><span class="n">1</span>决策漏斗</h2>
+<div class="card">
+<p class="note">本次未提供 raw 输入，漏斗不可用。</p>
+</div>
+</section>
+<section>
+<h2><span class="n">2</span>分数拆解：每张卡为什么这个分</h2>
+<div class="card"><p class="note">无评分数据。</p></div>
+</section>
+<section>
+<h2><span class="n">3</span>被痛点层丢弃的评论（抽样 0 条，按分数降序）</h2>
+<div class="card">
+<p class="note">本次没有评论在痛点层被丢弃。</p>
+</div>
+</section>
+<section>
+<h2><span class="n">4</span>实际召回的视频（域匹配自查）</h2>
+<p class="note"><strong>域重合度 93%（通过）</strong> —— 关键词与召回标题基本一致</p>
+<p class="note">召回<strong>落在关键词域内</strong>；域校验通过不代表痛点率高，仍需看第 1 节漏斗：</p>
+<div class="card"><ol class="videos">
+<li><span class="vt">8个正规零撸接单平台，人人都能赚到，一天300+，低门槛，在家就能做（详细教程）</span><span class="vid">115989853246573</span></li>
+<li><span class="vt">(真实)大二学生小程序接单月入过万分享</span><span class="vid">249981709</span></li>
+<li><span class="vt">独立开发者不上班如何养活自己？收入如何？怎么接单？有什么要求？</span><span class="vid">245472985</span></li>
+<li><span class="vt">独立开发需要哪些技术</span><span class="vid">1050946158</span></li>
+<li><span class="vt">【干货】学设计怎么从零开始接单，接完又该咋做？？</span><span class="vid">113758701617493</span></li>
+<li><span class="vt">【建模】接了一个200R的外包单子，但老板好像不满意</span><span class="vid">637994090</span></li>
+<li><span class="vt">都推荐学python去网站接单，想屁吃！分析python接单的方式，揭秘正确接单方式！！！</span><span class="vid">379047660</span></li>
+<li><span class="vt">前端接单？那是啥？日入200+，前端入门可接！！诸君，我超爱接单的【虔诚】</span><span class="vid">720006153</span></li>
+<li><span class="vt">为什么很多程序员都不去做独立开发者？</span><span class="vid">1501040347</span></li>
+<li><span class="vt">一分钱不花，完成独立产品从0上线！2026年独立开发者免费全家桶</span><span class="vid">117432593154349</span></li>
+<li><span class="vt">又赚150！程序员接单Java 代码生成器10分钟搞定</span><span class="vid">114856854298234</span></li>
+<li><span class="vt">程序员接单做软件开发需要什么技术水平？</span><span class="vid">113028389405231</span></li>
+<li><span class="vt">在家用Python接单，昨天468，分享我的接单平台、接单技巧以及学习资源，悄悄努力，惊艳所有人！！</span><span class="vid">117426737909840</span></li>
+<li><span class="vt">在家做Python接单，昨天100的小单无限debugger的问题，分享我的实操方法、以及学习资源，悄悄努力，惊艳所有人！！</span><span class="vid">117392831158167</span></li>
+<li><span class="vt">壹软电竞俱乐部小程序定制开发：护航点单系统源码搭建支持APP小程序h5，含打手接单+自动派单教程 #三角洲护航  #护航小程序制作</span><span class="vid">117419708321796</span></li>
+</ol></div>
+</section>
+<section>
+<h2><span class="n">5</span>异常</h2>
+<p class="note">无 0 条评论的视频。</p>
+</section>
+<section>
+<h2><span class="n">6</span>本次执行用到的规则</h2>
+<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>步骤</th><th>规则</th><th>位置</th></tr></thead><tbody>
+<tr><td>清洗</td><td><code>len&lt;4</code> / 纯表情 / 广告 → 丢</td><td><code>preprocess.is_valid</code></td></tr>
+<tr><td>去重</td><td>跨视频 <code>clean_content</code> 完全相同 → 丢</td><td><code>mine._dedup_by_text</code></td></tr>
+<tr><td>痛点过滤</td><td>信号词权重和 ≥ 3 才保留</td><td><code>pain_rules.filter_painful</code></td></tr>
+<tr><td>簇主题</td><td>取频次最高信号（求助量大恒压付费/失望）</td><td><code>mine_pain_points.py:126</code></td></tr>
+<tr><td>代表句</td><td>乘性打分 + MMR，<strong>无长度上限</strong></td><td><code>cluster.py:71-83</code></td></tr>
+<tr><td>评分</td><td>2/5 维参与；可行性看 size；conf 看 size</td><td><code>score_opportunity.py:33-95</code></td></tr>
+<tr><td>MVP 类型</td><td>取信号 dict <strong>第一个键</strong>（插入顺序，非主导信号）</td><td><code>design_mvp.py:39</code></td></tr>
+<tr><td>主题聚焦</td><td><code>--topics</code> 可选，<strong>run_all 默认不启用</strong></td><td><code>run_all.py:72</code></td></tr>
+<tr><td>域校验前置</td><td>娱乐域关键词 → 爬取前警告（<strong>不阻断</strong>）</td><td><code>run_all.domain_precheck</code></td></tr>
+<tr><td>成人黑名单</td><td>命中成人擦边词 → 清洗层丢弃（合规红线不绕过）</td><td><code>domain_check.is_adult</code></td></tr>
+<tr><td>召回域重合</td><td>标题命中域词 &lt; 50% → 判 <code>domain_mismatch</code></td><td><code>domain_check.domain_overlap</code></td></tr>
+</tbody></table></div></div>
+</section>
+<footer class="foot">由 <code>exec_report.py</code> 自动产出 ｜ 规则有误 → 改对应源文件后重跑</footer>
+</div></body></html>

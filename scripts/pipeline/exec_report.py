@@ -301,16 +301,21 @@ def _render(keyword, ts, st, dropped, items, cards, raw_files, min_pain) -> str:
         titles = [it.get("title", "") for it in items]
         overlap = domain_overlap(keyword, titles)
         if overlap["verdict"] == "domain_mismatch":
-            A(f"⚠️ **域重合度 {overlap['overlap_ratio']:.0%}** —— 关键词与召回标题不符，搜索召回可能跑偏")
+            A(f"**域重合度 {overlap['overlap_ratio']:.0%}（跑偏）** —— 关键词与召回标题不符，搜索召回可能跑偏")
             A("")
             A("未命中的标题样本：")
             for s in overlap["samples"]:
                 A(f"- {s}")
             A("")
+            A("采集层**没有域校验** —— 关键词与下列标题不符，说明搜索召回跑偏，整条链路照单全收：")
         elif overlap["verdict"] == "domain_match":
-            A(f"✅ **域重合度 {overlap['overlap_ratio']:.0%}** —— 关键词与召回标题基本一致")
+            A(f"**域重合度 {overlap['overlap_ratio']:.0%}（通过）** —— 关键词与召回标题基本一致")
             A("")
-        A("采集层**没有域校验** —— 关键词与下列标题不符，说明搜索召回跑偏，整条链路照单全收：")
+            A("召回**落在关键词域内**；域校验通过不代表痛点率高，仍需看第 1 节漏斗：")
+        else:
+            A("_域重合度无法判定（关键词类型未知或无召回标题）。_")
+            A("")
+            A("下列为实际召回的视频：")
         A("")
         for it in items:
             sid = it.get("source_id", "?")
@@ -600,17 +605,23 @@ def _render_html(keyword, ts, st, dropped, items, cards, raw_files, min_pain) ->
         titles = [it.get("title", "") for it in items]
         overlap = domain_overlap(keyword, titles)
         if overlap["verdict"] == "domain_mismatch":
-            A(f'<p class="callout"><strong>域重合度 {overlap["overlap_ratio"]:.0%}</strong> '
+            A(f'<p class="callout"><strong>域重合度 {overlap["overlap_ratio"]:.0%}（跑偏）</strong> '
               "—— 关键词与召回标题不符，搜索召回可能跑偏</p>")
             A('<div class="card"><div class="grp-h">未命中的标题样本</div><ul class="samples">')
             for s in overlap["samples"]:
                 A(f'<li><span class="q">「{e(s)}」</span></li>')
             A("</ul></div>")
+            A('<p class="note">采集层<strong>没有域校验</strong> —— 关键词与下列标题不符，'
+              "说明搜索召回跑偏，整条链路照单全收：</p>")
         elif overlap["verdict"] == "domain_match":
-            A(f'<p class="note">✅ <strong>域重合度 {overlap["overlap_ratio"]:.0%}</strong> '
+            A(f'<p class="note"><strong>域重合度 {overlap["overlap_ratio"]:.0%}（通过）</strong> '
               "—— 关键词与召回标题基本一致</p>")
-        A('<p class="note">采集层<strong>没有域校验</strong> —— 关键词与下列标题不符，'
-          "说明搜索召回跑偏，整条链路照单全收：</p>")
+            A('<p class="note">召回<strong>落在关键词域内</strong>；'
+              "域校验通过不代表痛点率高，仍需看第 1 节漏斗：</p>")
+        else:
+            A('<p class="note">域重合度无法判定（关键词类型未知或无召回标题）。'
+              "</p>")
+            A('<p class="note">下列为实际召回的视频：</p>')
         A('<div class="card"><ol class="videos">')
         for it in items:
             sid = it.get("source_id", "?")

@@ -162,3 +162,46 @@ def test_exec_report_html_shows_domain_verdict(tmp_path, monkeypatch):
     html_content = html_path.read_text(encoding="utf-8")
 
     assert "域重合度" in html_content
+
+
+def test_section4_text_agrees_with_verdict(tmp_path, monkeypatch):
+    """第 4 节文案必须与域重合度判定一致 —— 判 match 却写「跑偏」是自相矛盾。
+
+    真实数据暴露：女孩喜欢的物件 报告写 80%「基本一致」，
+    下一句却是写死的「不符…跑偏」，判定与文案打架。
+    """
+    import exec_report as er
+
+    # 全部召回标题都命中问题域 → 应判 domain_match
+    disc_match = tmp_path / "disc_match.json"
+    disc_match.write_text(json.dumps([
+        {"source_id": "1", "title": "独立开发者如何接单报价"},
+        {"source_id": "2", "title": "独立开发者获客难题"},
+    ], ensure_ascii=False), encoding="utf-8")
+
+    monkeypatch.setattr(er, "REPORT_DIR", tmp_path)
+    md = er.generate("独立开发者", discovered=str(disc_match), raw_files=[])
+    body = md.read_text(encoding="utf-8")
+
+    assert "domain_match" not in body or "跑偏" not in body.split("## 5.")[0], "判定与文案矛盾"
+    sec4 = body.split("## 4.")[1].split("## 5.")[0]
+    assert "基本一致" in sec4, "match 判定应说明基本一致"
+    assert "跑偏" not in sec4, f"domain_match 时第 4 节不得写「跑偏」，实际：{sec4[:200]}"
+
+
+def test_section4_text_flags_mismatch(tmp_path, monkeypatch):
+    """召回跑偏时第 4 节必须明说跑偏（不能只靠 verdict 字段）。"""
+    import exec_report as er
+
+    disc = tmp_path / "disc_mis.json"
+    disc.write_text(json.dumps([
+        {"source_id": "1", "title": "女孩喜欢的物件"},
+        {"source_id": "2", "title": "美食探店"},
+    ], ensure_ascii=False), encoding="utf-8")
+
+    monkeypatch.setattr(er, "REPORT_DIR", tmp_path)
+    md = er.generate("独立开发者", discovered=str(disc), raw_files=[])
+    sec4 = md.read_text(encoding="utf-8").split("## 4.")[1].split("## 5.")[0]
+
+    assert "域重合度 0%" in sec4
+    assert "跑偏" in sec4, "mismatch 判定必须明说跑偏"

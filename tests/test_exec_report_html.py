@@ -151,13 +151,48 @@ def test_html_table_header_aligns_with_numeric_column(tmp_path, monkeypatch):
 
 
 def test_html_output_has_no_emoji_icons(tmp_path, monkeypatch):
-    """红线 #2：报告不得用 emoji 充当图标/装饰（专业文档感）。"""
+    """红线 #2：报告不得用 emoji 充当图标/装饰（专业文档感）。
+
+    码位覆盖 0x2600-0x27BF 等符号区 —— 旧范围只查 0x1F300-0x1FAFF，
+    ✅(U+2705)/⚠(U+26A0) 从洞里漏了。
+    """
     monkeypatch.setattr(er, "REPORT_DIR", tmp_path)
     disc, raw, scored = _seed(tmp_path)
     er.generate(keyword="测试关键词", discovered=disc, raw_files=[raw], scored=scored)
     body = _html(tmp_path)
-    emoji = [c for c in body if ord(c) > 0x1F000 and 0x1F300 <= ord(c) <= 0x1FAFF]
+    emoji = [c for c in body if _is_emoji(c)]
     assert not emoji, f"HTML 含 emoji 图标：{emoji[:5]}"
+
+
+def _is_emoji(c: str) -> bool:
+    o = ord(c)
+    return (0x1F300 <= o <= 0x1FAFF or 0x2600 <= o <= 0x27BF
+            or 0x2B00 <= o <= 0x2BFF or o == 0xFE0F)
+
+
+def test_report_body_has_no_emoji(tmp_path, monkeypatch):
+    """域校验的 ✅/⚠️ 不得进报告正文（md 与 html 一致）。
+
+    关键词与标题必须触发 domain_match 路径 —— 旧写法用 unknown 关键词，
+    verdict 行根本不渲染，测试假绿。
+    """
+    monkeypatch.setattr(er, "REPORT_DIR", tmp_path)
+    _, raw, scored = _seed(tmp_path)
+    disc = tmp_path / "disc_domain.json"
+    disc.write_text(json.dumps([
+        {"source_id": "1", "title": "独立开发者如何接单报价"},
+        {"source_id": "2", "title": "独立开发者获客难题"},
+    ], ensure_ascii=False), encoding="utf-8")
+
+    md = er.generate(keyword="独立开发者", discovered=str(disc), raw_files=[raw], scored=scored)
+    md_body = md.read_text(encoding="utf-8")
+    assert "域重合度" in md_body, "verdict 行必须渲染（否则测不到 emoji）"
+    md_emoji = [c for c in md_body if _is_emoji(c)]
+    assert not md_emoji, f"Markdown 报告含 emoji：{md_emoji[:5]}"
+
+    html_body = _html(tmp_path)
+    html_emoji = [c for c in html_body if _is_emoji(c)]
+    assert not html_emoji, f"HTML 报告含 emoji：{html_emoji[:5]}"
 
 
 def test_section6_lists_domain_rules(tmp_path, monkeypatch):
