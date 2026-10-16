@@ -59,6 +59,7 @@
 | 19 | 加 `.github/workflows/test.yml`（push/PR 跑 pytest） | 推 GitHub 后 | ✅ test.yml 已落地（master push + PR 触发，pytest 单元套件；不跑 make test——那是 B 端到端需网络凭证） |
 | 27 | **apply_fixes 回退陷阱**：`test_apply_fixes_stays_idempotent_with_exec_report` 在测试内跑 apply_fixes，末尾 `copy_canonical_modules()` 用 canonical 覆盖工作区 —— 改 `score_opportunity.py`/`export_card.py`/`cluster.py`/`mine_pain_points.py` **必须先同步 `generators/fixes/` 再跑全量测试**，否则改动被静默回退 | 改上述 4 文件时必查；长期：测试改用临时目录不污染工作区 | ✅ 长期解落地：`workspace_clone` fixture（conftest）复制工作区到临时目录，两个幂等测试改在副本上跑（真实树零写入）；新增 `test_canonical_four_match_fixes_overlays` 字节级断言 4 文件与 fixes/ 一致——忘同步在测试红并直指 RK-0001，而非静默丢工作（已做故意不同步 RED 验证） |
 | 28 | **discover fail-close 缺失**（P6 重验 2026-10-15 发现）：全部平台失败（如 v_voucher 风控）时 discover 捕获异常后仍 **exit 0 + 写空 `[]` 文件** → e2e Step 1 据 returncode 判 ✅ 假成功 → 真正失败被推到 crawl 步误报"未找到评论数据"，错误归因混乱 | P6 重验期间必查 | ✅ 已修：零发现即 `sys.exit(1)` 并点名失败/不可用平台；空文件照写（防 `latest()` 复用旧产物）；overlay patch `fix_discover_failclose`（5 段锚点）防 extract 回退；`test_discover_failclose.py` 7 测试（全败退出非 0 / 部分成功不中断 / 不可用≠链路故障 / 模板恢复+幂等 / 工作区 marker 守卫） |
+| 29 | **A5 卡片质量两根因**（P6 重验 2026-10-15 抽检 top3=33%）：① 痛点描述句直接取 `representative_quotes[0]`——段子靠子串误命中（"还没用到"命中"没用"→失望信号）当上卡片描述；② 3 条杂谈小簇也产出"可行动机会卡"，证据不足却主张机会 | P6 重验期间必查 | ✅ 已修：① cluster 代表句强信号（求助/期望/付费意愿）稳定前置 + mine `_select_summary_quote` 只取强信号句、无则省略引句（宁缺毋假）② export `MIN_EVIDENCE=5` 极小簇跳过且不占 top 配额；`test_a5_card_quality.py` 10 测试（含 RED 验证）；canonical 3 文件（cluster/mine_pain_points/export_card）已同步 `generators/fixes/` |
 
 ## 已闭环（原 spec 开放项，留档）
 

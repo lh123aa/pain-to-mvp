@@ -54,6 +54,10 @@ def _bigrams(t: str) -> set:
     t = "".join(t.split())
     return {t[i:i + 2] for i in range(max(1, len(t) - 1))}
 
+# 强行动信号：求助/期望/付费意愿是"需求陈述"句式，可直接充当痛点描述；
+# 抱怨/失望/对比/困惑多为情绪或子串误命中（"还没用到"命中"没用"），只作证据不作陈述
+_STRONG_SIGNALS = {"求助", "期望", "付费意愿"}
+
 def _is_homogeneous_repetition(members: List[Dict], threshold: float = 0.5) -> bool:
     """簇内多样性校验（OPEN_ISSUES #23）：成员两两 bigram Jaccard 全部 ≥ threshold
     判定为同句式复读（玩梗变体），不得成簇进卡片。
@@ -72,9 +76,20 @@ def _is_homogeneous_repetition(members: List[Dict], threshold: float = 0.5) -> b
                 return False
     return True
 
+def _strong_signal(m: Dict) -> bool:
+    """成员是否携带强行动信号（求助/期望/付费意愿）——可直接当痛点陈述的句式。"""
+    return any(s.get("label") in _STRONG_SIGNALS for s in (m.get("pain_signals") or []))
+
+
+def _strong_first(ms: List[Dict]) -> List[Dict]:
+    """稳定分区：强信号句前置。段子（子串误命中失望/抱怨）不得抢占代表句首位，
+    避免其成为卡片描述与标题源（A5 2026-10-15 抽检根因①）。无 pain_signals
+    的成员视同弱序，整体相对顺序不变。"""
+    return [m for m in ms if _strong_signal(m)] + [m for m in ms if not _strong_signal(m)]
+
 def _select_representative(members: List[Dict], top: int = 3) -> List[str]:
-    """代表句：非噪音成员中，优先选与簇内其他成员平均相似度高的（有代表性），
-    相近时按 pain_score 降序；全噪音时回退全部成员。
+    """代表句：强信号句先行，其次非噪音成员中选与簇内其他成员平均相似度高的
+    （有代表性），相近时按 pain_score 降序；全噪音时回退全部成员。
 
     纯按 pain_score 选会把与簇主题无关的高分离群句（如混入的"超市菜价"吐槽）
     推成代表句，误导对痛点主题的判断（T9）。
@@ -83,7 +98,7 @@ def _select_representative(members: List[Dict], top: int = 3) -> List[str]:
     pool = clean or members
     def text(m): return m.get("clean_content") or m.get("content") or ""
     if len(pool) <= top:
-        ordered = pool
+        ordered = _strong_first(pool)
     else:
         bgs = {id(m): _bigrams(text(m)) for m in pool}
         max_pain = max((m.get("pain_score", 0) for m in pool), default=1) or 1
@@ -99,7 +114,7 @@ def _select_representative(members: List[Dict], top: int = 3) -> List[str]:
             # 乘性组合：相似度为门槛（sim=0 的离群句直接出局），痛点强度做加成。
             # 加性组合下 sim=0 但 pain 满分的离群句仍能靠 pain 贡登顶（T9/T10）
             return avg * (0.5 + 0.5 * (m.get("pain_score", 0) / max_pain))
-        ordered = sorted(pool, key=rep_score, reverse=True)
+        ordered = _strong_first(sorted(pool, key=rep_score, reverse=True))
         # MMR 去冗余：后续代表句须与已选句有差异，覆盖簇内不同侧面
         picked = []
         for m in ordered:

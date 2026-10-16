@@ -100,6 +100,32 @@ def _output_tag(platform, input_file):
     return (platform or Path(input_file).stem) if input_file else "all"
 
 
+_STRONG_SIGNALS = {"求助", "期望", "付费意愿"}
+_QUOTE_PUNCT = "，。！？、；：,.!?;: "
+
+
+def _select_summary_quote(representative, members):
+    """痛点描述引句（A5 2026-10-15 抽检根因①）：只取携带强行动信号的代表句。
+
+    段子（"笑死，干运维还没用到Python" 靠子串"没用"误命中失望）永不当描述；
+    无强信号句时返回 ''——pain_summary 保留"N条评论集中反映「信号」"前缀，
+    宁可描述不带引句，也不拿段子冒充痛点陈述（不许骗人）。
+    """
+    labels_by_quote = {}
+    for m in members or []:
+        labs = {s.get("label") for s in (m.get("pain_signals") or [])}
+        if not labs:
+            continue
+        for t in (m.get("clean_content"), m.get("content")):
+            if t and t.strip():
+                labels_by_quote.setdefault(t.strip(), set()).update(labs)
+    for q in representative or []:
+        q = (q or "").strip()
+        if q and labels_by_quote.get(q, set()) & _STRONG_SIGNALS:
+            return q.strip(_QUOTE_PUNCT)
+    return ""
+
+
 def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, inputs=None, output=None, topics=None):
     raw = _load_input(input_file, platform, limit, inputs)
     print(f"📥 载入 {len(raw)} 条评论")
@@ -133,7 +159,7 @@ def mine(input_file=None, platform=None, limit=1000, min_pain=3, min_cluster=3, 
                 sig_counter[s["label"]] = sig_counter.get(s["label"], 0) + 1
         quotes = c["representative"]
         top_signal = max(sig_counter.items(), key=lambda kv: kv[1])[0] if sig_counter else "共性诉求"
-        best_quote = (quotes[0] if quotes else "").strip().strip("，。！？、；：,.!?;: ")
+        best_quote = _select_summary_quote(quotes, c["members"])
         pain_summary = f"{c['size']}条评论集中反映「{top_signal}」" + (f"：{best_quote}" if best_quote else "")
         pains.append({
             "cluster_id": c["cluster_id"],

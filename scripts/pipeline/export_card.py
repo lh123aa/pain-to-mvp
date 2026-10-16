@@ -28,6 +28,8 @@ from pathlib import Path
 
 CARD_DIR = Path("data/cards")
 DASHBOARD = Path("data/dashboard.json")
+# 出卡最小证据规模：低于此的簇证据不足，不得产出"可行动机会"主张（A5 2026-10-15）
+MIN_EVIDENCE = 5
 
 # 表情/玩梗标签：[笑哭] [doge] [吃瓜] 等
 _EMOJI_TAG = re.compile(r"\[[^\]]{1,12}\]")
@@ -216,7 +218,15 @@ def export(input_file, top=5):
     date = datetime.now().strftime("%Y%m%d")
     seq = _next_card_id_seq()
     cards = []
-    for i, p in enumerate(scored[:top], 1):
+    for p in scored:
+        if len(cards) >= top:
+            break
+        size = p.get("size", 0)
+        if size < MIN_EVIDENCE:
+            # 证据不足不出卡：3 条杂谈聚不出可行动机会（A5 2026-10-15 抽检根因②）
+            # 跳过不占 top 配额，下方证据充足的簇仍可顶上
+            print(f"⏭️  跳过簇{p.get('cluster_id')}（size={size}<{MIN_EVIDENCE}）：证据不足不出卡")
+            continue
         total_score = p.get("total_score")
         tier = p.get("tier", "?")
         built = _build_card(p, total_score, tier)
