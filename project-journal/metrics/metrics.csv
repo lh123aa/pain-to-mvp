@@ -19,3 +19,6 @@ date,metric,value,unit,source,confidence,note
 2026-10-16,tests_passed,205,,,medium,
 2026-10-16,calibration_records,7,,,medium,
 2026-10-16,a5_top3_hit_rate,60,,,medium,
+2026-10-16,tests_passed,222,,pytest,high,全量套件 205+17 新（#30 6项 + #31 11项）
+2026-10-16,calibration_records,8,,calibration.py,high,003 判真 rank1（fresh 数据）
+2026-10-16,a4_post_fix_passes,2,,e2e_test,high,修后连跑 2/2 6步完整；今日累计 3/4

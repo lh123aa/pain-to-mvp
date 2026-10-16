@@ -1,9 +1,9 @@
 # INDEX . pain-to-mvp 痛点→MVP机会发现管线
 
-> 由 journal.py 自动生成（2026-10-16T11:10:55）。按类型/时间检索本项目全部记录。
+> 由 journal.py 自动生成（2026-10-16T12:27:00）。按类型/时间检索本项目全部记录。
 
 - 阶段：S2 构建 . 终局：进行中
-- 日记 34 条 . 档案 13 份
+- 日记 38 条 . 档案 14 份
 
 ## 档案
 
@@ -23,7 +23,7 @@
 
 - **RK-0001** [#27 apply_fixes canonical 覆盖工作区：改4文件必先同步 generators/fixes](records/risks/RK-0001-27-apply-fixes-canonical-4-generators-fi.md) -- 2026-10-15 . open
 
-### 里程碑 milestone（6）
+### 里程碑 milestone（7）
 
 - **MS-0001** [0.3.0：三阶段闭环（P0三层防线/#20去重/#21证据评分），143 passed](records/milestones/MS-0001-0-3-0-p0-20-21-143-passed.md) -- 2026-10-15 . done
 - **MS-0002** [P2清账8项全部闭环（#12-15/#23-26）：复合主键+迁移、多样性校验、卡片防覆盖](records/milestones/MS-0002-p2-8-12-15-23-26.md) -- 2026-10-15 . done
@@ -31,8 +31,9 @@
 - **MS-0004** [#18 合并master完成（3c214be，50提交/0.3.2进入主线）](records/milestones/MS-0004-18-master-3c214be-50-0-3-2.md) -- 2026-10-15 . done
 - **MS-0005** [P6重验首轮：A5=33%未过（top1真/top2-3假）+ 修复#28 discover fail-close + 风控阻塞A3/A4](records/milestones/MS-0005-p6-a5-33-top1-top2-3-28-discover-fail-cl.md) -- 2026-10-15 . done
 - **MS-0006** [A5针对性修复#29+第二轮重验：出2卡跳过极小簇，抽检2/2=100%本轮达标](records/milestones/MS-0006-a5-29-2-2-2-100.md) -- 2026-10-16 . done
+- **MS-0007** [P6第三轮A4稳定性：发现并修复#30假成功退出码+#31跨轮去重断链，清单回退生产实证](records/milestones/MS-0007-p6-a4-30-31.md) -- 2026-10-16 . done
 
 ## 日记
 
-- [2026-10-16](journal/2026-10-16.md) -- 4 条：MS1 M3
+- [2026-10-16](journal/2026-10-16.md) -- 8 条：MS2 M6
 - [2026-10-15](journal/2026-10-15.md) -- 30 条：D3 R1 MS5 M17 T1 S3
