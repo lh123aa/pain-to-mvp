@@ -6,14 +6,14 @@
 ## 进行中（按优先级）
 - [ ] **P6 第三轮终验：A4 补样**：留档已落（`docs/acceptance-2026-10-16.md`：A1/A2/A3 ✅、A5 两轮达标、A6 pending）；A4 **只认当前代码窗口**（f9a11ad 后 3/10，需跨天降频补 ≥7 轮满窗 10 次 ≥9 终判；全历史 7/9 含旧代码样本不凑数）
 - [ ] 校准记录累计：每轮 record top3（现 8/20，总体 62.5%、top3 66.7%；满 20 条首次回看——求助 67%/期望 67% 为调权候选；成功线 top3 ≥70%）；稳定性重跑的同簇副本不入校准（防灌水，2026-10-16 决策）
-- [ ] 推 GitHub：remote 就绪后 `git push -u origin master`（CI test.yml 即生效）
 
 ## 等待中（被外部阻塞）
 - [ ] A4 高频补跑受 v_voucher 风控约束：降频/跨天（10-16 当日 5 次 discover 未触发，间隔 ≥20 分钟级；BILI_SESSDATA 进 .env 可再降险）
-- [ ] #19 CI 验证：需推 GitHub 后首次 push/PR 才能观察绿勾（文件已就绪）
+- [ ] #19 CI 验证：**已推送 GitHub**（2026-10-16，lh123aa/pain-to-mvp，远端 master=f9c0ac8）——待 Actions 首跑绿勾销账：https://github.com/lh123aa/pain-to-mvp/actions
 - [ ] A6 卡片驱动实际动作：只能由用户执行（候选：20261016-001 S 档 112 条证据卡）
 
 ## 已完成（本周期，保留 2 周便于复盘）
+- [x] 2026-10-16 **推 GitHub**：`lh123aa/pain-to-mvp`（Private），remote origin 就绪，master=f9c0ac8 已推平；test.yml 随 push 触发（绿勾观察中）
 - [x] 2026-10-16 **#30/#31 双缺陷发现即修**：A4 第 2 轮实锤 e2e 假成功退出码（断链仍 exit 0）+ #20 跨轮去重 × since 过滤断链（0 新写入→误判无数据）；crawl 本轮清单 + collect 新鲜回退 + _report 布尔传播；17 新测试 RED→GREEN，222 passed，清单回退生产实证（0 新写入轮 6/6 步 50.0s），f9a11ad，MS-0007
 - [x] 2026-10-16 **A5 针对性修复 #29 + 第二轮重验**：描述句强信号 only + 极小簇(<5)不出卡；重跑出 2 卡 + 跳过日志，抽检 2/2=100%（本轮达标），累计 top3 60%，205 passed，MS-0006，2efd912
 - [x] 2026-10-15 P6 重验首轮：A2 ✅ / A3-A4 风控阻塞 pending / A5=33% 未过；顺带发现并修复 #28 discover fail-close（195 passed，c67b0d9，MS-0005）

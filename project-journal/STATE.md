@@ -1,6 +1,6 @@
 # STATE . pain-to-mvp 痛点→MVP机会发现管线
 
-> 由 journal.py 自动生成（2026-10-16T16:51:30），**手工修改会被下次刷新覆盖**。
+> 由 journal.py 自动生成（2026-10-16T22:19:19），**手工修改会被下次刷新覆盖**。
 > 记录根目录：E:/程序/github/my-projects/MVP/pain-to-mvp/project-journal
 > 契约 PROTOCOL.md . 目录 INDEX.md . 宪章 CHARTER.md . 待办 NEXT-ACTIONS.md
 
@@ -55,8 +55,7 @@ _无。_
 
 - **P6 第三轮终验：A4 补样**：留档已落（`docs/acceptance-2026-10-16.md`：A1/A2/A3 ✅、A5 两轮达标、A6 pending）；A4 **只认当前代码窗口**（f9a11ad 后 3/10，需跨天降频补 ≥7 轮满窗 10 次 ≥9 终判；全历史 7/9 含旧代码样本不凑数）
 - 校准记录累计：每轮 record top3（现 8/20，总体 62.5%、top3 66.7%；满 20 条首次回看——求助 67%/期望 67% 为调权候选；成功线 top3 ≥70%）；稳定性重跑的同簇副本不入校准（防灌水，2026-10-16 决策）
-- 推 GitHub：remote 就绪后 `git push -u origin master`（CI test.yml 即生效）
 - A4 高频补跑受 v_voucher 风控约束：降频/跨天（10-16 当日 5 次 discover 未触发，间隔 ≥20 分钟级；BILI_SESSDATA 进 .env 可再降险）
-- #19 CI 验证：需推 GitHub 后首次 push/PR 才能观察绿勾（文件已就绪）
+- #19 CI 验证：**已推送 GitHub**（2026-10-16，lh123aa/pain-to-mvp，远端 master=f9c0ac8）——待 Actions 首跑绿勾销账：https://github.com/lh123aa/pain-to-mvp/actions
 - A6 卡片驱动实际动作：只能由用户执行（候选：20261016-001 S 档 112 条证据卡）
 - 阶段 6 工程收尾：#18 合并 master、#19 CI、#27 canonical 长期解（测试用临时目录）
