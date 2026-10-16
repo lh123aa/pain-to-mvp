@@ -122,6 +122,15 @@ def _existing_jsonl_ids(jsonl_path: Path) -> set:
     return ids
 
 
+def jsonl_path_for(platform: str, source_id: str = "") -> Path:
+    """raw JSONL 落盘路径（与 save_records 同公式；命名单一权威，#31 清单用）。
+
+    不内联进 save_records 是为了不触碰 fix_storage 的字节比对段
+    （test_storage overlay 一致性）；两者等价性由测试锁定。
+    """
+    return JSONL_DIR / f"{platform}_{source_id or 'all'}.jsonl"
+
+
 def save_records(records: Iterable[Dict[str, Any]], platform: str, source_id: str = ""):
     """批量写入 JSONL + SQLite，自动去重（批内 + 跨 run，OPEN_ISSUES #20）"""
     JSONL_DIR.mkdir(parents=True, exist_ok=True)

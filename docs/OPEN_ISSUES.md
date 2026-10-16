@@ -1,6 +1,6 @@
 # OPEN ISSUES — 技术债与风险登记
 
-更新：2026-10-15 ｜ 策略（PRD §九）：**P6 重验前只清 P1**，其余按需。
+更新：2026-10-16 ｜ 策略（PRD §九）：**P6 重验前只清 P1**，其余按需。
 来源：`docs/superpowers/ledger-2026-10-11-fix-and-first-run.md` 的 10 项 deferred minors + PRD 决策新增 + `docs/acceptance-2026-10-13.md` 验收发现。
 
 ---
@@ -60,6 +60,8 @@
 | 27 | **apply_fixes 回退陷阱**：`test_apply_fixes_stays_idempotent_with_exec_report` 在测试内跑 apply_fixes，末尾 `copy_canonical_modules()` 用 canonical 覆盖工作区 —— 改 `score_opportunity.py`/`export_card.py`/`cluster.py`/`mine_pain_points.py` **必须先同步 `generators/fixes/` 再跑全量测试**，否则改动被静默回退 | 改上述 4 文件时必查；长期：测试改用临时目录不污染工作区 | ✅ 长期解落地：`workspace_clone` fixture（conftest）复制工作区到临时目录，两个幂等测试改在副本上跑（真实树零写入）；新增 `test_canonical_four_match_fixes_overlays` 字节级断言 4 文件与 fixes/ 一致——忘同步在测试红并直指 RK-0001，而非静默丢工作（已做故意不同步 RED 验证） |
 | 28 | **discover fail-close 缺失**（P6 重验 2026-10-15 发现）：全部平台失败（如 v_voucher 风控）时 discover 捕获异常后仍 **exit 0 + 写空 `[]` 文件** → e2e Step 1 据 returncode 判 ✅ 假成功 → 真正失败被推到 crawl 步误报"未找到评论数据"，错误归因混乱 | P6 重验期间必查 | ✅ 已修：零发现即 `sys.exit(1)` 并点名失败/不可用平台；空文件照写（防 `latest()` 复用旧产物）；overlay patch `fix_discover_failclose`（5 段锚点）防 extract 回退；`test_discover_failclose.py` 7 测试（全败退出非 0 / 部分成功不中断 / 不可用≠链路故障 / 模板恢复+幂等 / 工作区 marker 守卫） |
 | 29 | **A5 卡片质量两根因**（P6 重验 2026-10-15 抽检 top3=33%）：① 痛点描述句直接取 `representative_quotes[0]`——段子靠子串误命中（"还没用到"命中"没用"→失望信号）当上卡片描述；② 3 条杂谈小簇也产出"可行动机会卡"，证据不足却主张机会 | P6 重验期间必查 | ✅ 已修：① cluster 代表句强信号（求助/期望/付费意愿）稳定前置 + mine `_select_summary_quote` 只取强信号句、无则省略引句（宁缺毋假）② export `MIN_EVIDENCE=5` 极小簇跳过且不占 top 配额；`test_a5_card_quality.py` 10 测试（含 RED 验证）；canonical 3 文件（cluster/mine_pain_points/export_card）已同步 `generators/fixes/` |
+| 30 | **e2e 假成功退出码**（P6 重验 2026-10-16 A4 第 2 轮发现）：`_report` 无返回值、`main` 早退直接 return、`__main__` 不看结果——discover 崩 / 未找到评论数据 / 任一步骤 ❌ 时进程仍 **exit 0**（与 #28 同类"失败假装成功"，PRD 底线不许骗人） | P6 重验期间必查 | ✅ 已修：`_report(steps, total, expected=6)` 返回"步数 >= expected 且全步骤 ok"布尔；main 全路径返回该值；`__main__` 改 `raise SystemExit(0 if main(args) else 1)`；overlay `fix_e2e_exitcode`（marker `raise SystemExit(0 if main(args)`）；`test_e2e_exitcode.py` 6 测试 |
+| 31 | **跨轮去重断链**（2026-10-16 A4 第 2 轮真实事故）：#20 跨轮去重后，同关键词重跑全部命中已知评论 → 写入 0 新 → 文件 mtime 不变 → `collect_raw_files(since=)` 为空 → e2e/run_all 误判"未找到评论数据"停链（爬取实际正常，网络拿到 104 条） | P6 重验期间必查 | ✅ 已修：`crawl_from_file` 落"本轮成功清单" `.crawl_manifest.json`（`crawl_one` 对 robots 禁止/异常返回 None 不进清单）；`collect_raw_files` 在 since 为空时回退清单，仅当清单新鲜（mtime >= since）且所列文件存在，陈旧/损坏拒收（不违反 #3 复用禁令）；`storage.jsonl_path_for` 路径单一权威（置于 fix_storage 字节比对段之外）；overlay `fix_crawl_manifest` 3 段锚点；`run_inputs.py` 已同步 `generators/fixes/`；`test_run_manifest.py` 11 测试 |
 
 ## 已闭环（原 spec 开放项，留档）
 

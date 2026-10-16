@@ -3,6 +3,19 @@
 版本策略（PRD §八）：自 0.1.0 起按 semver 计；生成器时代的 5.x 版本号已废弃，仅作历史留档。
 每次合并 master 必须更新本文件。
 
+## [0.3.6] - 2026-10-16
+
+P6 重验第三轮 A4 稳定性测试发现的两个"失败假装成功"缺陷（OPEN_ISSUES #30/#31）。
+
+### Fixed
+- **e2e 退出码传播**（#30）：`_report` 无返回值、`main` 早退直接 return、`__main__` 不看结果——discover 崩 / 未找到评论数据 / 任一步骤 ❌ 时进程仍 exit 0。现 `_report(steps, total, expected=6)` 返回"步数 >= expected 且全步骤 ok"，main 全路径返回布尔，`__main__` 改 `raise SystemExit(0 if main(args) else 1)`；`--skip-crawl` 少一步按 expected=5 判完整
+- **跨轮去重断链**（#31，真实事故 2026-10-16 A4 第 2 轮）：#20 去重后同关键词重跑全部命中已知评论 → 写入 0 新 → mtime 不变 → `collect_raw_files(since=)` 为空 → 链路误判"未找到评论数据"停链（爬取网络实际正常 104 条）。现 `crawl_from_file` 落"本轮成功清单" `.crawl_manifest.json`，`collect_raw_files` 在 since 为空时回退清单——仅当清单新鲜（mtime >= since）且所列文件存在；陈旧/损坏清单拒收，失败视频（robots 禁止/异常，`crawl_one` 返回 None）不进清单，#3"绝不复用旧产物"不受影响
+
+### Added
+- `generators/apply_fixes.py` 新增 `fix_crawl_manifest`（3 段锚点）+ `fix_e2e_exitcode`（1 段锚点），注册于 `fix_e2e` 之后，防模板重提取回退
+- `storage.jsonl_path_for()`：raw 落盘路径单一权威（置于 fix_storage 字节比对段之外，save_records 等价性由测试锁定）
+- `tests/test_run_manifest.py`：11 测试（清单回退/陈旧拒收/删除过滤/损坏回退/范围权威/无清单回归 + crawl 接线：只记成功/两个 None/全失败不落清单）；`tests/test_e2e_exitcode.py`：6 测试
+
 ## [0.3.5] - 2026-10-16
 
 A5 针对性修复（P6 重验 2026-10-15 抽检 top3=33% 的两个根因，OPEN_ISSUES #29）。

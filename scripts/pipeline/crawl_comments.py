@@ -28,7 +28,8 @@ from pathlib import Path
 
 from adapters import get_adapter
 from compliance import preflight, RateLimiter
-from storage import save_records
+from run_inputs import write_crawl_manifest
+from storage import jsonl_path_for, save_records
 
 FALLBACK_ORDER = {
     "xiaohongshu": ["xiaohongshu", "douyin"],
@@ -39,9 +40,10 @@ FALLBACK_ORDER = {
 }
 
 def crawl_one(platform, source_id, url, limit):
+    """返回评论列表；robots 禁止/异常 → None（失败不进 crawl 清单，#31）。"""
     if not preflight(url, platform):
         print(f"⛔ robots.txt 禁止：{url}")
-        return []
+        return None  # 未抓取成功：不进清单（#31）
     try:
         adapter = get_adapter(platform)
         if not adapter.is_available():
@@ -57,11 +59,12 @@ def crawl_one(platform, source_id, url, limit):
                         error=str(e), context=f"source_id={source_id}")
         except Exception:
             pass
-        return []
+        return None  # 抓取异常：不进清单（#31）
 
 def crawl_from_file(input_file, limit):
     data = json.loads(Path(input_file).read_text(encoding="utf-8"))
     total = 0
+    crawled_paths = []  # 本轮成功抓取的 raw 文件（清单只记成功视频，#31）
     for item in data:
         platform = item.get("platform")
         source_id = item.get("source_id")
@@ -70,9 +73,14 @@ def crawl_from_file(input_file, limit):
             continue
         print(f"\n🕷️ [{platform}] {item.get('title', '')[:50]}")
         comments = crawl_one(platform, source_id, url, limit)
-        total += len(comments)
+        if comments is not None:
+            total += len(comments)
+            crawled_paths.append(jsonl_path_for(platform, source_id))
         # 礼貌延迟
         time.sleep(1.0)
+    if crawled_paths:
+        # 跨轮全去重（写入 0 新）时 mtime 不变，下游靠本清单识别"本轮范围"（#31）
+        write_crawl_manifest(crawled_paths[0].parent, crawled_paths)
     print(f"\n✅ 共爬取 {total} 条评论")
 
 if __name__ == "__main__":

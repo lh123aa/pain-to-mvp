@@ -11,12 +11,51 @@ from typing import Optional, Sequence
 
 _ILLEGAL = re.compile(r'[\\/:*?"<>|]')
 
+# crawl 每轮落盘的"本轮成功清单"文件名（OPEN_ISSUES #31）
+CRAWL_MANIFEST = ".crawl_manifest.json"
+
+
+def write_crawl_manifest(raw_dir: Path, files: Sequence[Path]) -> None:
+    """落盘本轮 crawl 成功抓取的 raw 文件清单（OPEN_ISSUES #31）。
+
+    背景：跨轮去重（#20）后，同关键词重跑全部命中已知评论 → 写入 0 新 →
+    文件 mtime 不变 → collect_raw_files(since=) 为空 → 链路误判"未找到
+    评论数据"断链（真实事故：2026-10-16 A4 稳定性第 2 轮）。清单只记
+    成功抓取的视频（失败/robots 禁止不进清单），供下游识别本轮范围。
+    """
+    raw_dir = Path(raw_dir)
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    resolved = [str(Path(f).resolve()) for f in files]
+    payload = {"files": resolved, "count": len(resolved)}
+    (raw_dir / CRAWL_MANIFEST).write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
 
 def collect_raw_files(raw_dir: Path, since: Optional[float] = None) -> list:
-    """按 mtime 升序返回 raw 目录下全部 .jsonl；since 给定则只取该时刻之后修改的。"""
+    """按 mtime 升序返回 raw 目录下全部 .jsonl；since 给定则只取该时刻之后修改的。
+
+    since 给定且存在本轮 crawl 清单（#31）时清单优先：跨轮全去重（写入 0 新）
+    的文件 mtime 不变，清单才是"本轮范围"的权威来源。清单必须新鲜
+    （mtime >= since）且所列文件存在——陈旧/损坏清单一律拒收，绝不让
+    上一轮旧产物冒充本轮（#3 复用禁令不受影响）。
+    """
     raw_dir = Path(raw_dir)
     if not raw_dir.exists():
         return []
+    if since is not None:
+        manifest = raw_dir / CRAWL_MANIFEST
+        if manifest.exists() and manifest.stat().st_mtime >= since:
+            try:
+                data = json.loads(manifest.read_text(encoding="utf-8"))
+                listed = data.get("files") or []
+            except (json.JSONDecodeError, OSError, AttributeError, UnicodeDecodeError):
+                listed = []
+            listed = sorted(
+                (p for p in (Path(x) for x in listed) if p.exists()),
+                key=lambda p: p.stat().st_mtime)
+            if listed:
+                print(f"🔁 命中本轮 crawl 清单（跨轮去重场景）：{len(listed)} 个 raw 文件")
+                return listed
     files = sorted(raw_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime)
     if since is not None:
         files = [p for p in files if p.stat().st_mtime >= since]

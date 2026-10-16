@@ -143,13 +143,19 @@ def main(args):
             "收尾：重建 dashboard.json"
         )
 
-    _report(steps, time.time() - t_start)
-    print("\n🎉 端到端测试完成！")
-    print(f"\n查看卡片：{ROOT / 'data' / 'cards'}")
-    print(f"启动看板：python scripts/dashboard/serve.py --port 8787")
-    print(f"浏览器：http://localhost:8787")
+    # 完整跑 6 步；--skip-crawl 少爬一步 = 5。步数不足 = 中途早退（#30）
+    ok = _report(steps, time.time() - t_start,
+                 expected=5 if args.skip_crawl else 6)
+    if ok:
+        print("\n🎉 端到端测试完成！")
+        print(f"\n查看卡片：{ROOT / 'data' / 'cards'}")
+        print(f"启动看板：python scripts/dashboard/serve.py --port 8787")
+        print(f"浏览器：http://localhost:8787")
+    return ok
 
-def _report(steps, total):
+def _report(steps, total, expected=6):
+    """打印报告并返回"是否完整成功"。早退路径步数不足 expected → False；
+    任一步骤失败 → False。退出码在 __main__ 传播，失败不再假装成功（#30）。"""
     print("\n" + "=" * 60)
     print("📊 测试报告")
     print("=" * 60)
@@ -157,6 +163,7 @@ def _report(steps, total):
         print(f"  {'✅' if ok else '❌'} {name:12s} {dt:6.1f}s")
     print(f"  {'⏱️':12s} 总计 {total:.1f}s")
     print("=" * 60)
+    return len(steps) >= expected and all(flag for _, flag, _ in steps)
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
@@ -166,4 +173,4 @@ if __name__ == "__main__":
     p.add_argument("--comments", type=int, default=100)
     p.add_argument("--skip-crawl", action="store_true")
     args = p.parse_args()
-    main(args)
+    raise SystemExit(0 if main(args) else 1)

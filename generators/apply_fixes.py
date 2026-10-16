@@ -524,6 +524,159 @@ from pipeline.run_inputs import collect_raw_files''',
     )
 
 
+def fix_crawl_manifest() -> None:
+    """OPEN_ISSUES #31：跨轮去重断链 —— crawl 落"本轮成功清单"。
+
+    同关键词重跑全部命中已知评论（#20 去重）→ 写入 0 新 → mtime 不变 →
+    collect_raw_files(since=) 为空 → e2e/run_all 误判"未找到评论数据"断链。
+    """
+    p = ROOT / "scripts" / "pipeline" / "crawl_comments.py"
+    patch_text(
+        p,
+        old='''from adapters import get_adapter
+from compliance import preflight, RateLimiter
+from storage import save_records''',
+        new='''from adapters import get_adapter
+from compliance import preflight, RateLimiter
+from run_inputs import write_crawl_manifest
+from storage import jsonl_path_for, save_records''',
+        marker="write_crawl_manifest",
+        desc="crawl: 导入清单与路径工具（#31）",
+    )
+    patch_text(
+        p,
+        old='''def crawl_one(platform, source_id, url, limit):
+    if not preflight(url, platform):
+        print(f"⛔ robots.txt 禁止：{url}")
+        return []''',
+        new='''def crawl_one(platform, source_id, url, limit):
+    """返回评论列表；robots 禁止/异常 → None（失败不进 crawl 清单，#31）。"""
+    if not preflight(url, platform):
+        print(f"⛔ robots.txt 禁止：{url}")
+        return None  # 未抓取成功：不进清单（#31）''',
+        marker="失败不进 crawl 清单",
+        desc="crawl_one: robots 禁止返回 None（#31）",
+    )
+    patch_text(
+        p,
+        old='''        except Exception:
+            pass
+        return []
+
+def crawl_from_file(input_file, limit):
+    data = json.loads(Path(input_file).read_text(encoding="utf-8"))
+    total = 0
+    for item in data:
+        platform = item.get("platform")
+        source_id = item.get("source_id")
+        url = item.get("url", "")
+        if not platform or not source_id:
+            continue
+        print(f"\\n🕷️ [{platform}] {item.get('title', '')[:50]}")
+        comments = crawl_one(platform, source_id, url, limit)
+        total += len(comments)
+        # 礼貌延迟
+        time.sleep(1.0)
+    print(f"\\n✅ 共爬取 {total} 条评论")''',
+        new='''        except Exception:
+            pass
+        return None  # 抓取异常：不进清单（#31）
+
+def crawl_from_file(input_file, limit):
+    data = json.loads(Path(input_file).read_text(encoding="utf-8"))
+    total = 0
+    crawled_paths = []  # 本轮成功抓取的 raw 文件（清单只记成功视频，#31）
+    for item in data:
+        platform = item.get("platform")
+        source_id = item.get("source_id")
+        url = item.get("url", "")
+        if not platform or not source_id:
+            continue
+        print(f"\\n🕷️ [{platform}] {item.get('title', '')[:50]}")
+        comments = crawl_one(platform, source_id, url, limit)
+        if comments is not None:
+            total += len(comments)
+            crawled_paths.append(jsonl_path_for(platform, source_id))
+        # 礼貌延迟
+        time.sleep(1.0)
+    if crawled_paths:
+        # 跨轮全去重（写入 0 新）时 mtime 不变，下游靠本清单识别"本轮范围"（#31）
+        write_crawl_manifest(crawled_paths[0].parent, crawled_paths)
+    print(f"\\n✅ 共爬取 {total} 条评论")''',
+        marker="crawled_paths",
+        desc="crawl_from_file: 落盘本轮成功清单（#31）",
+    )
+
+
+def fix_e2e_exitcode() -> None:
+    """OPEN_ISSUES #30：e2e 失败假装成功 —— _report 无返回值、早退 exit 0。
+
+    _report 返回"是否完整成功"（步数 >= expected 且全步骤 ok），main 所有
+    路径返回布尔，__main__ 传播为进程退出码（与 #28 同类的 fail-close）。
+    """
+    p = ROOT / "scripts" / "e2e_test.py"
+    patch_text(
+        p,
+        old='''    _report(steps, time.time() - t_start)
+    print("\\n🎉 端到端测试完成！")
+    print(f"\\n查看卡片：{ROOT / 'data' / 'cards'}")
+    print(f"启动看板：python scripts/dashboard/serve.py --port 8787")
+    print(f"浏览器：http://localhost:8787")
+
+def _report(steps, total):
+    print("\\n" + "=" * 60)
+    print("📊 测试报告")
+    print("=" * 60)
+    for name, ok, dt in steps:
+        print(f"  {'✅' if ok else '❌'} {name:12s} {dt:6.1f}s")
+    print(f"  {'⏱️':12s} 总计 {total:.1f}s")
+    print("=" * 60)
+
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("--keyword", default="独立开发者")
+    p.add_argument("--platform", default="bilibili")
+    p.add_argument("--limit", type=int, default=10)
+    p.add_argument("--comments", type=int, default=100)
+    p.add_argument("--skip-crawl", action="store_true")
+    args = p.parse_args()
+    main(args)''',
+        new='''    # 完整跑 6 步；--skip-crawl 少爬一步 = 5。步数不足 = 中途早退（#30）
+    ok = _report(steps, time.time() - t_start,
+                 expected=5 if args.skip_crawl else 6)
+    if ok:
+        print("\\n🎉 端到端测试完成！")
+        print(f"\\n查看卡片：{ROOT / 'data' / 'cards'}")
+        print(f"启动看板：python scripts/dashboard/serve.py --port 8787")
+        print(f"浏览器：http://localhost:8787")
+    return ok
+
+def _report(steps, total, expected=6):
+    """打印报告并返回"是否完整成功"。早退路径步数不足 expected → False；
+    任一步骤失败 → False。退出码在 __main__ 传播，失败不再假装成功（#30）。"""
+    print("\\n" + "=" * 60)
+    print("📊 测试报告")
+    print("=" * 60)
+    for name, ok, dt in steps:
+        print(f"  {'✅' if ok else '❌'} {name:12s} {dt:6.1f}s")
+    print(f"  {'⏱️':12s} 总计 {total:.1f}s")
+    print("=" * 60)
+    return len(steps) >= expected and all(flag for _, flag, _ in steps)
+
+if __name__ == "__main__":
+    p = argparse.ArgumentParser()
+    p.add_argument("--keyword", default="独立开发者")
+    p.add_argument("--platform", default="bilibili")
+    p.add_argument("--limit", type=int, default=10)
+    p.add_argument("--comments", type=int, default=100)
+    p.add_argument("--skip-crawl", action="store_true")
+    args = p.parse_args()
+    raise SystemExit(0 if main(args) else 1)''',
+        marker="raise SystemExit(0 if main(args)",
+        desc="e2e: 退出码传播（#30）",
+    )
+
+
 def fix_scoring() -> None:
     """评分去伪：无数据来源的维度不伪造恒定分。"""
     p = ROOT / "scripts" / "pipeline" / "score_opportunity.py"
@@ -1171,6 +1324,8 @@ def main():
     fix_mine()
     fix_run_all()
     fix_e2e()
+    fix_crawl_manifest()
+    fix_e2e_exitcode()
     fix_scoring()
     fix_export_card()
     fix_serve()
