@@ -4,11 +4,12 @@
 > 规则：只保留"下一步真的要做的"；已完成的勾掉或删除；空的分区保留标题即可，不要留空 checkbox。
 
 ## 进行中（按优先级）
+- [ ] **每项目归档功能（进行中，见 journal 2026-10-17 进度存档）**：organizer 模块+10 测试已绿；剩余：①读者改造（calibration/write_dashboard 读 projects/*/cards）②e2e 接线+fix_e2e_organize overlay ③SKILL.md 规则 ④`--migrate` 实跑+展示目录 ⑤全量套件验证
 - [ ] **P6 第三轮终验：A4 补样**：留档已落（`docs/acceptance-2026-10-16.md`：A1/A2/A3 ✅、A5 两轮达标、A6 pending）；A4 **只认当前代码窗口**（f9a11ad 后 3/10，需跨天降频补 ≥7 轮满窗 10 次 ≥9 终判；全历史 7/9 含旧代码样本不凑数）
 - [ ] 校准记录累计：每轮 record top3（现 8/20，总体 62.5%、top3 66.7%；满 20 条首次回看——求助 67%/期望 67% 为调权候选；成功线 top3 ≥70%）；稳定性重跑的同簇副本不入校准（防灌水，2026-10-16 决策）
 
 ## 等待中（被外部阻塞）
-- [ ] A4 高频补跑受 v_voucher 风控约束：降频/跨天（10-16 当日 5 次 discover 未触发，间隔 ≥20 分钟级；BILI_SESSDATA 进 .env 可再降险）
+- [ ] A4 高频补跑受 v_voucher 风控约束（**10-17 两次拦截：10:00 / 13:44，冷却 3h44m 不足，今日 discover 彻底停手**；下次跨天 10-18 上午；BILI_SESSDATA 扫码两轮超时未配成，用户方便时再扫或直接等明天；fail-close 生产实证 3 次从未假成功）
 - [ ] #19 CI 验证：**已推送 GitHub**（2026-10-16，lh123aa/pain-to-mvp，远端 master=f9c0ac8）——待 Actions 首跑绿勾销账：https://github.com/lh123aa/pain-to-mvp/actions
 - [ ] A6 卡片驱动实际动作：只能由用户执行（候选：20261016-001 S 档 112 条证据卡）
 
