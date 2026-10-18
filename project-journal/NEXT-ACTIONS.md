@@ -11,7 +11,7 @@
 
 ## 等待中（被外部阻塞）
 - [ ] **零费用变现执行计划（10-18 定稿）：`docs/MONETIZATION-EXECUTION.md`**——4 阶段全程 ¥0；
-  当前卡点 = 阶段 0（风控解锁）：
+  阶段 1 草案已备（4 份报告 md+html，未发布）；当前卡点 = 阶段 0（风控解锁）：
 - [ ] A4 高频补跑受 v_voucher 风控约束（**10-17 两次拦截 10:00/13:44 + 10-18 13:23 跨天重试仍拦截**（~24h 冷却假设证伪）；今日 10-18 discover 停手；**明晨 10-19 上午**（距 10-17 13:44 >46h）再试，或用户扫码配 BILI_SESSDATA（脚本 `C:\Users\49046\AppData\Local\Temp\opencode\set_sessdata.py`，10 分钟窗口）；fail-close 生产实证 4 次从未假成功）
 - [ ] #19 CI 验证：**已推送 GitHub**（2026-10-16，lh123aa/pain-to-mvp，远端 master=f9c0ac8）——待 Actions 首跑绿勾销账：https://github.com/lh123aa/pain-to-mvp/actions
 - [ ] A6 卡片驱动实际动作：只能由用户执行（候选：20261016-001 S 档 112 条证据卡）
