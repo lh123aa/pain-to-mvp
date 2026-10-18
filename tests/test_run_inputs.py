@@ -83,30 +83,64 @@ def test_pipeline_entries_use_inputs_flag():
 
 def test_discover_keyword_with_path_chars(tmp_path, monkeypatch):
     """Review Focus #3：关键词含 / : * 等路径非法字符时不得 traceback，
-    必须产出净化后的输出文件（CLI 级回归，单测覆盖不到接线）。"""
-    import subprocess
+    必须产出净化后的输出文件（CLI 级回归，单测覆盖不到接线）。
+
+    设计：原实现子进程打真实 B 站 API，v_voucher 风控偶发 fail-close exit 1
+    导致测试红（OPEN_ISSUES #22）。改为 in-process：monkeypatch
+    BilibiliAdapter.discover + discover_content.OUTPUT_DIR 到 tmp_path，
+    直接调用 discover() 函数。验证 safe_filename 净化 + fail-close 退出码
+    语义 + 成功产出路径，不碰网络、CI 可复现。
+    """
+    import json
     import sys
+    from pathlib import Path as _Path
+    from unittest.mock import patch
 
-    def fake_discover(self, keyword, limit=20):
-        raise RuntimeError("风控 -352")  # 模拟平台失败，走 except 分支
+    import scripts.pipeline.discover_content as dc
+    from adapters import BilibiliAdapter as _AdapterCls
 
-    import adapters.bilibili as bili
-    monkeypatch.setattr(bili.BilibiliAdapter, "discover", fake_discover)
+    results = [{
+        "source_id": "mock-1", "title": "获客增长 mock",
+        "url": "https://www.bilibili.com/video/mock", "author": "anon",
+        "comment_count": 42, "play": 1000, "platform": "bilibili",
+    }]
 
-    root = Path(__file__).resolve().parent.parent
-    out_dir = root / "data" / "discovered"
-    before = set(out_dir.glob("*.json")) if out_dir.exists() else set()
+    # 双保险：scrapling 已装时走 Scrapling 路径，patch 掉防止其发起真实请求
+    # 注意：get_adapter 通过 `adapters` 包（模块名）注册类，必须 patch
+    # `adapters.bilibili` 模块上的 BilibiliAdapter，patch scripts.pipeline.* 是
+    # 独立模块对象，与 get_adapter 返回的类无关（曾导致 mock 漏打网络路径）。
+    import adapters.bilibili as _bili_mod
+    _orig_scrapling = _bili_mod._SCRAPLING
+    _bili_mod._SCRAPLING = None
 
-    r = subprocess.run(
-        [sys.executable, "scripts/pipeline/discover_content.py",
-         "--keyword", "获客/增长", "--platforms", "bilibili", "--limit", "2"],
-        capture_output=True, text=True, timeout=300,
-    )
-    assert r.returncode == 0, (r.stdout[-400:] + r.stderr[-400:])
-    assert "Traceback" not in r.stderr
+    try:
+        with patch.object(_bili_mod.BilibiliAdapter, "discover",
+                          lambda self, kw, limit=20: list(results)):
+            out_dir = tmp_path / "discovered"
+            monkeypatch.setattr(dc, "OUTPUT_DIR", out_dir)
+            ranked = dc.discover("获客/增长", ["bilibili"], 2)
 
-    new = set(out_dir.glob("*.json")) - before
-    assert new, "应产出发现结果文件"
-    produced = next(iter(new))
-    assert "/" not in produced.name and "获客_增长" in produced.name, \
-        f"输出文件名未净化：{produced.name}"
+        assert len(ranked) == 1, "应产出 1 条 mock 结果"
+        new_files = list(out_dir.glob("*.json"))
+        assert new_files, "应产出发现结果文件"
+        produced = new_files[0]
+        assert "/" not in produced.name and "获客_增长" in produced.name, \
+            f"输出文件名未净化：{produced.name}"
+        payload = json.loads(produced.read_text(encoding="utf-8"))
+        assert len(payload) == 1, "JSON 应含 1 条记录"
+        assert payload[0]["_rank_score"] > 0, "rank_score 应 > 0"
+
+        # 额外守卫：fail-close 路径（discover 返回空）必须 exit 非 0
+        with patch.object(_bili_mod.BilibiliAdapter, "discover",
+                          lambda self, kw, limit=20: []):
+            out_dir2 = tmp_path / "discovered2"
+            monkeypatch.setattr(dc, "OUTPUT_DIR", out_dir2)
+            try:
+                dc.discover("获客/增长", ["bilibili"], 2)
+                raised = False
+            except SystemExit as e:
+                raised = True
+                assert e.code != 0, f"fail-close 必须退出非 0，got {e.code}"
+            assert raised, "空结果必须 SystemExit"
+    finally:
+        _bili_mod._SCRAPLING = _orig_scrapling
