@@ -4,7 +4,7 @@
 > 规则：只保留"下一步真的要做的"；已完成的勾掉或删除；空的分区保留标题即可，不要留空 checkbox。
 
 ## 进行中（按优先级）
-- [x] 2026-10-18 **归档实跑完成**：`--migrate` 移动 221 / 复制 39 / 无归属 51 入 `_待认领/`；10 个项目夹归位（旧位置四目录清零、幂等复跑 0 移动、看板 18 需求跨夹全找到）；待认领 52 项均核实为"无 discovered 权威"的诚实留置，未硬安
+- [x] 2026-10-18 **test_env_loader 隔离修复 + 全量 238 全绿确认**：`env_loader.load_env` 增加 `override` 参数；测试用 `delenv + override=True`；全量 238/0 通过；requirements-dev / Makefile test-unit 待提交
 - [ ] **P6 第三轮终验：A4 补样**：留档已落（`docs/acceptance-2026-10-16.md`：A1/A2/A3 ✅、A5 两轮达标、A6 pending）；A4 **只认当前代码窗口**（f9a11ad 后 3/10，需跨天降频补 ≥7 轮满窗 10 次 ≥9 终判；全历史 7/9 含旧代码样本不凑数）
 - [ ] 校准记录累计：每轮 record top3（现 8/20，总体 62.5%、top3 66.7%；满 20 条首次回看——求助 67%/期望 67% 为调权候选；成功线 top3 ≥70%）；稳定性重跑的同簇副本不入校准（防灌水，2026-10-16 决策）
 - [x] 2026-10-18 **test_run_inputs mock 化 + requirements == 锁定已提交推送**（0644e38）：根因是 mock patch 对象错（scripts.pipeline.* 独立模块 vs adapters 包注册类，conftest 双 sys.path 双注册）；全量 **238 passed 全绿**；远端 master=0644e38

@@ -30,11 +30,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def load_env(root=None) -> bool:
+def load_env(root=None, override=False) -> bool:
     """加载 `<root 或仓库根>/.env` 到 os.environ；返回是否加载了文件。
 
     - 文件不存在：返回 False，不报错（fail-safe，shell 变量路径始终可用）
-    - 已设置的环境变量不被覆盖（override=False，12-factor）
+    - override=False（默认）：已设置的环境变量不被覆盖（12-factor：环境优先）
+    - override=True：.env 值强制覆盖 os.environ（测试隔离用，写可预测值）
     """
     env_file = Path(root) if root else REPO_ROOT
     env_file = env_file / ".env" if env_file.is_dir() else env_file
@@ -45,7 +46,7 @@ def load_env(root=None) -> bool:
     except ImportError:
         print("⚠️ python-dotenv 未安装，跳过 .env 加载（凭证请走 shell 环境变量）")
         return False
-    _ld(env_file, override=False)
+    _ld(env_file, override=override)
     return True
 
 

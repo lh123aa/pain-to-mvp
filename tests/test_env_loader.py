@@ -14,8 +14,10 @@ from env_loader import load_env
 def test_load_env_reads_repo_root_env(tmp_path, monkeypatch):
     """仓库根 .env 的键进入 os.environ"""
     monkeypatch.chdir(tmp_path)
+    # 隔离：删除测试前可能存在的 BILI_SESSDATA（真实 .env / shell 环境变量）
+    monkeypatch.delenv("BILI_SESSDATA", raising=False)
     (tmp_path / ".env").write_text("BILI_SESSDATA=abc123\n", encoding="utf-8")
-    loaded = load_env(root=tmp_path)
+    loaded = load_env(root=tmp_path, override=True)
     assert loaded is True
     assert os.environ.get("BILI_SESSDATA") == "abc123"
 
