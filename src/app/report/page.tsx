@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Footer, TopBar } from "../components";
 import { buildDemoReport } from "../../lib/checkout";
@@ -23,9 +23,43 @@ function ReportInner() {
   const sp = useSearchParams();
   const router = useRouter();
   const isMock = (sp.get("checkout") || "").startsWith("MOCK-");
+  const checkoutParam = sp.get("checkout") || "";
+  const orderId = sp.get("order_id") || checkoutParam;
 
-  // 解析 preview 参数（mock 时携带的输入），否则用纯演示
+  // 真模式：回访时调 /api/verify-magic-link 验订单 + 取 custom 字段
+  // mock 模式：保持原行为（preview 参数或纯演示）
+  const [liveError, setLiveError] = useState<string | null>(null);
+  const [liveOrder, setLiveOrder] = useState<{ ok: boolean; order: Record<string, unknown> } | null>(null);
+
+  useEffect(() => {
+    if (isMock || !orderId || orderId === "PENDING") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/verify-magic-link?order_id=${encodeURIComponent(orderId)}`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok && data.error) setLiveError(String(data.error));
+        else setLiveOrder(data);
+      } catch (e) {
+        if (!cancelled) setLiveError(e instanceof Error ? e.message : "verify failed");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId, isMock]);
+
+  // 解析 preview 参数（mock 时携带的输入），否则用真订单 custom / 纯演示
   const report: ReportData = useMemo(() => {
+    if (liveOrder?.ok && liveOrder.order?.custom) {
+      const c = liveOrder.order.custom as Record<string, unknown>;
+      return buildDemoReport({
+        fileName: String(c.fileName || "(uploaded)"),
+        speakerA: String(c.speakerA || "You"),
+        speakerB: String(c.speakerB || "Them"),
+      });
+    }
     const enc = sp.get("preview");
     if (enc && isMock) {
       try {
@@ -41,11 +75,42 @@ function ReportInner() {
       }
     }
     return DEMO_REPORT;
-  }, [sp, isMock]);
+  }, [sp, isMock, liveOrder]);
 
   useEffect(() => {
-    track("report_view", { mock: isMock, checkout: sp.get("checkout") });
-  }, [isMock, sp]);
+    track("report_view", {
+      mock: isMock,
+      checkout: sp.get("checkout"),
+      liveOrder: liveOrder?.ok ?? null,
+    });
+  }, [isMock, sp, liveOrder]);
+
+  // 真模式验签失败 / 退款 / 取消 → 错误态，不展示报告
+  if (!isMock && liveError) {
+    return (
+      <>
+        <TopBar />
+        <section className="inner">
+          <div className="wrap" style={{ maxWidth: 560, textAlign: "center", padding: "80px 24px" }}>
+            <p className="sec-label">Order verification failed</p>
+            <h1 style={{ fontSize: 24, margin: "12px 0" }}>We couldn&apos;t unlock your report</h1>
+            <p style={{ color: "var(--ink-500)", fontSize: 14.5, lineHeight: 1.6 }}>
+              {liveError}
+            </p>
+            <div style={{ marginTop: 24, display: "flex", gap: 12, justifyContent: "center" }}>
+              <button className="btn-cta" style={{ width: "auto" }} onClick={() => router.push("/")}>
+                Back to home
+              </button>
+              <a className="btn-secondary" href="/refund" style={{ display: "inline-flex", alignItems: "center" }}>
+                Request refund
+              </a>
+            </div>
+          </div>
+        </section>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>

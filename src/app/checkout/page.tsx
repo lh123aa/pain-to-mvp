@@ -29,16 +29,42 @@ function CheckoutInner() {
 
   async function pay() {
     setPaying(true);
-    // mock：模拟 Lemon Squeezy 托管页 → 成功 → 报告
-    await new Promise((r) => setTimeout(r, 900));
     const input = safeReadInput();
-    const enc = btoa(JSON.stringify(input)).replace(/=+$/g, "");
-    const base64Url = enc.replace(/\+/g, "-").replace(/\//g, "_");
-    const id = "MOCK-" + Date.now().toString(36).toUpperCase();
-    // 报告页凭 checkout id 取数据；mock 时把 input 直接塞进 query（演示）
-    router.push(
-      `/report?checkout=${id}&email=${encodeURIComponent(email || "guest")}&preview=${base64Url}`
-    );
+    // 真模式：调 /api/checkout 拿 Lemon Squeezy 托管页 URL，跳过去
+    // mock 模式：保持原行为（本地伪造 MOCK- id + preview 参数，落到 /report）
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...input,
+          email: email || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || "checkout failed");
+        setPaying(false);
+        return;
+      }
+      const data: { mock: boolean; url: string; checkoutId: string } =
+        await res.json();
+      if (data.mock) {
+        // mock：本地伪造订单 id + preview 参数（保持原行为，演示用）
+        const enc = btoa(JSON.stringify(input)).replace(/=+$/g, "");
+        const base64Url = enc.replace(/\+/g, "-").replace(/\//g, "_");
+        router.push(
+          `/report?checkout=${data.checkoutId}&email=${encodeURIComponent(email || "guest")}&preview=${base64Url}`
+        );
+      } else {
+        // live：跳 Lemon Squeezy 托管页
+        window.location.href = data.url;
+      }
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "checkout failed");
+    } finally {
+      setPaying(false);
+    }
   }
 
   return (
