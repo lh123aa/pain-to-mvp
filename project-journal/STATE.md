@@ -1,6 +1,6 @@
 # STATE . pain-to-mvp 痛点→MVP机会发现管线
 
-> 由 journal.py 自动生成（2026-10-18T14:13:15），**手工修改会被下次刷新覆盖**。
+> 由 journal.py 自动生成（2026-10-18T14:26:40），**手工修改会被下次刷新覆盖**。
 > 记录根目录：E:/程序/github/my-projects/MVP/pain-to-mvp/project-journal
 > 契约 PROTOCOL.md . 目录 INDEX.md . 宪章 CHARTER.md . 待办 NEXT-ACTIONS.md
 
@@ -13,7 +13,7 @@
 | 起始 | 2026-10-15（第 4 天） |
 | 最后记录 | 2026-10-18（今天） |
 | 终局 | 进行中 |
-| 条目总量 | 日记 55 条 . 档案 17 份 . 指标 26 行 . 收支 0 行 |
+| 条目总量 | 日记 56 条 . 档案 17 份 . 指标 26 行 . 收支 0 行 |
 
 > 成功线 / 止损线见 CHARTER.md -- **成败以此为准，不以感觉为准**。
 
@@ -40,6 +40,7 @@
 
 ## 最近条目
 
+- 2026-10-18 14:35 [T] 阶段 1 报告草案完成：4 份公开版机会报告 + 单文件 HTML + GitHub Pages 首页
 - 2026-10-18 14:10 [D] 零费用变现执行计划定稿：docs/MONETIZATION-EXECUTION.md
 - 2026-10-18 13:40 [T] 工作区清理：5 个一次性调试文件挪临时目录 + .gitignore 防再犯 + docs/research 入库
 - 2026-10-18 13:17 [M] tests_passed = 238
@@ -49,7 +50,6 @@
 - 2026-10-18 13:15 [P] test_run_inputs mock 化漏打网络路径：patch 对象是 scripts.pipeline.* 独立模块
 - 2026-10-18 12:47 [T] 归档实跑完成：移动 221 / 复制 39 / 跳过 61 / 无归属 51 入 `_待认领/`
 - 2026-10-18 12:39 [T] 归档功能完成：读者改造+e2e 接线+overlay+SKILL.md，47 定向绿
-- 2026-10-17 14:15 [T] 进度存档：每项目归档 organizer 模块+10 测试 GREEN，剩余读者/e2e接线/SKILL/实跑
 
 ## 下一步（来自 NEXT-ACTIONS.md）
 
