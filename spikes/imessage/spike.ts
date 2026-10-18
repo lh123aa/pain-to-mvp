@@ -44,7 +44,7 @@ function readSample(SQL: any, filePath: string) {
   // 取全部消息行
   const msgRes = db.exec("SELECT ROWID, text, attributedBody, date FROM message ORDER BY ROWID");
   const rows: Array<{ rowid: number; text: string | null; attributedBody: Buffer | null; date: number }> =
-    msgRes[0]?.values?.map((v) => ({
+    msgRes[0]?.values?.map((v: unknown[]) => ({
       rowid: v[0] as number,
       text: (v[1] as string | null) ?? null,
       attributedBody: (v[2] as Buffer | null) ?? null,

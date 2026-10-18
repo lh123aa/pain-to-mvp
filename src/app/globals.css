@@ -1,26 +1,196 @@
-@import "tailwindcss";
+/* The Tell · Design Tokens（UIUX §0.2 草案 + landing-v0.html 落地值）
+   浅色主题为 MVP 完整态；深色 P1。
+   间距 8px 基数 / 圆角 12px 卡 8px 按钮 / 阴影一层 / 字号 14-16-18-22-30-40 */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 颜色 */
+  --ink-900: #16202b;        /* 石墨深蓝 · 主文字 / 深底区块 */
+  --ink-700: #2e3b4a;
+  --ink-500: #5a6b7d;        /* 次要文字 */
+  --ink-300: #9aa8b5;
+  --paper: #fbfaf7;          /* 暖白纸底 */
+  --paper-raise: #ffffff;    /* 卡片白 */
+  --sand: #f3eee5;           /* 暖沙 · 区块底 */
+  --sand-line: #e5dfd3;
+  --clay: #b4694d;          /* 陶土 · 图表辅助 / 眉标 */
+  --clay-soft: #d9a288;
+  --teal: #0f766e;          /* 唯一 CTA 强调色 */
+  --teal-deep: #0b5a54;
+  --teal-tint: #e4f0ee;
+  --scan: #f5c978;          /* FX-1 扫描光带（草案值，设计阶段可改） */
+  --error: #b4452f;         /* 红色只留给错误 / 危机资源 */
+  --ok: #2f7d4f;
+
+  /* 形状 */
+  --r-card: 12px;
+  --r-btn: 8px;
+
+  /* 阴影（一层以内） */
+  --shadow-1: 0 1px 3px rgba(22, 32, 43, 0.08), 0 6px 20px rgba(22, 32, 43, 0.06);
+
+  /* 字体 */
+  --font-sans: "Source Sans 3", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+
+  /* 动效 token（开发需求文档 §1.1） */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+  --dur-slow: 420ms;
+  --stagger: 60ms;
+
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============ 基础重置 ============ */
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-900);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--teal-tint);
+}
+
+/* 等宽数字（图表 / 指标 tabular figures，防跳字宽） */
+.tnum {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ============ 容器 ============ */
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+@media (max-width: 600px) {
+  .wrap {
+    padding: 0 20px;
+  }
+}
+
+/* ============ 进场动效（200ms fade + 2px rise，规范 §0.2） ============ */
+.rise {
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity var(--dur-base) var(--ease-standard), transform var(--dur-base) var(--ease-standard);
+}
+.rise.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ============ 通用 CTA 按钮 ============ */
+.btn-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--teal);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+  padding: 15px 28px;
+  border-radius: var(--r-btn);
+  box-shadow: 0 2px 8px rgba(15, 118, 110, 0.25);
+  transition: background var(--dur-fast) var(--ease-standard), transform 0.15s var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard);
+}
+.btn-cta:hover {
+  background: var(--teal-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(15, 118, 110, 0.32);
+}
+.btn-cta:active {
+  transform: translateY(0);
+}
+.btn-cta:disabled {
+  background: var(--ink-300);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--teal);
+  font-weight: 600;
+  font-size: 16px;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+  transition: border-color var(--dur-fast) var(--ease-standard);
+}
+.btn-secondary:hover {
+  border-bottom-color: var(--teal);
+}
+
+/* ============ 卡片 ============ */
+.card {
+  background: var(--paper-raise);
+  border: 1px solid var(--sand-line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-1);
+}
+
+/* ============ 打印 ============ */
+@media print {
+  .no-print,
+  .top,
+  .panel-veil,
+  .panel,
+  footer {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+  .rise {
+    opacity: 1;
+    transform: none;
+  }
 }
