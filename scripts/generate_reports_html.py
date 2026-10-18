@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""生成 4 份公开版机会报告的单文件 HTML（零依赖，可离线打开）"""
+"""生成公开版机会报告与付费交付物的单文件 HTML（零依赖，可离线打开）"""
 import re, html as html_mod
 from pathlib import Path
 
@@ -10,6 +10,11 @@ REPORTS = [
     ("002-promo-bottleneck", "exec-report-002-promo-bottleneck.md"),
     ("003-landing-page-affordable", "exec-report-003-landing-page-affordable.md"),
     ("004-overseas-infra", "exec-report-004-overseas-infra.md"),
+]
+
+# 付费交付物：单独再生成，不进入公开列表页（index.html）
+DELIVERABLES = [
+    ("first-order-deliverable", "first-order-deliverable-backend-miniprogram.md"),
 ]
 
 CSS = """
@@ -29,6 +34,8 @@ h1 { font-size:1.5rem; line-height:1.4; margin-bottom:8px; }
 .meta { color:var(--muted); font-size:.85rem; margin-bottom:24px; }
 .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
 .card h2 { font-size:1.05rem; color:var(--accent); margin-bottom:12px; }
+h3 { font-size:.95rem; color:var(--text); margin:14px 0 6px; }
+strong { color:#fff; }
 .card p, .card li { font-size:.92rem; }
 .card ul { padding-left:20px; margin:8px 0; }
 .card li { margin-bottom:4px; }
@@ -48,6 +55,11 @@ td { padding:6px 8px; border-bottom:1px solid #222; }
 def tier_badge(score: float) -> str:
     t = "s" if score >= 85 else ("a" if score >= 70 else "b")
     return f'<span class="badge badge-{t}">{t.upper()} 档 · {score}/100</span>'
+
+
+def inline_md(text: str) -> str:
+    """转义 + 行内加粗渲染（**x** → <strong>x</strong>）"""
+    return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html_mod.escape(text))
 
 
 def md_line_to_html(line: str, in_table: bool = False) -> str:
@@ -132,7 +144,7 @@ def build_html(md_text: str, slug: str, title_hint: str) -> str:
             flush_list()
             tag = "th"
             # 首行 = th（通过表头判断含"动作"/"维度"/"信号"等关键词）
-            row_html = "<tr>" + "".join(f"<{tag}>{html_mod.escape(c)}</{tag}>" for c in cells) + "</tr>"
+            row_html = "<tr>" + "".join(f"<{tag}>{inline_md(c)}</{tag}>" for c in cells) + "</tr>"
             table_buf.append(row_html)
             in_table = True
             continue
@@ -151,19 +163,21 @@ def build_html(md_text: str, slug: str, title_hint: str) -> str:
             continue
         if s.startswith("# "):
             body_parts.append(f"<h1>{html_mod.escape(s[2:])}</h1>")
+        elif s.startswith("### "):
+            body_parts.append(f"<h3>{html_mod.escape(s[4:])}</h3>")
         elif s.startswith("## "):
             body_parts.append(f'<div class="card"><h2>{html_mod.escape(s[3:])}</h2>')
             in_card = True
         elif s.startswith("> "):
             text = s[2:]
             if "来源" in text or "证据" in text or "⚠️" in text or "置信" in text:
-                body_parts.append(f'<div class="meta">{html_mod.escape(text)}</div>')
+                body_parts.append(f'<div class="meta">{inline_md(text)}</div>')
             else:
-                body_parts.append(f'<div class="note">{html_mod.escape(text)}</div>')
-        elif s.startswith("- ") and "「" in s[2:]:
-            body_parts.append(f'<div class="quote">{html_mod.escape(s[2:])}</div>')
+                body_parts.append(f'<div class="note">{inline_md(text)}</div>')
+        elif s.startswith("- 「"):
+            body_parts.append(f'<div class="quote">{inline_md(s[2:])}</div>')
         elif s.startswith("- "):
-            list_buf.append(f"<li>{html_mod.escape(s[2:])}</li>")
+            list_buf.append(f"<li>{inline_md(s[2:])}</li>")
             in_list = True
         else:
             # 普通行：检查是否 Day 表格内的续行
@@ -171,7 +185,7 @@ def build_html(md_text: str, slug: str, title_hint: str) -> str:
             if bold_m:
                 body_parts.append(f'<p style="font-weight:600;color:var(--accent);margin:10px 0 4px">{html_mod.escape(bold_m.group(1))}</p>')
             else:
-                body_parts.append(f"<p>{html_mod.escape(s)}</p>")
+                body_parts.append(f"<p>{inline_md(s)}</p>")
 
     flush_list()
     flush_table()
@@ -254,6 +268,12 @@ def build_index_html() -> str:
 
 if __name__ == "__main__":
     for slug, md_file in REPORTS:
+        md_text = (DOCS / md_file).read_text(encoding="utf-8")
+        html_out = build_html(md_text, slug, slug)
+        out = DOCS / f"{slug}.html"
+        out.write_text(html_out, encoding="utf-8")
+        print(f"✅ {out.name}  ({len(html_out)} bytes)")
+    for slug, md_file in DELIVERABLES:
         md_text = (DOCS / md_file).read_text(encoding="utf-8")
         html_out = build_html(md_text, slug, slug)
         out = DOCS / f"{slug}.html"

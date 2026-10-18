@@ -21,6 +21,8 @@ h1 { font-size:1.5rem; line-height:1.4; margin-bottom:8px; }
 .meta { color:var(--muted); font-size:.85rem; margin-bottom:24px; }
 .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
 .card h2 { font-size:1.05rem; color:var(--accent); margin-bottom:12px; }
+h3 { font-size:.95rem; color:var(--text); margin:14px 0 6px; }
+strong { color:#fff; }
 .card p, .card li { font-size:.92rem; }
 .card ul { padding-left:20px; margin:8px 0; }
 .card li { margin-bottom:4px; }
@@ -51,24 +53,36 @@ td { padding:6px 8px; border-bottom:1px solid #222; }
 <div class="quote">「我是做后端的，想做一个有关垂直领域的微信小程序，前端只会 jquery 和简单的 angularJS，如果有一种工具可以让你基于预设的模板做界面设计，自动生成前端代码，你只需要关注怎么与后端做数据绑定，就爽了。」</div>
 <div class="quote">「想问 up，服务器一般选什么配置？服务器费用是否包含在开发费用里面？后期维护怎么搞，这一块感觉就比较麻烦。」</div>
 <div class="quote">「一般人家开发 APP 的结局怎么样？有没有人全部身家去开发一个 APP？」</div>
-<p>**关键洞察：**「太麻烦」是高频情绪词——不是缺技术，是缺一个把前端工作降维到「数据绑定」层面的工具。</p>
+<p><strong>关键洞察：</strong>「太麻烦」是高频情绪词——不是缺技术，是缺一个把前端工作降维到「数据绑定」层面的工具。</p>
+</div>
+<div class="card"><h2>付费意愿信号（WTP）</h2>
+<p><strong>10 / 112 条（9%）评论出现付费相关表达</strong> —— 打标规则：含「愿意付/买/求购/多少钱/预算/价格」类表达即标记；校准抽检中该信号判断命中率 80%（项目校准记录）。</p>
+<p><strong>解读（判断）</strong>：9% 属「决策参考级」信号（非强承诺）——四份报告中绝对值最高，与下文「为什么是现在」中&quot;存在真实付费基础&quot;互为支撑。</p>
+<p><strong>原文样本</strong>：公开版从简展示计数；逐条付费表达存于管线数据，重跑可复现（见报告头&quot;证据可反推&quot;）。</p>
+</div>
+<div class="card"><h2>现有替代方案与缺口</h2>
+<p><strong>信号规模</strong>：对比 6 条 + 失望 7 条（合计密度 12%）→ 机会评分中「竞争空缺 4/5」的依据。</p>
+<p><strong>缺口（判断）</strong>：</p>
+<ul><li>形态缺口：现有工具/教程多为零散知识点，缺「预设模板 → 自动生成前端 → 只管数据绑定」的打包形态（对应求助 51% 的主诉求）</li></ul>
+<ul><li>成本缺口：「服务器费用是否包含」「后期维护怎么搞」——用户算不清全栈成本，需要打包方案而非零散工具</li></ul>
+<ul><li>信息缺口：对产品结局的担忧（&quot;有没有人全部身家去开发一个 APP？&quot;）说明缺真实案例与风险预期管理</li></ul>
 </div>
 <div class="card"><h2>机会评分（证据驱动，无 LLM）</h2>
-<table><tr><th>维度</th><th>得分</th><th>依据</th></tr><tr><th>需求强度</th><th>4/5</th><th>平均痛点 4.3/2 + 付费信号 10 条（+2）</th></tr><tr><th>竞争空缺</th><th>4/5</th><th>对比 6 + 失望 7 条（密度 12%）→ 现有方案不满</th></tr><tr><th>个人可行性</th><th>4/5</th><th>簇规模 112 条（&lt;200 仍可行）</th></tr><tr><th>AI 杠杆</th><th>5/5</th><th>软件形态词 7 个（app/小程序/工具）</th></tr><tr><th>触达难度</th><th>—</th><th>无数据来源，不计入均值</th></tr><tr><th>**机会分**</th><th>**85/100（S 档）**</th><th></th></tr><tr><th>样本置信度</th><th>1.00</th><th>112 条评论</th></tr></table>
+<table><tr><th>维度</th><th>得分</th><th>依据</th></tr><tr><th>需求强度</th><th>4/5</th><th>平均痛点 4.3/2 + 付费信号 10 条（+2）</th></tr><tr><th>竞争空缺</th><th>4/5</th><th>对比 6 + 失望 7 条（密度 12%）→ 现有方案不满</th></tr><tr><th>个人可行性</th><th>4/5</th><th>簇规模 112 条（&lt;200 仍可行）</th></tr><tr><th>AI 杠杆</th><th>5/5</th><th>软件形态词 7 个（app/小程序/工具）</th></tr><tr><th>触达难度</th><th>—</th><th>无数据来源，不计入均值</th></tr><tr><th><strong>机会分</strong></th><th><strong>85/100（S 档）</strong></th><th></th></tr><tr><th>样本置信度</th><th>1.00</th><th>112 条评论</th></tr></table>
 </div>
 <div class="card"><h2>为什么是现在</h2>
 <p>1. AI 代码生成已成熟（Cursor/Claude Code 等），「自动生成前端」技术上可行</p>
-<p>2. B 站评论中「服务器费用是否包含」「后期维护」是高频问题——**说明用户连全栈成本算不清**，需要的是**打包好的解决方案**而非零散工具</p>
+<p>2. B 站评论中「服务器费用是否包含」「后期维护」是高频问题——<strong>说明用户连全栈成本算不清</strong>，需要的是<strong>打包好的解决方案</strong>而非零散工具</p>
 <p>3. 付费意愿 10 条（9%）→ 存在真实付费基础</p>
 </div>
 <div class="card"><h2>MVP 验证路径（7 天，¥0–500）</h2>
 <table class="day-tbl"><tr><th>天</th><th>动作</th><th>成功标志</th></tr><tr><th>Day 1</th><th>在 B 站/即刻/小红书找 10 个后端想转全栈的开发者</th><th>建群 10 人</th></tr><tr><th>Day 2</th><th>访谈 3 人，确认「前端是最大卡点」占比 ≥ 70%</th><th>录音/文字稿</th></tr><tr><th>Day 3</th><th>做最小交付物：1 套「小程序模板 + 数据绑定说明」HTML 页面</th><th>可点击 demo</th></tr><tr><th>Day 4</th><th>尝试收 100 元（爱发电/微信）</th><th>首单成交</th></tr><tr><th>Day 5</th><th>交付 + 收集反馈</th><th>≥3 条书面反馈</th></tr><tr><th>Day 6–7</th><th>复盘：继续/放弃/改方向</th><th>书面记录</th></tr></table>
-<p>**技术栈（零成本）：** GitHub Pages + 单文件 HTML + 爱发电收款 + 金数据表单</p>
+<p><strong>技术栈（零成本）：</strong> GitHub Pages + 单文件 HTML + 爱发电收款 + 金数据表单</p>
 </div>
 <div class="card"><h2>收入层</h2>
-<p>1. **咨询/代做**（现金流）：帮后端开发者做小程序前端，1 单 500–2000 元</p>
-<p>2. **模板/工具**（可复用）：小程序前端模板库，99–299 元/套</p>
-<p>3. **社群/订阅**（复利）：月费 49 元，含更新 + 答疑</p>
+<p>1. <strong>咨询/代做</strong>（现金流）：帮后端开发者做小程序前端，1 单 500–2000 元</p>
+<p>2. <strong>模板/工具</strong>（可复用）：小程序前端模板库，99–299 元/套</p>
+<p>3. <strong>社群/订阅</strong>（复利）：月费 49 元，含更新 + 答疑</p>
 </div>
 <div class="card"><h2>你怎么看</h2>
 <p>这个需求值不值得做？评论区告诉我。</p>

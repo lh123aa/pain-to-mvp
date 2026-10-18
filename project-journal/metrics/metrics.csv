@@ -25,3 +25,5 @@ date,metric,value,unit,source,confidence,note
 2026-10-16,a4_runs_current_code,3,,e2e_test,high,f9a11ad 后 3/3；窗口 10 次 ≥9 需再补 7 轮
 2026-10-16,a5_top3_hit_rate,66.7,,calibration.review,high,8 条时点，上一时点 60%
 2026-10-18,tests_passed,238,,pytest -q 全量（0644e38 提交时）,medium,
+2026-10-19,clonerepo_tests_passed,238,count,"外机克隆 PYTHONUTF8=1 pytest 全量",high,"GBK 模式 235+3（locale 问题）；克隆不含 data/"
+2026-10-19,tests_passed,238,,pytest 全量（报告升级 T1/T2 + 生成器改动后）,high,"63.6s；1 个 deprecation warning"
