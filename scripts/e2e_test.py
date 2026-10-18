@@ -143,6 +143,15 @@ def main(args):
             "收尾：重建 dashboard.json"
         )
 
+        # 归档本项目产出到 data/projects/{关键词}/（用户要求：每项目一个子文件夹）
+        ok_org, dt_org = run(
+            [sys.executable, str(PIPELINE / "organize_project.py"),
+             "--run", "--keyword", args.keyword,
+             "--run-start", str(t_start), "--no-dashboard"],
+            "收尾：归档本轮产出"
+        )
+        steps.append(("organize", ok_org, dt_org))
+
     # 完整跑 6 步；--skip-crawl 少爬一步 = 5。步数不足 = 中途早退（#30）
     ok = _report(steps, time.time() - t_start,
                  expected=5 if args.skip_crawl else 6)

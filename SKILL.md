@@ -111,7 +111,29 @@ python scripts/dashboard/serve.py --port 8787
 
 看板每 3 秒轮询 `dashboard.json`，实时展示需求列表和进度。
 
-## 七、合规与安全（PRD §七）
+## 八、产物归档规则（2026-10-17 用户需求）
+
+每个项目（关键词）的生成产物归档到独立子文件夹：
+
+```
+data/projects/{关键词}/
+├── discovered/   # 发现列表（文件名 = safe_filename(关键词)_YYYYMMDD_HHMM.json）
+├── pains/        # 痛点簇
+├── scored/       # 评分结果
+├── cards/        # 机会卡
+├── raw/          # 爬取的评论（**复制件**——原件在 data/raw/，
+│                 # 服务跨轮去重 #20 与本轮清单 #31，移动会导致重跑全量重爬→风控加重）
+└── README.md     # 归档索引（自动刷新）
+```
+
+- e2e 收尾自动执行归档（`organize_project.py --run`，归档失败即整体失败）
+- 历史归位：`python scripts/pipeline/organize_project.py --migrate`（一次性；
+  无归属文件进 `data/projects/_待认领/`，不硬安给任何项目）
+- 看板/校准读取路径：`data/cards/`（迁移前）+ `data/projects/*/cards/`（归档后），两者都读
+- `data/dashboard.json` 留在根目录（全局看板，不按项目分）
+- 幂等：重复执行不重复搬移、不覆盖
+
+## 九、合规与安全（PRD §七）
 
 - 遵守 robots.txt 和平台条款：**fail-close**（读不到 robots.txt 即跳过该平台）
 - 只爬公开内容

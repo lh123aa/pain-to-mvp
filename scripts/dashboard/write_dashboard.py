@@ -26,6 +26,8 @@ from datetime import datetime
 from pathlib import Path
 
 CARD_DIR = Path("data/cards")
+# 归档后卡片移入 data/projects/{关键词}/cards/（organize_project）；重建时两者都读
+PROJECTS_ROOT = Path("data/projects")
 DASHBOARD = Path("data/dashboard.json")
 
 def _parse_card(path: Path) -> dict:
@@ -83,12 +85,19 @@ def _parse_card(path: Path) -> dict:
 
 def rebuild():
     reqs = []
+    # 卡片来源：旧目录 data/cards + 归档目录 data/projects/*/cards（去重：同一 id 只算一次）
+    paths: dict[str, Path] = {}
     if CARD_DIR.exists():
         for p in sorted(CARD_DIR.glob("*.md")):
-            try:
-                reqs.append(_parse_card(p))
-            except Exception as e:
-                print(f"⚠️ 解析失败：{p} - {e}")
+            paths.setdefault(p.stem, p)
+    if PROJECTS_ROOT.exists():
+        for p in sorted(PROJECTS_ROOT.glob("*/cards/*.md")):
+            paths.setdefault(p.stem, p)
+    for p in paths.values():
+        try:
+            reqs.append(_parse_card(p))
+        except Exception as e:
+            print(f"⚠️ 解析失败：{p} - {e}")
 
     # 按分数降序
     reqs.sort(key=lambda x: x.get("score") or 0, reverse=True)

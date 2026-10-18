@@ -4,7 +4,7 @@
 > 规则：只保留"下一步真的要做的"；已完成的勾掉或删除；空的分区保留标题即可，不要留空 checkbox。
 
 ## 进行中（按优先级）
-- [ ] **每项目归档功能（进行中，见 journal 2026-10-17 进度存档）**：organizer 模块+10 测试已绿；剩余：①读者改造（calibration/write_dashboard 读 projects/*/cards）②e2e 接线+fix_e2e_organize overlay ③SKILL.md 规则 ④`--migrate` 实跑+展示目录 ⑤全量套件验证
+- [ ] **归档实跑 + 展示目录**：organizer/读者/e2e/SKILL 已完成（47 passed，全量 1 红=v_voucher 风控非功能）；剩余：①提交归档功能 ②实跑 `--migrate` + 重建看板 + 展示 `data/projects/` 目录给用户 ③test_run_inputs mock 化单独提交
 - [ ] **P6 第三轮终验：A4 补样**：留档已落（`docs/acceptance-2026-10-16.md`：A1/A2/A3 ✅、A5 两轮达标、A6 pending）；A4 **只认当前代码窗口**（f9a11ad 后 3/10，需跨天降频补 ≥7 轮满窗 10 次 ≥9 终判；全历史 7/9 含旧代码样本不凑数）
 - [ ] 校准记录累计：每轮 record top3（现 8/20，总体 62.5%、top3 66.7%；满 20 条首次回看——求助 67%/期望 67% 为调权候选；成功线 top3 ≥70%）；稳定性重跑的同簇副本不入校准（防灌水，2026-10-16 决策）
 

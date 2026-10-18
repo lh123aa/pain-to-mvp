@@ -38,6 +38,8 @@ from pathlib import Path
 
 DEFAULT_CAL = Path("data/calibration/calibration.jsonl")
 CARDS_DIR = Path("data/cards")
+# 归档后卡片移入 data/projects/{关键词}/cards/（organize_project）；查找时两者都看
+PROJECTS_DIR = Path("data/projects")
 TARGET = 20  # PRD §五：累计每满 20 条回看一次规则命中率
 
 VALID_VERDICTS = {"real", "fake"}
@@ -48,10 +50,22 @@ SCHEMA_FIELDS = ("date", "card_id", "verdict", "note", "run", "rank",
 _SIGNAL_LINE = re.compile(r"信号分布\*\*：(\{.*?\})")
 
 
-def _extract_signals_from_card(card_id: str) -> dict | None:
+def find_card(card_id: str, data_root=None, projects_root=None) -> Path | None:
+    """按 card_id 找卡片文件：先搜 projects/*/cards/（归档后位置），
+    再回退 data/cards/（迁移前旧位置）；都找不到返回 None。"""
+    data_cards = Path(data_root) / "cards" if data_root else CARDS_DIR
+    projects = Path(projects_root) if projects_root else PROJECTS_DIR
+    for p in sorted(projects.glob(f"*/cards/{card_id}.md")):
+        return p
+    legacy = data_cards / f"{card_id}.md"
+    return legacy if legacy.exists() else None
+
+
+def _extract_signals_from_card(card_id: str, data_root=None,
+                              projects_root=None) -> dict | None:
     """从卡片 md 的「信号分布」行抽取信号计数；无卡片/无信号返回 None。"""
-    card_path = CARDS_DIR / f"{card_id}.md"
-    if not card_path.exists():
+    card_path = find_card(card_id, data_root, projects_root)
+    if card_path is None:
         return None
     m = _SIGNAL_LINE.search(card_path.read_text(encoding="utf-8"))
     if not m:

@@ -677,6 +677,41 @@ if __name__ == "__main__":
     )
 
 
+def fix_e2e_organize() -> None:
+    """用户要求（2026-10-17）：每个项目（关键词）的产出归档到
+    data/projects/{关键词}/ 子文件夹。e2e 收尾（看板重建后）调用
+    organize_project.py --run，归档失败即整体失败（steps.append，#30 同纪律）。
+    锚点 = fix_e2e_exitcode 产出后的"收尾：重建 dashboard.json"块。
+    """
+    p = ROOT / "scripts" / "e2e_test.py"
+    patch_text(
+        p,
+        old='''        # 重建看板（以卡片为准，避免重复）
+        run(
+            [sys.executable, str(ROOT / "scripts" / "dashboard" / "write_dashboard.py")],
+            "收尾：重建 dashboard.json"
+        )
+''',
+        new='''        # 重建看板（以卡片为准，避免重复）
+        run(
+            [sys.executable, str(ROOT / "scripts" / "dashboard" / "write_dashboard.py")],
+            "收尾：重建 dashboard.json"
+        )
+
+        # 归档本项目产出到 data/projects/{关键词}/（每项目一个子文件夹）
+        ok_org, dt_org = run(
+            [sys.executable, str(PIPELINE / "organize_project.py"),
+             "--run", "--keyword", args.keyword,
+             "--run-start", str(t_start), "--no-dashboard"],
+            "收尾：归档本轮产出"
+        )
+        steps.append(("organize", ok_org, dt_org))
+''',
+        marker="organize_project.py",
+        desc="e2e: 收尾归档到 data/projects/{关键词}/（用户归档需求）",
+    )
+
+
 def fix_scoring() -> None:
     """评分去伪：无数据来源的维度不伪造恒定分。"""
     p = ROOT / "scripts" / "pipeline" / "score_opportunity.py"
@@ -1326,6 +1361,7 @@ def main():
     fix_e2e()
     fix_crawl_manifest()
     fix_e2e_exitcode()
+    fix_e2e_organize()
     fix_scoring()
     fix_export_card()
     fix_serve()
