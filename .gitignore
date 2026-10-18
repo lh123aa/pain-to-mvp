@@ -2,6 +2,11 @@
 data/
 pain_to_mvp.db
 
+# 一次性调试脚本 / 跑批日志重定向（已挪至系统临时目录，防止再次混入仓库）
+_rebuild*.py
+_show_*.py
+kw*_out.txt
+
 # Python
 __pycache__/
 *.pyc
