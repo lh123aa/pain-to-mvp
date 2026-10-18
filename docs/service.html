@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>需求验证报告 · 服务说明</title>
+<style>
+:root {
+  --bg: #0f0f0f; --card: #1a1a1a; --border: #2a2a2a;
+  --text: #e5e5e5; --muted: #888; --accent: #4a9eff;
+  --green: #34d399; --yellow: #fbbf24; --red: #f87171;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif; line-height:1.7; }
+.container { max-width:720px; margin:0 auto; padding:24px 16px 48px; }
+.badge { display:inline-block; padding:3px 10px; border-radius:99px; font-size:12px; font-weight:600; margin:0 6px 16px 0; }
+.badge-s { background:#f8717122; color:var(--red); }
+.badge-a { background:#fbbf2422; color:var(--yellow); }
+.badge-b { background:#4a9eff22; color:var(--accent); }
+h1 { font-size:1.5rem; line-height:1.4; margin-bottom:8px; }
+.meta { color:var(--muted); font-size:.85rem; margin-bottom:24px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+.card h2 { font-size:1.05rem; color:var(--accent); margin-bottom:12px; }
+h3 { font-size:.95rem; color:var(--text); margin:14px 0 6px; }
+strong { color:#fff; }
+.card p, .card li { font-size:.92rem; }
+.card ul { padding-left:20px; margin:8px 0; }
+.card li { margin-bottom:4px; }
+.quote { border-left:3px solid var(--accent); padding:8px 14px; margin:8px 0; background:#111; border-radius:0 8px 8px 0; color:#ccc; font-size:.88rem; font-style:italic; }
+.note { color:var(--muted); font-size:.85rem; margin:6px 0; }
+.cta { background:linear-gradient(135deg,#1a1a2e,#16213e); border:1px solid var(--accent); border-radius:12px; padding:18px; margin-top:20px; }
+.cta h3 { font-size:1rem; color:var(--accent); margin-bottom:8px; }
+.cta p { font-size:.9rem; color:var(--muted); margin-bottom:4px; }
+footer { text-align:center; margin-top:32px; color:var(--muted); font-size:.78rem; }
+table { width:100%; border-collapse:collapse; font-size:.85rem; margin:8px 0; }
+th { text-align:left; color:var(--muted); font-weight:500; padding:6px 8px; border-bottom:1px solid var(--border); }
+td { padding:6px 8px; border-bottom:1px solid #222; }
+.day-tbl td:first-child { white-space:nowrap; color:var(--accent); font-weight:600; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>需求验证报告 · 服务说明</h1>
+<div class="meta">给独立开发者 / 微创业者的需求验证服务 · 证据链可逐条回溯 · 不编数字</div>
+<div class="meta">数据来源：B 站评论区公开评论（匿名化）｜ 结论可抽检、可反推原始评论</div>
+<div class="card"><h2>这是什么</h2>
+<p style="font-weight:600;color:var(--accent);margin:10px 0 4px">你给一个方向或关键词，我们跑一遍自动管线 + 人工复核，交给你一份「这份需求值不值得做」的证据报告。</p>
+<p>报告里有什么：</p>
+<ul><li>这个需求有多少人在提、情绪多强（信号分布 + 密度）</li></ul>
+<ul><li>有<strong>多少人表达了付费意愿</strong>（WTP 模块——市面上几乎没有工具做这件事）</li></ul>
+<ul><li>现有替代方案是什么、<strong>缺口在哪</strong>（不是给你一张痛点清单就完事）</li></ul>
+<ul><li>一个 <strong>7 天内能跑出最小验证物</strong>的行动路径（SOP）</li></ul>
+<p>适合谁：准备做产品 / 接单 / 做内容，但<strong>不想先写代码再发现没人要</strong>的独立开发者与微创业者。</p>
+</div>
+<div class="card"><h2>你会拿到什么</h2>
+<table><tr><th>内容</th><th>免费公开版</th><th>基础定制版 ¥199</th><th>深度定制版 ¥499</th></tr><tr><th>信号分布 + 代表原话</th><th>✅</th><th>✅</th><th>✅</th></tr><tr><th>付费意愿量化（WTP）</th><th>摘要</th><th>✅ 完整</th><th>✅ 完整</th></tr><tr><th>现有替代方案与缺口</th><th>—</th><th>✅</th><th>✅</th></tr><tr><th>机会评分拆解</th><th>✅</th><th>✅</th><th>✅</th></tr><tr><th>7 天验证 SOP</th><th>概要</th><th>✅</th><th>✅ 个性化</th></tr><tr><th><strong>可部署的测试落地页</strong></th><th>—</th><th>—</th><th>✅（示例见 <a href="landing-page-demo-001.html" style="color:var(--accent)">落地页 Demo</a>）</th></tr><tr><th>交付答疑</th><th>—</th><th>7 天</th><th>7 天</th></tr><tr><th>按你的关键词定制</th><th>—</th><th>✅</th><th>✅</th></tr></table>
+<p>交付形式：<strong>单文件 HTML</strong>（可离线打开、可直接转发给合伙人）+ Markdown 源文件。</p>
+</div>
+<div class="card"><h2>价格</h2>
+<table><tr><th>档位</th><th>价格</th><th>说明</th></tr><tr><th>免费公开版</th><th>¥0</th><th>现有公开报告，永远免费（获客与信任）</th></tr><tr><th><strong>首单验证价</strong></th><th><strong>¥199</strong></th><th><strong>深度版全部内容</strong>；限前 3–5 单，用于收集反馈与匿名案例（随后恢复原价）</th></tr><tr><th>基础定制版</th><th>¥199</th><th>按你的关键词出完整证据报告</th></tr><tr><th>深度定制版</th><th>¥499</th><th>基础版 + 个性化 SOP + 可部署测试落地页 + 答疑</th></tr><tr><th>白标 / 团队版</th><th>¥999 起</th><th>多关键词、品牌定制、导出包（按需沟通）</th></tr></table>
+<div class="note">免费版看别人挖，定制版挖你自己的方向。价格随交付范围浮动，下单前确认；风控/数据不足时如实告知（可延期或退款，不交付半成品）。</div>
+</div>
+<div class="card"><h2>为什么可信</h2>
+<ul><li><strong>证据链可反推</strong>：每个结论都挂原始评论，可逐条回溯核对——不是 AI 拍脑袋生成</li></ul>
+<ul><li><strong>质量自证</strong>：我们对自己的结论做抽检、公示命中率——同行普遍不敢做这件事</li></ul>
+<ul><li><strong>fail-close 纪律</strong>：挖不到数据就停跑报错，绝不假成功、绝不编数字</li></ul>
+<ul><li><strong>合规</strong>：只采集公开评论、匿名化处理、不绕过平台风控——红线写进了项目代码与测试</li></ul>
+</div>
+<div class="card"><h2>交付流程（3–5 天）</h2>
+<p>1. 你发关键词 / 方向（一句话就够）</p>
+<p>2. 确认范围与档位（不合适、没数据的会直说，不接）</p>
+<p>3. 跑管线 + 人工复核（3–5 天）</p>
+<p>4. 交付单文件报告（HTML）+ 7 天答疑</p>
+</div>
+<div class="card"><h2>常见问题</h2>
+<ul><li><strong>Q：数据哪里来？会不会侵权？</strong> 只采集 B 站公开评论区并匿名化；不采集隐私、不绕过风控——合规是项目的硬约束。</li></ul>
+<ul><li><strong>Q：能保证我赚钱吗？</strong> 不能。报告保证的是：证据真实、可核对、判断有依据。赚不赚钱取决于你的执行。</li></ul>
+<ul><li><strong>Q：和免费公开版差在哪？</strong> 免费版是&quot;看别人被挖出来的需求&quot;；定制版挖的是你的方向：关键词、证据、缺口、SOP 都是给你的。</li></ul>
+<ul><li><strong>Q：不满意怎么办？</strong> 交付前确认范围；交付后 7 天内答疑；重大偏差按约定处理。</li></ul>
+<ul><li><strong>Q：多久出？</strong> 正常 3–5 天；数据源受限时会提前说明，不拖到&quot;感觉快好了&quot;。</li></ul>
+</div>
+<div class="card"><h2>怎么开始</h2>
+<p><strong>第一步：把你的方向发过来</strong>（一句话就够）</p>
+<p>【待填｜联系方式：微信 / 爱发电 / 邮箱】</p>
+<p><strong>还没想好方向？</strong> 先看免费公开报告（见首页报告列表），或者花 ¥199 让我们帮你挖一个。</p>
+<div class="note">本服务为人工在环的小批量交付：每一单都跑管线 + 人工复核，不糊弄、不流水线灌水。</div>
+</div>
+<footer>
+pain-to-mvp 管线自动生成 · 数据来源：B 站评论区真实评论 · 2026-10 · <a href="#" style="color:var(--accent)">← 返回报告列表</a>
+</footer>
+</div>
+</body>
+</html>

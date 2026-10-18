@@ -17,6 +17,11 @@ DELIVERABLES = [
     ("first-order-deliverable", "first-order-deliverable-backend-miniprogram.md"),
 ]
 
+# 独立页面（服务说明等）：单独再生成，不进入报告列表页
+PAGES = [
+    ("service", "service.md"),
+]
+
 CSS = """
 :root {
   --bg: #0f0f0f; --card: #1a1a1a; --border: #2a2a2a;
@@ -58,8 +63,11 @@ def tier_badge(score: float) -> str:
 
 
 def inline_md(text: str) -> str:
-    """转义 + 行内加粗渲染（**x** → <strong>x</strong>）"""
-    return re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html_mod.escape(text))
+    """转义 + 行内渲染：**x** → <strong>，[文字](链接) → <a>"""
+    t = html_mod.escape(text)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
+    t = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2" style="color:var(--accent)">\1</a>', t)
+    return t
 
 
 def md_line_to_html(line: str, in_table: bool = False) -> str:
@@ -199,7 +207,7 @@ def build_html(md_text: str, slug: str, title_hint: str) -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{title} · 机会报告</title>
+<title>{title}</title>
 <style>{CSS}</style>
 </head>
 <body>
@@ -260,7 +268,7 @@ def build_index_html() -> str:
   <h1 style="margin-bottom:8px">机会报告</h1>
   <div class="meta">pain-to-mvp 管线自动挖掘 · 数据来源：B 站评论区真实评论 · 2026-10 · 共 {len(REPORTS)} 份</div>
   {''.join(cards)}
-  <footer>本报告为免费公开版，证据链可逐条回溯核对 · 生成于 2026-10-18</footer>
+  <footer>本报告为免费公开版，证据链可逐条回溯核对 · 更新于 2026-10 · <a href="service.html" style="color:var(--accent)">定制报告服务 →</a></footer>
 </div>
 </body>
 </html>"""
@@ -274,6 +282,12 @@ if __name__ == "__main__":
         out.write_text(html_out, encoding="utf-8")
         print(f"✅ {out.name}  ({len(html_out)} bytes)")
     for slug, md_file in DELIVERABLES:
+        md_text = (DOCS / md_file).read_text(encoding="utf-8")
+        html_out = build_html(md_text, slug, slug)
+        out = DOCS / f"{slug}.html"
+        out.write_text(html_out, encoding="utf-8")
+        print(f"✅ {out.name}  ({len(html_out)} bytes)")
+    for slug, md_file in PAGES:
         md_text = (DOCS / md_file).read_text(encoding="utf-8")
         html_out = build_html(md_text, slug, slug)
         out = DOCS / f"{slug}.html"

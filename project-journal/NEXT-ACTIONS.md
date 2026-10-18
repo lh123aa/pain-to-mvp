@@ -4,7 +4,7 @@
 > 规则：只保留"下一步真的要做的"；已完成的勾掉或删除；空的分区保留标题即可，不要留空 checkbox。
 
 ## 进行中（按优先级）
-- [ ] **升级执行（docs/UPGRADE-PLAN.md）**：T1/T2 v1 ✅（10-19：4 份公开报告 + 深度交付版新增「WTP/缺口」两节；生成器升级；HTML 全量再生成；238 全绿）；下一批 = T4 服务说明页 → T3 验证落地页生成器；管线化 T1b/T2b 待原机数据同步
+- [ ] **升级执行（docs/UPGRADE-PLAN.md）**：T1/T2 ✅、T4 ✅（服务页 `docs/service.html`）、T3 ✅（落地页生成器 + Demo）——10-19 完成；下一批 = T7 MCP/Skill 包 → T8 导出包 → T5 校准页 v1；管线化 T1b/T2b 待原机数据。**待用户补：服务页联系方式占位（微信/爱发电/邮箱）；发布决定（G0 后）**
 - [ ] **定价：首单用 ¥199 验证价**（前 3–5 单，换反馈+案例授权），成交价记 ledger；每 5 单按 PRICING-VALIDATION.md §4 复盘
 - [x] 2026-10-18 **test_env_loader 隔离修复 + 全量 238 全绿确认**：`env_loader.load_env` 增加 `override` 参数；测试用 `delenv + override=True`；全量 238/0 通过；requirements-dev / Makefile test-unit 待提交
 - [ ] **P6 第三轮终验：A4 补样**：留档已落（`docs/acceptance-2026-10-16.md`：A1/A2/A3 ✅、A5 两轮达标、A6 pending）；A4 **只认当前代码窗口**（f9a11ad 后 3/10，需跨天降频补 ≥7 轮满窗 10 次 ≥9 终判；全历史 7/9 含旧代码样本不凑数）

@@ -27,3 +27,4 @@ date,metric,value,unit,source,confidence,note
 2026-10-18,tests_passed,238,,pytest -q 全量（0644e38 提交时）,medium,
 2026-10-19,clonerepo_tests_passed,238,count,"外机克隆 PYTHONUTF8=1 pytest 全量",high,"GBK 模式 235+3（locale 问题）；克隆不含 data/"
 2026-10-19,tests_passed,238,,pytest 全量（报告升级 T1/T2 + 生成器改动后）,high,"63.6s；1 个 deprecation warning"
+2026-10-19,tests_passed,242,,pytest 全量（T3/T4 + 落地页测试后）,high,"53.3s；含新增 test_landing_page 4 条"
