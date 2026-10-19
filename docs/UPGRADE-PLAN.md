@@ -56,6 +56,7 @@
 10. 产物再生成（7 个 HTML + 2 个 deck）+ 全量测试 **260 passed** + 本表 / journal / NEXT-ACTIONS / metrics 同步。
 11. **T5 v1 落地（建设备）**：`docs/calibration.md` → `calibration.html`（成绩单快照 8/20 · 62.5% · top3 66.7%「未达标如实公示」/ 机制三道拒收闸 / 轨迹 33→60→66.7% / 防灌水纪律 / 核对方式）；index 页脚新增「校准公示」入口；新增 3 条测试 → **263 passed**。
 12. **T9 落地（穿插提前）**：`scripts/export_backup.py`（零依赖：create/verify/restore；manifest sha256 清单；恢复前强制校验 + 非空目录护栏 + 非法路径拦截）+ `docs/DATA-PORTABILITY.md`；真实 data/ 6 文件打包→校验→恢复演示通过；新增 6 条测试 → **269 passed**。
+13. **发布物料清单（照单执行）**：`docs/RELEASE-CHECKLIST.md` 新建（P1/P2 前提 + 物料盘点 1a/1b/1c + 4 步执行 + 发布红线 + 一页检查表）；触达话术价格口径对齐 PRICING-VALIDATION（原「200-500」→「¥499 / 首单 ¥199」共 4 处）。
 
 ---
 
@@ -65,6 +66,7 @@
 - **完成定义（DoD）**：交付物存在 + 验收标准逐条核过 + journal 有记录；代码类 = 测试全绿；
 - **阻塞处理**：标 ⛔ + 写明原因与解锁条件（同步进 NEXT-ACTIONS"等待中"）；
 - **节奏**：包 A 目标 2 周；每周五对照本表复查一次；
+- **发布执行**：`docs/RELEASE-CHECKLIST.md`（P1 联系方式 + P2 G0 解锁后照单执行；发布动作=用户账号，AI 只备料与校验）；
 - **风险哨**：T3/T4 完成 7 天后仍 0 发布 / 0 反馈 → 触发**渠道复盘**（不是任务问题，是分发问题，对齐 MONETIZATION-EXECUTION 阶段 2 止损点）。
 
 ---
