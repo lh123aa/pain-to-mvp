@@ -4,6 +4,7 @@
 > 规则：只保留"下一步真的要做的"；已完成的勾掉或删除；空的分区保留标题即可，不要留空 checkbox。
 
 ## 进行中（按优先级）
+- [ ] **交付规则（2026-10-20 用户指令）**：每次任务完成 → 先更新 `docs/PROGRESS.md`，回复末尾附「进度快照」（总进度 / 当前步骤 / 下一步）
 - [ ] **升级执行（docs/UPGRADE-PLAN.md）**：T1/T2 ✅、T3 ✅、T4 ✅、T7 ✅（MCP 服务器 + 技能包，含真实 stdio 端到端）、T8 ✅（打印样式 + PDF 一键导出 8 份实测 + 演示版生成器）、T5 ◐（校准页 v1 建好，发布待校准复盘后）、T9 ✅（数据主权导出：打包/校验/恢复实测）——包 A 内除管线化外全部落地；管线化 T1b/T2b 待原机数据。**待用户补：服务页联系方式占位（微信/爱发电/邮箱）②发布决定（G0 后照 `docs/RELEASE-CHECKLIST.md` 执行）**
 - [ ] **定价：首单用 ¥199 验证价**（前 3–5 单，换反馈+案例授权），成交价记 ledger；每 5 单按 PRICING-VALIDATION.md §4 复盘
 - [x] 2026-10-18 **test_env_loader 隔离修复 + 全量 238 全绿确认**：`env_loader.load_env` 增加 `override` 参数；测试用 `delenv + override=True`；全量 238/0 通过；requirements-dev / Makefile test-unit 待提交
