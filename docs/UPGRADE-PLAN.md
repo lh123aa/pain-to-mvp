@@ -30,7 +30,7 @@
 | T6 | 机会库检索 v1 | 本地/静态查询页（搜索/标签/排序） | 克隆内可用 demo 数据演示；原机数据可切换 | 原机 data/ | ⏳ 待办 |
 | T7 | MCP / Skill 生态包 v1 | `scripts/mcp_server.py`（5 工具，零依赖 stdio）+ `skill-dist/pain-to-mvp/`（SKILL.md + 配置样板） | 真实 stdio 端到端演示通过（10 条测试）；装进 AI 助手 = 用户一条配置 | 无 | ✅ 完成（本日） |
 | T8 | 导出交付包 | 打印样式（@media print 浅色化）+ `scripts/export_pdf.py`（三后端）+ `scripts/generate_deck.py` + 2 份演示版 | 一键导出 8 份 PDF 实测通过（5 交付物 + 服务页 + 2 演示版） | T1/T2 | ✅ 完成（本日） |
-| T9 | 数据主权导出 | 一键导出/备份脚本 + 说明 | 导出→校验→恢复演示通过 | 无 | ⏳ 待办 |
+| T9 | 数据主权导出 | `scripts/export_backup.py`（打包/校验/恢复）+ `docs/DATA-PORTABILITY.md` | 导出→校验→恢复演示通过（真实 data/ 6 文件实测 + 6 条测试） | 无 | ✅ 完成（本日） |
 | T10 | 趋势追踪 v1 | 快照/差分/趋势模块 | 同关键词两次快照可出热度差分 | **风控解锁** | ⛔ 阻塞 |
 | T11 | 多平台适配（知乎/即刻/V2EX 先行） | 适配层 + 端到端 | 至少 1 个源跑通 | P6 验收通过 | ⛔ 暂缓（验收后） |
 
@@ -55,6 +55,7 @@
 9. **T8 落地**：`@media print` 浅色化打印样式；`scripts/export_pdf.py`（cloakbrowser → playwright → chrome 三后端，`--all/--dry-run/--browser`）；`scripts/generate_deck.py`（报告 → 单文件演示版）+ 2 份 deck；CloakBrowser venv 实测导出 8 份 PDF（docs/pdf/ 已 gitignore）；新增 deck/export 测试 8 条。
 10. 产物再生成（7 个 HTML + 2 个 deck）+ 全量测试 **260 passed** + 本表 / journal / NEXT-ACTIONS / metrics 同步。
 11. **T5 v1 落地（建设备）**：`docs/calibration.md` → `calibration.html`（成绩单快照 8/20 · 62.5% · top3 66.7%「未达标如实公示」/ 机制三道拒收闸 / 轨迹 33→60→66.7% / 防灌水纪律 / 核对方式）；index 页脚新增「校准公示」入口；新增 3 条测试 → **263 passed**。
+12. **T9 落地（穿插提前）**：`scripts/export_backup.py`（零依赖：create/verify/restore；manifest sha256 清单；恢复前强制校验 + 非空目录护栏 + 非法路径拦截）+ `docs/DATA-PORTABILITY.md`；真实 data/ 6 文件打包→校验→恢复演示通过；新增 6 条测试 → **269 passed**。
 
 ---
 
