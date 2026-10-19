@@ -257,7 +257,7 @@ def build_index_html() -> str:
         tier = "S" if float(score) >= 85 else ("A" if float(score) >= 70 else "B")
         tcls = f"badge-{tier.lower()}"
         cards.append(f"""
-        <a class="card" href="{slug}.html" style="text-decoration:none;color:inherit">
+        <a class="card card-link" href="{slug}.html">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <span class="badge {tcls}">{tier} 档 · {score}/100</span>
             <span style="color:var(--muted);font-size:.8rem">{size} 条评论</span>
