@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "pain-to-mvp": {
+      "command": "python",
+      "args": ["<REPO>/scripts/mcp_server.py"]
+    }
+  }
+}

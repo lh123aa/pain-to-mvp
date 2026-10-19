@@ -10,7 +10,7 @@
 
 1. **不阻塞优先**：凡不依赖 v_voucher 解锁的先做（报告层/信任层/交付层）；
 2. **小步可验**：每任务先 v1（存量改造）再 v2（管线化）；v1 不等原机数据；
-3. **测试门禁**：任何代码改动 → `PYTHONUTF8=1 pytest` 全绿（基线 **238**）+ 生成器产物抽查；
+3. **测试门禁**：任何代码改动 → `PYTHONUTF8=1 pytest` 全绿（基线以最新 metrics 为准：当前 **260**）+ 生成器产物抽查；
 4. **不编数字**；合规红线（不绕风控/只爬公开内容/脱敏）继承；每完成一项 → journal 记录；涉及收入 → ledger 记账；
 5. **价格纪律**：以 `PRICING-VALIDATION.md` 为唯一口径，变更需记录理由。
 
@@ -28,15 +28,15 @@
 | T4 | 报告分级 + 定价落地 | `PRICING-VALIDATION.md` + 服务说明页 `docs/service.html` + 权益矩阵 | 页面口径与定价文档一致；可托管 | T3 | ✅ 完成（本日） |
 | T5 | 公开校准页 v1 | 静态页：命中率/抽检记录/方法论 | 数据与校准记录一致；发布时机=校准复盘后 | 校准数据（20/20 复盘） | ⏳ 待办 |
 | T6 | 机会库检索 v1 | 本地/静态查询页（搜索/标签/排序） | 克隆内可用 demo 数据演示；原机数据可切换 | 原机 data/ | ⏳ 待办 |
-| T7 | MCP / Skill 生态包 v1 | 管线包装为 skill + 工具调用说明 | 在 AI 助手内用存量数据演示成功 | 无 | ⏳ 待办 |
-| T8 | 导出交付包 | 打印样式（PDF）+ 简约演示模板 | 5 份存量交付物可一键导出 | T1/T2 | ⏳ 待办 |
+| T7 | MCP / Skill 生态包 v1 | `scripts/mcp_server.py`（5 工具，零依赖 stdio）+ `skill-dist/pain-to-mvp/`（SKILL.md + 配置样板） | 真实 stdio 端到端演示通过（10 条测试）；装进 AI 助手 = 用户一条配置 | 无 | ✅ 完成（本日） |
+| T8 | 导出交付包 | 打印样式（@media print 浅色化）+ `scripts/export_pdf.py`（三后端）+ `scripts/generate_deck.py` + 2 份演示版 | 一键导出 8 份 PDF 实测通过（5 交付物 + 服务页 + 2 演示版） | T1/T2 | ✅ 完成（本日） |
 | T9 | 数据主权导出 | 一键导出/备份脚本 + 说明 | 导出→校验→恢复演示通过 | 无 | ⏳ 待办 |
 | T10 | 趋势追踪 v1 | 快照/差分/趋势模块 | 同关键词两次快照可出热度差分 | **风控解锁** | ⛔ 阻塞 |
 | T11 | 多平台适配（知乎/即刻/V2EX 先行） | 适配层 + 端到端 | 至少 1 个源跑通 | P6 验收通过 | ⛔ 暂缓（验收后） |
 
 图例：✅ 完成 ｜ ◐ 部分 ｜ ⏳ 待办 ｜ ⛔ 阻塞/暂缓
 
-**执行顺序（包 A 内）**：T1✅ → T2✅ → T4✅ → T3✅ → 下一批 T7/T8/T5 → （解锁后）T10 → T1b/T2b/T6/T9 穿插。
+**执行顺序（包 A 内）**：T1✅ → T2✅ → T4✅ → T3✅ → T7✅ → T8✅ → 下一批 T5 → （解锁后）T10 → T1b/T2b/T6/T9 穿插。
 
 ---
 
@@ -51,6 +51,9 @@
 5. **T3 落地页生成器**：`scripts/generate_landing_page.py`（`--demo` / `--config` 双模式；单文件、零依赖、零外部资源、字段全转义）+ 演示产物 `docs/landing-page-demo-001.html`；新增 `tests/test_landing_page.py` 4 条测试。
 6. **生成器小升级**：行内链接渲染（`[文字](链接)`）；页面标题去冗余后缀；index 页脚加"定制报告服务"入口。
 7. 产物再生成（7 个 HTML）+ 测试门禁 **242 passed** + journal / NEXT-ACTIONS / metrics 同步。
+8. **T7 落地**：`scripts/mcp_server.py`（5 工具，零依赖 stdio）+ `skill-dist/pain-to-mvp/`（SKILL.md + mcp-config 样板）+ `tests/test_mcp_server.py` 10 条（含真实 stdio 子进程端到端）。
+9. **T8 落地**：`@media print` 浅色化打印样式；`scripts/export_pdf.py`（cloakbrowser → playwright → chrome 三后端，`--all/--dry-run/--browser`）；`scripts/generate_deck.py`（报告 → 单文件演示版）+ 2 份 deck；CloakBrowser venv 实测导出 8 份 PDF（docs/pdf/ 已 gitignore）；新增 deck/export 测试 8 条。
+10. 产物再生成（7 个 HTML + 2 个 deck）+ 全量测试 **260 passed** + 本表 / journal / NEXT-ACTIONS / metrics 同步。
 
 ---
 

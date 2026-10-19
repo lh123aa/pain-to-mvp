@@ -7,6 +7,9 @@ _rebuild*.py
 _show_*.py
 kw*_out.txt
 
+# 导出产物（PDF 随时可由 scripts/export_pdf.py 重建，不入库）
+docs/pdf/
+
 # Python
 __pycache__/
 *.pyc

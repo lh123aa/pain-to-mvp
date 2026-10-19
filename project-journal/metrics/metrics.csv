@@ -28,3 +28,4 @@ date,metric,value,unit,source,confidence,note
 2026-10-19,clonerepo_tests_passed,238,count,"外机克隆 PYTHONUTF8=1 pytest 全量",high,"GBK 模式 235+3（locale 问题）；克隆不含 data/"
 2026-10-19,tests_passed,238,,pytest 全量（报告升级 T1/T2 + 生成器改动后）,high,"63.6s；1 个 deprecation warning"
 2026-10-19,tests_passed,242,,pytest 全量（T3/T4 + 落地页测试后）,high,"53.3s；含新增 test_landing_page 4 条"
+2026-10-19,tests_passed,260,,pytest 全量（T7 MCP/Skill + T8 导出包后）,high,"242→260；新增 18 条（mcp 10 含 stdio 端到端 / deck 4 / export 4）"

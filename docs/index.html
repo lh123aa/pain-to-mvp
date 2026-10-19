@@ -36,6 +36,19 @@ table { width:100%; border-collapse:collapse; font-size:.85rem; margin:8px 0; }
 th { text-align:left; color:var(--muted); font-weight:500; padding:6px 8px; border-bottom:1px solid var(--border); }
 td { padding:6px 8px; border-bottom:1px solid #222; }
 .day-tbl td:first-child { white-space:nowrap; color:var(--accent); font-weight:600; }
+/* 打印 / 导出 PDF：自动切换浅色主题（T8 导出交付包） */
+@media print {
+  :root { --bg:#fff; --card:#fff; --border:#ddd; --text:#111; --muted:#666; --accent:#1a5fd0; }
+  body { background:#fff; color:#111; }
+  .card { border:1px solid #ddd; }
+  strong { color:#111; }
+  .quote { background:#f7f7f7; color:#333; }
+  .cta { background:#f4f7ff; }
+  tr, .quote { break-inside:avoid; }
+  a { color:inherit; }
+  footer { margin-top:16px; }
+}
+@page { margin: 14mm 12mm; }
 
 .card-link { display:block; text-decoration:none; color:inherit; }
 .card-link:hover { border-color:var(--accent); }
