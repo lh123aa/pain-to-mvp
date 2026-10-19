@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校准公示：评分器的成绩单，我们公开</title>
+<style>
+:root {
+  --bg: #0f0f0f; --card: #1a1a1a; --border: #2a2a2a;
+  --text: #e5e5e5; --muted: #888; --accent: #4a9eff;
+  --green: #34d399; --yellow: #fbbf24; --red: #f87171;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif; line-height:1.7; }
+.container { max-width:720px; margin:0 auto; padding:24px 16px 48px; }
+.badge { display:inline-block; padding:3px 10px; border-radius:99px; font-size:12px; font-weight:600; margin:0 6px 16px 0; }
+.badge-s { background:#f8717122; color:var(--red); }
+.badge-a { background:#fbbf2422; color:var(--yellow); }
+.badge-b { background:#4a9eff22; color:var(--accent); }
+h1 { font-size:1.5rem; line-height:1.4; margin-bottom:8px; }
+.meta { color:var(--muted); font-size:.85rem; margin-bottom:24px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+.card h2 { font-size:1.05rem; color:var(--accent); margin-bottom:12px; }
+h3 { font-size:.95rem; color:var(--text); margin:14px 0 6px; }
+strong { color:#fff; }
+.card p, .card li { font-size:.92rem; }
+.card ul { padding-left:20px; margin:8px 0; }
+.card li { margin-bottom:4px; }
+.quote { border-left:3px solid var(--accent); padding:8px 14px; margin:8px 0; background:#111; border-radius:0 8px 8px 0; color:#ccc; font-size:.88rem; font-style:italic; }
+.note { color:var(--muted); font-size:.85rem; margin:6px 0; }
+.cta { background:linear-gradient(135deg,#1a1a2e,#16213e); border:1px solid var(--accent); border-radius:12px; padding:18px; margin-top:20px; }
+.cta h3 { font-size:1rem; color:var(--accent); margin-bottom:8px; }
+.cta p { font-size:.9rem; color:var(--muted); margin-bottom:4px; }
+footer { text-align:center; margin-top:32px; color:var(--muted); font-size:.78rem; }
+table { width:100%; border-collapse:collapse; font-size:.85rem; margin:8px 0; }
+th { text-align:left; color:var(--muted); font-weight:500; padding:6px 8px; border-bottom:1px solid var(--border); }
+td { padding:6px 8px; border-bottom:1px solid #222; }
+.day-tbl td:first-child { white-space:nowrap; color:var(--accent); font-weight:600; }
+/* 打印 / 导出 PDF：自动切换浅色主题（T8 导出交付包） */
+@media print {
+  :root { --bg:#fff; --card:#fff; --border:#ddd; --text:#111; --muted:#666; --accent:#1a5fd0; }
+  body { background:#fff; color:#111; }
+  .card { border:1px solid #ddd; }
+  strong { color:#111; }
+  .quote { background:#f7f7f7; color:#333; }
+  .cta { background:#f4f7ff; }
+  tr, .quote { break-inside:avoid; }
+  a { color:inherit; }
+  footer { margin-top:16px; }
+}
+@page { margin: 14mm 12mm; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>校准公示：评分器的成绩单，我们公开</h1>
+<div class="note">快照日期：2026-10-19 ｜ 数据源：项目校准记录（逐条可核对）</div>
+<div class="note">一句话：工具只给结论、不给成绩单是常态；我们把成绩单贴出来——未达标也贴。</div>
+<div class="card"><h2>1. 什么是校准（为什么它稀缺）</h2>
+<ul><li>大多数「找需求 / 机会评分」工具输出机会清单，却从不回答一句话：你上次说的机会，是真的吗？</li></ul>
+<ul><li>本项目的闭环：每轮跑完 → 抽检 top 卡片 → 人工判定「真 / 假」→ 记录归档 → 满 20 条回看命中率 → 调整规则。</li></ul>
+<ul><li>判定必须写理由（<strong>空理由拒收</strong>）；同一张卡不允许重复记录（<strong>防刷分</strong>）——机制层面拒绝造假。</li></ul>
+<ul><li>校准不是承诺「全对」，而是承诺「每个结论都被回查过，且成绩单公开」。</li></ul>
+</div>
+<div class="card"><h2>2. 当前成绩单（2026-10-19 快照）</h2>
+<table><tr><th>指标</th><th>当前值</th><th>口径 / 目标</th></tr><tr><th>记录进度</th><th>8 / 20</th><th>满 20 条触发首次完整回看</th></tr><tr><th>总体命中率</th><th>62.5%</th><th>全部抽检中判定「真」的比例</th></tr><tr><th>top3 命中率</th><th>66.7%</th><th>只统计每轮排名前 3 的卡（成功线 <strong>≥70%</strong>）</th></tr><tr><th>结论</th><th><strong>未达标（差 3.3 个百分点）</strong></th><th>如实公示，补足样本后复评</th></tr></table>
+<div class="note">说明：样本量尚小（8 条），该结论是阶段性快照而非终判——这正是要公示而不是藏起来的原因。</div>
+</div>
+<div class="card"><h2>3. 校准轨迹（事实）</h2>
+<ul><li>top3 口径随时间：33%（5 条时点）→ 60%（7 条）→ <strong>66.7%（8 条）</strong>——随样本增加收敛中。</li></ul>
+<ul><li>里程碑：卡 003（落地页预算型机会）在 fresh 数据轮被判「真」且排名第 1。</li></ul>
+<ul><li>信号级初窥（20 条完整回看前的候选线索）：求助、期望两个信号命中率 67%，为优先调权候选。</li></ul>
+</div>
+<div class="card"><h2>4. 防灌水与纪律（机制细节）</h2>
+<ul><li>记录字段：日期 / 卡号 / 判定 / 理由（必填）/ 轮次 / 排名 / 原话可否回溯 / 信号分布。</li></ul>
+<ul><li>fail-close 三道闸：非法判定拒收；空理由拒收；同卡重复拒收。</li></ul>
+<ul><li>稳定性重跑产生的同簇副本<strong>不计入</strong>校准（防止同一发现刷两次分）。</li></ul>
+<ul><li>达标线不因样本不足下调：top3 ≥70% 是事前定好的线，未达标就是未达标。</li></ul>
+</div>
+<div class="card"><h2>5. 达标后的安排</h2>
+<ul><li>满 20 条：逐信号回看命中率 → 调整信号权重 → 重跑验证（轨迹继续公示）。</li></ul>
+<ul><li>top3 稳定 ≥70% 后：作为可信度资产用于报告与页面展示（当前不以此做任何承诺）。</li></ul>
+</div>
+<div class="card"><h2>6. 怎么核对</h2>
+<ul><li>本站只公示汇总口径；原始记录（含卡号 / 排名 / 判定理由）逐条保存在项目数据目录，服务合作时可按需展示。</li></ul>
+<ul><li>报告 001 的「付费意愿信号（WTP）」节引用了信号级校准命中率 80%（校准抽检），可与本页互相印证。</li></ul>
+</div>
+<footer>
+pain-to-mvp 管线自动生成 · 数据来源：B 站评论区真实评论 · 2026-10 · <a href="#" style="color:var(--accent)">← 返回报告列表</a>
+</footer>
+</div>
+</body>
+</html>

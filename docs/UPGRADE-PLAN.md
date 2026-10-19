@@ -26,7 +26,7 @@
 | T2b | 缺口管线化 v2 | 对比/失望信号自动聚合成缺口草案 | 同 T1b | 原机数据 | ⏳ 待办 |
 | T3 | 验证闭环工具 v1 | `scripts/generate_landing_page.py` + 落地页模板 + 1 个 demo | 从 001 卡生成可打开落地页（含表单占位） | 无 | ✅ 完成（本日） |
 | T4 | 报告分级 + 定价落地 | `PRICING-VALIDATION.md` + 服务说明页 `docs/service.html` + 权益矩阵 | 页面口径与定价文档一致；可托管 | T3 | ✅ 完成（本日） |
-| T5 | 公开校准页 v1 | 静态页：命中率/抽检记录/方法论 | 数据与校准记录一致；发布时机=校准复盘后 | 校准数据（20/20 复盘） | ⏳ 待办 |
+| T5 | 公开校准页 v1 | `docs/calibration.md` → `docs/calibration.html`（快照+机制+轨迹+纪律） | 数据与校准记录一致（8/20 · 62.5% · 66.7%）✅；发布时机=校准复盘后 | 校准数据（20/20 复盘） | ◐ v1 完成 2026-10-19（发布待复盘） |
 | T6 | 机会库检索 v1 | 本地/静态查询页（搜索/标签/排序） | 克隆内可用 demo 数据演示；原机数据可切换 | 原机 data/ | ⏳ 待办 |
 | T7 | MCP / Skill 生态包 v1 | `scripts/mcp_server.py`（5 工具，零依赖 stdio）+ `skill-dist/pain-to-mvp/`（SKILL.md + 配置样板） | 真实 stdio 端到端演示通过（10 条测试）；装进 AI 助手 = 用户一条配置 | 无 | ✅ 完成（本日） |
 | T8 | 导出交付包 | 打印样式（@media print 浅色化）+ `scripts/export_pdf.py`（三后端）+ `scripts/generate_deck.py` + 2 份演示版 | 一键导出 8 份 PDF 实测通过（5 交付物 + 服务页 + 2 演示版） | T1/T2 | ✅ 完成（本日） |
@@ -36,7 +36,7 @@
 
 图例：✅ 完成 ｜ ◐ 部分 ｜ ⏳ 待办 ｜ ⛔ 阻塞/暂缓
 
-**执行顺序（包 A 内）**：T1✅ → T2✅ → T4✅ → T3✅ → T7✅ → T8✅ → 下一批 T5 → （解锁后）T10 → T1b/T2b/T6/T9 穿插。
+**执行顺序（包 A 内）**：T1✅ → T2✅ → T4✅ → T3✅ → T7✅ → T8✅ → T5◐（v1 建好，发布待复盘）→ （解锁后）T10 → T1b/T2b/T6/T9 穿插。
 
 ---
 
@@ -54,6 +54,7 @@
 8. **T7 落地**：`scripts/mcp_server.py`（5 工具，零依赖 stdio）+ `skill-dist/pain-to-mvp/`（SKILL.md + mcp-config 样板）+ `tests/test_mcp_server.py` 10 条（含真实 stdio 子进程端到端）。
 9. **T8 落地**：`@media print` 浅色化打印样式；`scripts/export_pdf.py`（cloakbrowser → playwright → chrome 三后端，`--all/--dry-run/--browser`）；`scripts/generate_deck.py`（报告 → 单文件演示版）+ 2 份 deck；CloakBrowser venv 实测导出 8 份 PDF（docs/pdf/ 已 gitignore）；新增 deck/export 测试 8 条。
 10. 产物再生成（7 个 HTML + 2 个 deck）+ 全量测试 **260 passed** + 本表 / journal / NEXT-ACTIONS / metrics 同步。
+11. **T5 v1 落地（建设备）**：`docs/calibration.md` → `calibration.html`（成绩单快照 8/20 · 62.5% · top3 66.7%「未达标如实公示」/ 机制三道拒收闸 / 轨迹 33→60→66.7% / 防灌水纪律 / 核对方式）；index 页脚新增「校准公示」入口；新增 3 条测试 → **263 passed**。
 
 ---
 

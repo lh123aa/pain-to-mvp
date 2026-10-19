@@ -20,6 +20,7 @@ DELIVERABLES = [
 # 独立页面（服务说明等）：单独再生成，不进入报告列表页
 PAGES = [
     ("service", "service.md"),
+    ("calibration", "calibration.md"),
 ]
 
 CSS = """
@@ -281,7 +282,7 @@ def build_index_html() -> str:
   <h1 style="margin-bottom:8px">机会报告</h1>
   <div class="meta">pain-to-mvp 管线自动挖掘 · 数据来源：B 站评论区真实评论 · 2026-10 · 共 {len(REPORTS)} 份</div>
   {''.join(cards)}
-  <footer>本报告为免费公开版，证据链可逐条回溯核对 · 更新于 2026-10 · <a href="service.html" style="color:var(--accent)">定制报告服务 →</a></footer>
+  <footer>本报告为免费公开版，证据链可逐条回溯核对 · 更新于 2026-10 · <a href="calibration.html" style="color:var(--accent)">校准公示 →</a> · <a href="service.html" style="color:var(--accent)">定制报告服务 →</a></footer>
 </div>
 </body>
 </html>"""

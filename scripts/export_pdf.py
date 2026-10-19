@@ -27,7 +27,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 
-# 5 份存量交付物 + 服务页
+# 5 份存量交付物 + 服务页 + 校准公示页
 DEFAULT_TARGETS = [
     "001-backend-miniprogram",
     "002-promo-bottleneck",
@@ -35,6 +35,7 @@ DEFAULT_TARGETS = [
     "004-overseas-infra",
     "first-order-deliverable",
     "service",
+    "calibration",
 ]
 
 CHROME_HINTS = [
