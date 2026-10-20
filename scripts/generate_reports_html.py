@@ -21,6 +21,7 @@ DELIVERABLES = [
 PAGES = [
     ("service", "service.md"),
     ("calibration", "calibration.md"),
+    ("sample-custom-report", "sample-custom-report.md"),
 ]
 
 CSS = """

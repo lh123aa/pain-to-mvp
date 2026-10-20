@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>需求验证报告（样例 · 脱敏）</title>
+<style>
+:root {
+  --bg: #0f0f0f; --card: #1a1a1a; --border: #2a2a2a;
+  --text: #e5e5e5; --muted: #888; --accent: #4a9eff;
+  --green: #34d399; --yellow: #fbbf24; --red: #f87171;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif; line-height:1.7; }
+.container { max-width:720px; margin:0 auto; padding:24px 16px 48px; }
+.badge { display:inline-block; padding:3px 10px; border-radius:99px; font-size:12px; font-weight:600; margin:0 6px 16px 0; }
+.badge-s { background:#f8717122; color:var(--red); }
+.badge-a { background:#fbbf2422; color:var(--yellow); }
+.badge-b { background:#4a9eff22; color:var(--accent); }
+h1 { font-size:1.5rem; line-height:1.4; margin-bottom:8px; }
+.meta { color:var(--muted); font-size:.85rem; margin-bottom:24px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+.card h2 { font-size:1.05rem; color:var(--accent); margin-bottom:12px; }
+h3 { font-size:.95rem; color:var(--text); margin:14px 0 6px; }
+strong { color:#fff; }
+.card p, .card li { font-size:.92rem; }
+.card ul { padding-left:20px; margin:8px 0; }
+.card li { margin-bottom:4px; }
+.quote { border-left:3px solid var(--accent); padding:8px 14px; margin:8px 0; background:#111; border-radius:0 8px 8px 0; color:#ccc; font-size:.88rem; font-style:italic; }
+.note { color:var(--muted); font-size:.85rem; margin:6px 0; }
+.cta { background:linear-gradient(135deg,#1a1a2e,#16213e); border:1px solid var(--accent); border-radius:12px; padding:18px; margin-top:20px; }
+.cta h3 { font-size:1rem; color:var(--accent); margin-bottom:8px; }
+.cta p { font-size:.9rem; color:var(--muted); margin-bottom:4px; }
+footer { text-align:center; margin-top:32px; color:var(--muted); font-size:.78rem; }
+table { width:100%; border-collapse:collapse; font-size:.85rem; margin:8px 0; }
+th { text-align:left; color:var(--muted); font-weight:500; padding:6px 8px; border-bottom:1px solid var(--border); }
+td { padding:6px 8px; border-bottom:1px solid #222; }
+.day-tbl td:first-child { white-space:nowrap; color:var(--accent); font-weight:600; }
+/* 打印 / 导出 PDF：自动切换浅色主题（T8 导出交付包） */
+@media print {
+  :root { --bg:#fff; --card:#fff; --border:#ddd; --text:#111; --muted:#666; --accent:#1a5fd0; }
+  body { background:#fff; color:#111; }
+  .card { border:1px solid #ddd; }
+  strong { color:#111; }
+  .quote { background:#f7f7f7; color:#333; }
+  .cta { background:#f4f7ff; }
+  tr, .quote { break-inside:avoid; }
+  a { color:inherit; }
+  footer { margin-top:16px; }
+}
+@page { margin: 14mm 12mm; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>需求验证报告（样例 · 脱敏）</h1>
+<div class="note"><strong>关键词</strong>：微信小程序 / 后端转前端</div>
+<div class="note"><strong>样本</strong>：B 站公开评论 <strong>112 条</strong>（机会卡 #20261016-001，已公开报告）</div>
+<div class="note"><strong>说明</strong>：这是<strong>样例</strong>——复用已公开的 001 数据展示<strong>付费版结构</strong>。你的定制版会用<strong>你的关键词</strong>重新跑数据、重新出结论。</div>
+<div class="note"><strong>免费版</strong> = 第 0–3 节；<strong>付费版</strong> = 全部 6 节 + 7 天 SOP + 答疑（深度版加落地页）。</div>
+<div class="card"><h2>0. 结论（30 秒读完）</h2>
+<p style="font-weight:600;color:var(--accent);margin:10px 0 4px">值得做（85/100），但不要做&quot;通用低代码工具&quot;。</p>
+<p>切「后端友好」的小程序前端生成：预设模板 → 自动生成前端 → 用户只管数据绑定。这是 112 条评论里求助密度最高的缺口。</p>
+</div>
+<div class="card"><h2>1. 信号分布（事实）</h2>
+<table><tr><th>信号类型</th><th>数量</th><th>占比</th></tr><tr><th>求助</th><th>57</th><th>51%</th></tr><tr><th>期望</th><th>35</th><th>31%</th></tr><tr><th>抱怨</th><th>14</th><th>13%</th></tr><tr><th>付费意愿</th><th>10</th><th>9%</th></tr><tr><th>失望</th><th>7</th><th>6%</th></tr><tr><th>对比</th><th>6</th><th>5%</th></tr><tr><th>困惑</th><th>6</th><th>5%</th></tr></table>
+<p><strong>读法</strong>：求助 51% 是主导信号——不是&quot;太难了&quot;的情绪，是&quot;有没有工具/怎么做&quot;的行动。</p>
+</div>
+<div class="card"><h2>2. 他们在说什么（原话，匿名）</h2>
+<div class="note">「我是做后端的，想做一个有关垂直领域的微信小程序，前端只会 jquery 和简单的 angularJS，如果有一种工具可以让你基于预设的模板做界面设计，自动生成前端代码，你只需要关注怎么与后端做数据绑定，就爽了。」</div>
+<div class="note">「想问 up，服务器一般选什么配置？服务器费用是否包含在开发费用里面？后期维护怎么搞，这一块感觉就比较麻烦。」</div>
+<div class="note">「一般人家开发 APP 的结局怎么样？有没有人全部身家去开发一个 APP？」</div>
+</div>
+<div class="card"><h2>3. 付费意愿（WTP）</h2>
+<p><strong>10 / 112 条（9%）</strong> 出现付费相关表达；该信号抽检命中率 80%（项目校准记录）。</p>
+<p><strong>判断</strong>：属「决策参考级」信号，不是强承诺。9% 在四份报告里绝对值最高，说明有真实付费基础，但不足以支撑订阅制。</p>
+</div>
+<div class="card"><h2>4. 现有替代方案与缺口（付费版）</h2>
+<p><strong>信号规模</strong>：对比 6 条 + 失望 7 条（密度 12%）。</p>
+<p><strong>缺口（判断）</strong>：</p>
+<ul><li><strong>形态缺口</strong>：现有工具/教程是零散知识点，缺「模板 → 自动生成 → 只管数据绑定」的打包形态（对应求助 51%）</li></ul>
+<ul><li><strong>成本缺口</strong>：前端外包/低代码平台的价格与学习成本，对后端开发者都偏高</li></ul>
+<ul><li><strong>信任缺口</strong>：教程多、能跑通的完整项目少</li></ul>
+</div>
+<div class="card"><h2>5. 值不值得做（付费版评分）</h2>
+<table><tr><th>维度</th><th>得分</th><th>依据</th></tr><tr><th>需求强度</th><th>5/5</th><th>求助 51% + 期望 31%</th></tr><tr><th>竞争空缺</th><th>4/5</th><th>对比+失望密度 12%，现有方案不满</th></tr><tr><th>个人可行性</th><th>4/5</th><th>后端开发者可自举，前端生成是难点</th></tr><tr><th>证据充分度</th><th>4/5</th><th>112 条样本，单平台偏差</th></tr><tr><th>合规风险</th><th>5/5</th><th>只采公开评论，不碰隐私</th></tr><tr><th><strong>合计</strong></th><th><strong>85/100（S 档）</strong></th><th></th></tr></table>
+</div>
+<div class="card"><h2>6. 7 天验证 SOP（付费版）</h2>
+<table><tr><th>天</th><th>动作</th><th>产出</th></tr><tr><th>D1</th><th>写一句话定位 + 落地页文案（用报告里的原话做标题）</th><th>落地页初稿</th></tr><tr><th>D2</th><th>在 3 个种子视频评论区找 10 个&quot;求助&quot;用户，发邀请（不群发）</th><th>10 人名单</th></tr><tr><th>D3–D4</th><th>做 1 个可点的模板 demo（只做 1 条链路：表单 → 数据绑定）</th><th>demo 链接</th></tr><tr><th>D5</th><th>找 5 人试用，问 3 个问题：卡在哪 / 愿不愿意付 / 付多少</th><th>访谈记录</th></tr><tr><th>D6</th><th>挂一个 ¥9.9–49 的预售页（或预约表）</th><th>预售数据</th></tr><tr><th>D7</th><th>复盘：≥3 人愿意付 → 继续；&lt;3 人 → 换切口</th><th>做/不做结论</th></tr></table>
+</div>
+<div class="card"><h2>7. 交付物清单</h2>
+<table><tr><th>版本</th><th>内容</th></tr><tr><th>基础定制版 ¥199</th><th>6 节报告（HTML + Markdown）+ 你关键词的原始信号清单</th></tr><tr><th>深度定制版 ¥499</th><th>基础 + 7 天 SOP + 可部署测试落地页 + 7 天答疑</th></tr><tr><th>白标/团队版 ¥999 起</th><th>多关键词 + 品牌定制 + 导出包（先私信确认范围）</th></tr></table>
+</div>
+<div class="card"><h2>8. 边界与退款（如实写）</h2>
+<ul><li>样本来自 <strong>B 站单一平台</strong>，存在平台偏差；不能代表大盘</li></ul>
+<ul><li>抽样与打标有人工在环，结论标注了【事实】/【判断】，判断部分不是保证</li></ul>
+<ul><li>项目校准当前 8/20、top3 命中率 66.7%（未达 70% 成功线）——所以报告只给&quot;线索级&quot;结论</li></ul>
+<ul><li><strong>退款承诺</strong>：报告里少于 3 条可执行信号 → 全额退款</li></ul>
+</div>
+<footer>
+pain-to-mvp 管线自动生成 · 数据来源：B 站评论区真实评论 · 2026-10 · <a href="#" style="color:var(--accent)">← 返回报告列表</a>
+</footer>
+</div>
+</body>
+</html>
