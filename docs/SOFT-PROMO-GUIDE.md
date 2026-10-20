@@ -75,9 +75,11 @@
 
 ---
 
-## 7. 现存草稿
+## 7. 现存草稿 / 已发布
 
 | 文件 | 平台 | 状态 |
 |---|---|---|
-| `marketing/drafts/bili-column-01.md` | B站专栏 | 草稿·待发（零外链） |
-| `marketing/drafts/zhihu-answer-01.md` | 知乎回答 | 草稿·待发（零外链） |
+| `marketing/drafts/bili-column-01.md` | B站专栏 | ✅ 已发布 2026-10-20（[链接](https://www.bilibili.com/opus/1261197853541269508)） |
+| `marketing/drafts/zhihu-answer-01.md` | 知乎回答 | ✅ 已发布 2026-10-20（[链接](https://www.zhihu.com/question/306778682/answer/2095916123820668030)） |
+
+> 发布台账见 `marketing/PUBLISHED.md`；发布后 24h 只回评论、不追发。
