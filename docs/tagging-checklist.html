@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>评论区需求打标清单 · pain-to-mvp</title>
+<style>
+:root {
+  --bg:#0f0f0f; --card:#1a1a1a; --border:#2a2a2a; --text:#e5e5e5;
+  --muted:#888; --accent:#4a9eff; --green:#34d399; --yellow:#fbbf24;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); color:var(--text); font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif; line-height:1.75; }
+.container { max-width:760px; margin:0 auto; padding:28px 18px 56px; }
+h1 { font-size:1.55rem; line-height:1.4; margin-bottom:8px; }
+.meta { color:var(--muted); font-size:.84rem; margin-bottom:22px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px 22px; margin-bottom:14px; }
+.card h2 { font-size:1.05rem; color:var(--accent); margin-bottom:10px; }
+h3 { font-size:.95rem; margin:14px 0 6px; }
+p { margin:6px 0; font-size:.93rem; }
+ul,ol { padding-left:22px; margin:8px 0; }
+li { margin-bottom:5px; font-size:.93rem; }
+strong { color:#fff; }
+code { background:#111; border:1px solid var(--border); border-radius:6px; padding:1px 6px; font-size:.85em; }
+blockquote { border-left:3px solid var(--accent); background:#111; border-radius:0 8px 8px 0; padding:10px 14px; color:#bbb; font-size:.9rem; margin:10px 0; }
+table { width:100%; border-collapse:collapse; font-size:.86rem; margin:10px 0; }
+th { text-align:left; color:var(--muted); font-weight:600; padding:7px 8px; border-bottom:1px solid var(--border); background:#151515; }
+td { padding:7px 8px; border-bottom:1px solid #222; vertical-align:top; }
+tr { break-inside:avoid; }
+.footer { margin-top:26px; color:var(--muted); font-size:.8rem; text-align:center; }
+@media print {
+  :root { --bg:#fff; --card:#fff; --border:#ddd; --text:#111; --muted:#666; --accent:#1a5fd0; }
+  body { background:#fff; color:#111; }
+  .card { border:1px solid #ddd; break-inside:avoid; }
+  strong { color:#111; }
+  code { background:#f5f5f5; }
+  blockquote { background:#f7f7f7; color:#333; }
+  th { background:#f2f2f2; }
+}
+@page { margin:14mm 12mm; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>评论区需求打标清单</h1>
+<div class="meta">用途：拿到一批公开评论后，30 分钟内判断「这簇需求值不值得做」｜来源：173 条 B 站公开评论 · 4 份机会报告｜版本：2026-10-21 v1.0</div>
+<div class="card"><h2>0. 使用前提</h2>
+<ul><li>只用<strong>公开评论</strong>，保留原文、时间、来源；每条结论都要能反推回原话</li><li>一条评论可以<strong>多标</strong>；拿不准就标「存疑」，不要硬猜</li><li>这是<strong>线索工具</strong>，不是市场结论：样本偏、平台单一、代表不了大盘</li></ul>
+</div>
+<div class="card"><h2>1. 七类信号</h2>
+<table><thead><tr><th>信号</th><th>定义</th><th>强信号长什么样</th><th>容易误标成它</th></tr></thead><tbody><tr><td>求助</td><td>明确问「怎么做 / 有没有工具 / 求推荐」</td><td>「有没有人知道…」「求一个…」</td><td>「好难啊」——这是抱怨</td></tr><tr><td>期望</td><td>描述理想状态或「如果…就好了」</td><td>「要是能…就爽了」</td><td>「不错」——泛泛夸奖</td></tr><tr><td>抱怨</td><td>表达不满，但没有行动</td><td>「每次都要手动…」</td><td>纯情绪宣泄、没有场景</td></tr><tr><td>失望</td><td>对<strong>用过的</strong>方案不满</td><td>「试了 X，还是不行」</td><td>没用过就骂</td></tr><tr><td>对比</td><td>同时提到多个方案</td><td>「A 和 B 哪个好」</td><td>只提一个品牌</td></tr><tr><td>困惑</td><td>概念或选择不清</td><td>「这俩有什么区别」</td><td>求助——求助有明确行动诉求</td></tr><tr><td>付费意愿</td><td>明确提钱、预算、愿意买</td><td>「多少钱」「愿意付费」</td><td>「如果有就买」——口头，算弱信号</td></tr></tbody></table>
+<p><strong>一条硬规则：求助 &gt; 抱怨。</strong> 抱怨是情绪（「太难了」），求助是行动（「有没有人知道怎么做」）——后者说明他已经在找解法了。</p>
+</div>
+<div class="card"><h2>2. 三个密度指标</h2>
+<ul><li><strong>求助密度</strong> = 求助条数 ÷ 该簇总条数</li><li><strong>付费表达密度</strong> = 付费意愿条数 ÷ 总数</li><li><strong>替代方案集中度</strong> = 被点名最多的替代品条数 ÷ 总数（越高，说明现有方案缺口越明确）</li></ul>
+<p>经验阈值（我们自己用的，不是行业标准）：</p>
+<ul><li>求助 ≥ 30% 且 付费 ≥ 5% → 值得做小样本验证</li><li>求助高、付费 0 → 先当内容选题，不是产品机会</li><li>只有抱怨 → 先别做</li></ul>
+<p>事实参照（来自本项目的 4 份报告）：报告 001（112 条）求助 51%、付费 9%；报告 002（21 条）求助 71%、付费表达 3 条；报告 004（31 条）求助 68%。</p>
+</div>
+<div class="card"><h2>3. 三十分钟操作步骤</h2>
+<ol><li>选 3 个「垂直到不能再垂直」的内容——不选爆款</li><li>每条评论记录：平台｜内容标题｜原文｜时间｜点赞数</li><li>按 7 类信号打标（可多标），存疑单独标</li><li>聚成 2–4 簇（同一人群 / 同一场景）</li><li>算三个密度</li><li>写一句话：「<strong>谁、在什么场景下、缺什么、现在怎么凑合</strong>」</li><li>写不出来 → 样本不够，或者这簇根本不是需求</li></ol>
+</div>
+<div class="card"><h2>4. 打标模板（可直接抄）</h2>
+<table><thead><tr><th>原文（节选）</th><th>信号</th><th>置信度</th></tr></thead><tbody><tr><td>「我是做后端的…如果有一种工具可以基于预设模板做界面设计，自动生成前端代码…就爽了」</td><td>求助 + 期望</td><td>0.9</td></tr><tr><td>「想问 up，服务器一般选什么配置？服务器费用是否包含在开发费用里面？」</td><td>求助</td><td>0.8</td></tr><tr><td>「一般人家开发 APP 的结局怎么样？有没有人全部身家去开发一个 APP？」</td><td>困惑 + 求助</td><td>0.6</td></tr></tbody></table>
+<p>表格列建议：<code>id｜平台｜来源｜评论原文｜发布时间｜点赞｜信号｜置信度｜簇｜备注</code></p>
+<p>置信度怎么给：原话直接命中定义 → 0.8–1.0；需要结合上下文推断 → 0.5–0.7；拿不准 → 标「存疑」并写理由。</p>
+</div>
+<div class="card"><h2>5. 什么时候不该用</h2>
+<ul><li>需要大盘数据才能判断的问题</li><li>B 端复杂采购（决策链不在评论区）</li><li>没有评论区的新品类（没有信号源）</li><li>评论区被抽奖、水军、机器人污染的内容</li></ul>
+</div>
+<div class="card"><h2>6. 校准与诚实边界</h2>
+<ul><li>当前校准：<strong>8 / 20</strong>，总体命中率 <strong>62.5%</strong>，top3 命中率 <strong>66.7%</strong>（成功线 70%，<strong>未达标</strong>）</li><li>付费意愿信号在抽检中命中 80%，但样本很小，只能当参考</li><li>所以：所有结论都要标「事实 / 判断」，不承诺准确率；未达标就是未达标</li></ul>
+</div>
+<div class="card"><h2>7. 一页速查</h2>
+<ul><li>求助 &gt; 抱怨；付费 &gt; 期望；重复出现 &gt; 单条金句</li><li>三个密度一起看，别只盯一个指标</li><li>写不出一句话 = 还没到做的时候</li><li>样本 &lt; 30 条时，只当方向线索，别下结论</li></ul>
+</div>
+<blockquote>本清单为免费资料，可自由转发；请保留出处。校准进度见项目「校准公示」页。</blockquote>
+<div class="footer">免费资料 · 可自由转发 · 请保留出处 · 2026-10</div>
+</div>
+</body>
+</html>

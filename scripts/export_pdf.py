@@ -36,6 +36,7 @@ DEFAULT_TARGETS = [
     "first-order-deliverable",
     "service",
     "calibration",
+    "tagging-checklist",
 ]
 
 CHROME_HINTS = [
