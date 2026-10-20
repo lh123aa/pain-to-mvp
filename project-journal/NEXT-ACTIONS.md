@@ -5,6 +5,7 @@
 
 ## 进行中（按优先级）
 - [ ] **交付规则（2026-10-20 用户指令）**：每次任务完成 → 先更新 `docs/PROGRESS.md`，回复末尾附「进度快照」（总进度 / 当前步骤 / 下一步）
+- [ ] **每日内容引擎（10-21 起）**：按 `marketing/CONTENT-ENGINE.md` 每天 1 条微内容 + 每周 3 条长内容；Day1 已发 3 条（爱发电/B站/知乎）；**10-22～10-27 B站/知乎只发纯价值、0 CTA**；每日记 `project-journal/metrics/content.csv`
 - [ ] **升级执行（docs/UPGRADE-PLAN.md）**：T1/T2 ✅、T3 ✅、T4 ✅、T7 ✅（MCP 服务器 + 技能包，含真实 stdio 端到端）、T8 ✅（打印样式 + PDF 一键导出 8 份实测 + 演示版生成器）、T5 ◐（校准页 v1 建好，发布待校准复盘后）、T9 ✅（数据主权导出：打包/校验/恢复实测）——包 A 内除管线化外全部落地；管线化 T1b/T2b 待原机数据。**待用户补：服务页联系方式占位（微信/爱发电/邮箱）②发布决定（G0 后照 `docs/RELEASE-CHECKLIST.md` 执行）**
 - [ ] **定价：首单用 ¥199 验证价**（前 3–5 单，换反馈+案例授权），成交价记 ledger；每 5 单按 PRICING-VALIDATION.md §4 复盘
 - [x] 2026-10-18 **test_env_loader 隔离修复 + 全量 238 全绿确认**：`env_loader.load_env` 增加 `override` 参数；测试用 `delenv + override=True`；全量 238/0 通过；requirements-dev / Makefile test-unit 待提交
@@ -19,11 +20,12 @@
 - [ ] #19 CI 验证：**已推送 GitHub**（2026-10-16，lh123aa/pain-to-mvp，远端 master=f9c0ac8）——待 Actions 首跑绿勾销账：https://github.com/lh123aa/pain-to-mvp/actions
 - [ ] A6 卡片驱动实际动作：只能由用户执行（候选：20261016-001 S 档 112 条证据卡）
 - [x] **软传播素材（2026-10-20 已发布）**：B站专栏 ✅ https://www.bilibili.com/opus/1261197853541269508 ｜ 知乎回答 ✅ https://www.zhihu.com/question/306778682/answer/2095916123820668030 —— 零外链/零价格；台账见 `marketing/PUBLISHED.md`
-- [ ] **发布后 24h 跟踪（B站/知乎）**：只回评论不追发；记录阅读/赞同/评论/私信；7 天 0 反馈 → 阶段 2 止损换渠道（截止 10-26）；**10-21 03:20 巡检：两平台均 0 评论/0 赞，无私信线索**
+- [ ] **发布后 24h 跟踪（B站/知乎）**：只回评论不追发；记录阅读/赞同/评论/私信；7 天 0 反馈 → 阶段 2 止损换渠道（截止 10-26）；**10-21 03:20 巡检：两平台均 0 评论/0 赞，无私信线索**；**10-21 07:40 Day1 三平台微内容已发，初始 0 互动（见 `content.csv`）**
 - [x] **公用浏览器重启（2026-10-21 04:01）**：看门狗自动拉起新实例，MCP 恢复；登录态保留；清理 2 个遗留编辑器标签（44 target → 10 tab）
 - [ ] **爱发电发布（2026-10-19 路线 A 已执行）**：2 条公开动态已发（[p/0dfe0652…](https://afdian.com/p/0dfe0652cbd211f1b40252540025c377) / [p/372960d0…](https://afdian.com/p/372960d0cbd211f18e3a52540025c377)）；P1 联系方式已回填；**创作者认证已提交（2026-10-20，审核中 2 工作日）**；**待用户：绑手机（当前受阻，提现前处理）**；**待 G0 复盘后：按 `docs/afdian-launch-kit.md` §2 上架 4 个 SKU**
 
 ## 已完成（本周期，保留 2 周便于复盘）
+- [x] 2026-10-21 **每日内容引擎 Day1**：`marketing/CONTENT-ENGINE.md` + `content.csv`；爱发电/B站/知乎各发 1 条微内容（零链接零价格），初始 0 互动；本周 CTA 额度已用完，后续 6 天只发纯价值
 - [x] 2026-10-21 **「打标清单」免费资产交付**：`docs/tagging-checklist.md` + html + `docs/pdf/tagging-checklist.pdf`（255KB）——7 类信号 / 三密度 / 30 分钟流程 / 模板 / 边界 / 校准公示；生成器 `scripts/generate_tagging_checklist.py`；私信可直接发文件
 - [x] 2026-10-19 **定价验证 + 升级方案 + 报告资产升级**：`docs/PRICING-VALIDATION.md`（阶梯 v1：免费/199/499/999+，首单验证价 199）+ `docs/UPGRADE-PLAN.md`（T1–T11 任务卡+监督机制）；4 份公开报告+深度交付版新增 WTP+缺口模块（存量证据，无编造）；`generate_reports_html.py` 行内加粗/h3/引语判定升级；238 全绿
 - [x] 2026-10-17 **变现策略初稿入库**：`docs/MONETIZATION.md`（9779aca 已推）——验收报告盘点确认已含 4 份；变现策略从"一句话假设"补成文（候选形态/验证顺序/合规前提/报告索引，定价待确认不编造）

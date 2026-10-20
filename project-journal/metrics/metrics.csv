@@ -32,3 +32,5 @@ date,metric,value,unit,source,confidence,note
 2026-10-19,tests_passed,263,,pytest 全量（T5 校准页后）,high,"260→263；新增 test_calibration_page 3 条"
 2026-10-19,tests_passed,269,,pytest 全量（T9 数据主权导出后）,high,"263→269；新增 test_export_backup 6 条"
 2026-10-19,tests_passed,272,,pytest 全量（index 卡片修复 + 回归测试）,high,预览发现列表页卡片内联布局 bug；新增 test_index_page 3 条
+2026-10-21,content_posts_published,3,count,爱发电/B站/知乎,high,内容引擎 Day1；三平台各 1 条微内容
+2026-10-21,content_interactions,0,count,三平台发布后初始,high,0 赞/0 评论/0 私信；爱发电主页访问 31 次/15 人
