@@ -18,7 +18,8 @@
 - [ ] A4 高频补跑受 v_voucher 风控约束（**10-17 两次拦截 + 10-18 13:23 跨天重试 + 10-18 15:06 扫码后重试仍拦截**（fail-close 生产实证 5 次从未假成功）；**10-18 15:06 认知修正：v_voucher 是 IP 级风控，非 cookie 级**——扫码配 BILI_SESSDATA（已做，长度 222，nav 接口验证 login:True）过不了被标记 IP 的评论 API，真正出路 = 换 IP（等自然冷却 / 换网络出口），非换 cookie；**明晨 10-19 上午**（距 10-17 13:44 >46h）再试，期间不碰 discover（每次尝试都消耗风控额度延长冷却）；.env SESSDATA 保留，IP 解锁后立即生效不用重扫
 - [ ] #19 CI 验证：**已推送 GitHub**（2026-10-16，lh123aa/pain-to-mvp，远端 master=f9c0ac8）——待 Actions 首跑绿勾销账：https://github.com/lh123aa/pain-to-mvp/actions
 - [ ] A6 卡片驱动实际动作：只能由用户执行（候选：20261016-001 S 档 112 条证据卡）
-- [ ] **爱发电发布（2026-10-19 路线 A 已执行）**：2 条公开动态已发（[p/0dfe0652…](https://afdian.com/p/0dfe0652cbd211f1b40252540025c377) / [p/372960d0…](https://afdian.com/p/372960d0cbd211f18e3a52540025c377)）；P1 联系方式已回填；**待用户：绑手机 + 实名认证（提现前置；认证需先在公开平台挂爱发电链接）**；**待 G0 复盘后：按 `docs/afdian-launch-kit.md` §2 上架 4 个 SKU**
+- [ ] **软传播素材（2026-10-20 已备）**：`marketing/drafts/bili-column-01.md`（B站专栏：173 条评论复盘）+ `marketing/drafts/zhihu-answer-01.md`（知乎：真需求三证据）——零外链/零价格/单处软 CTA；发布前过 `docs/SOFT-PROMO-GUIDE.md` §4 自检；**待用户账号发布**
+- [ ] **爱发电发布（2026-10-19 路线 A 已执行）**：2 条公开动态已发（[p/0dfe0652…](https://afdian.com/p/0dfe0652cbd211f1b40252540025c377) / [p/372960d0…](https://afdian.com/p/372960d0cbd211f18e3a52540025c377)）；P1 联系方式已回填；**创作者认证已提交（2026-10-20，审核中 2 工作日）**；**待用户：绑手机（当前受阻，提现前处理）**；**待 G0 复盘后：按 `docs/afdian-launch-kit.md` §2 上架 4 个 SKU**
 
 ## 已完成（本周期，保留 2 周便于复盘）
 - [x] 2026-10-19 **定价验证 + 升级方案 + 报告资产升级**：`docs/PRICING-VALIDATION.md`（阶梯 v1：免费/199/499/999+，首单验证价 199）+ `docs/UPGRADE-PLAN.md`（T1–T11 任务卡+监督机制）；4 份公开报告+深度交付版新增 WTP+缺口模块（存量证据，无编造）；`generate_reports_html.py` 行内加粗/h3/引语判定升级；238 全绿
