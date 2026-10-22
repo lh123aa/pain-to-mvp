@@ -47,6 +47,7 @@ import {
   type WaitingReason,
 } from "../../lib/report-access";
 import "./print.css";
+import { requestNarrative } from "../../lib/narrative-client";
 
 /**
  * /report — 完整报告页（6 章）
@@ -221,6 +222,10 @@ function ReportInner() {
   // Device 1: silent cross-device upload result (only `saved` is ever rendered).
   const [syncResult, setSyncResult] = useState<ReportSyncResult | null>(null);
   const syncStartedRef = useRef(false);
+  // Narrative enhancement (server-side LLM with rules fallback): one attempt,
+  // and cross-device upload waits for it so both devices render the same text.
+  const [narrativeDone, setNarrativeDone] = useState(false);
+  const narrativeTriedRef = useRef(false);
 
   const token = sp.get("token");
   const checkout = sp.get("checkout");
@@ -354,12 +359,53 @@ function ReportInner() {
     };
   }, []);
 
+  // 叙事增强：live 模式下真实报告调用一次服务端叙事（LLM key 不下发浏览器），
+  // 失败/无 key 静默保持规则版；完成后才允许跨设备上传，保证两台设备内容一致。
+  useEffect(() => {
+    if (!localReportChecked || localReport === null) {
+      void (async () => {
+        setNarrativeDone(true);
+      })();
+      return;
+    }
+    const isLiveReport =
+      (access.kind === "report" && access.source !== "mock") ||
+      (access.kind === "waiting" && access.reason === "payment-pending");
+    if (!isLiveReport) {
+      void (async () => {
+        setNarrativeDone(true);
+      })();
+      return;
+    }
+    if (narrativeTriedRef.current) return;
+    narrativeTriedRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      const result = await requestNarrative(localReport.report);
+      if (cancelled) return;
+      if (result) {
+        setLocalReport((current) =>
+          current === null ? current : { ...current, report: result.report },
+        );
+        track("report_narrative", {
+          source: result.source === "llm" ? 1 : 0,
+          costUsd: result.costUsd ?? 0,
+        });
+      }
+      setNarrativeDone(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [localReportChecked, localReport, access]);
+
   // 设备 1（跨设备同步）：本机生成了报告且 live 已支付（token 已验证）时，
   // 渲染后在后台静默上传一次。success 显示提示；queued/skipped/failed 全部
   // 静默，绝不影响报告本身。
   useEffect(() => {
     if (syncStartedRef.current) return;
     if (!localReportChecked || localReport === null) return;
+    if (!narrativeDone) return;
     if (access.kind !== "report") return;
     const isMockAccess = access.source === "mock";
     if (!shouldSyncReport({ isMock: isMockAccess, token, hasLocalFeatures: true })) return;
@@ -378,7 +424,7 @@ function ReportInner() {
     return () => {
       cancelled = true;
     };
-  }, [localReportChecked, localReport, access, token]);
+  }, [localReportChecked, localReport, access, token, narrativeDone]);
 
   // 支付完成首次回跳（?checkout=PENDING）：本机有报告、有 checkoutRef 时轮询订单状态，
   // 一旦 webhook 落库就立即上传报告。这样用户之后从邮件魔链打开（哪怕在另一台设备）
@@ -386,6 +432,7 @@ function ReportInner() {
   useEffect(() => {
     if (syncStartedRef.current) return;
     if (!localReportChecked || localReport === null) return;
+    if (!narrativeDone) return;
     if (access.kind !== "waiting" || access.reason !== "payment-pending") return;
     const ref = readCheckoutRef();
     if (!ref) return;
@@ -409,7 +456,7 @@ function ReportInner() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [localReportChecked, localReport, access]);
+  }, [localReportChecked, localReport, access, narrativeDone]);
 
   // 设备 2（跨设备读取）：本机没有特征、但持有效魔链 token 时，从服务端取
   // 已同步的报告 JSON 并走同一条 RealReportView 渲染路径。404 → 等待态，
