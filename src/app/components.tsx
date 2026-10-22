@@ -60,6 +60,7 @@ export function PrivacyPanel({ open, close }: { open: boolean; close: () => void
           <a href="/terms">Terms →</a>
           <a href="/refund">Refund policy →</a>
           <a href="/crisis-protocol">Crisis protocol →</a>
+          <a href="/methodology">Methodology →</a>
         </div>
       </aside>
     </>
@@ -105,6 +106,7 @@ export function Footer() {
             <a href="/refund">Refund</a>
             <a href="/notice">Notice for people in your chats</a>
             <a href="/crisis-protocol">Crisis resources</a>
+            <a href="/methodology">Methodology</a>
             <a href="mailto:hello@thetell.app">hello@thetell.app</a>
           </nav>
         </div>
