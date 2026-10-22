@@ -1,0 +1,17 @@
+# fixture: paste-two-speaker.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: paste (no timestamps — FR-3 untimed fallback cards, AC-3.3)
+# expected-messages: 9
+# asserts: conservative paste parsing — "Name: text" only, multi-line continuation,
+#          zero timestamps, low confidence, explicit speaker mapping still required
+
+Me: 你今天怎么样？
+You: 还行，就是有点累。
+You: 昨天没睡好
+Me: 要不要早点休息
+Me: 我明天给你带早餐
+You: 好啊
+其实我想说 谢谢你最近一直陪我
+Me: Anytime. That's what I'm here for.
+You: 我到了跟你说
+Me: 好，路上小心。

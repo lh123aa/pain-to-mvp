@@ -1,0 +1,25 @@
+# fixture: ios-12h-mdy.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / iOS export / 12-hour clock / M/D/YY / " - " separator
+# expected-messages: 14
+# expected-system: 1
+# asserts: AC-1.2 dialects — 12h AM/PM, dash separator, <attached: …> and "image omitted"
+#          media markers, emoji, multi-line body; 4/13 forces MDY evidence
+
+3/4/26, 9:15 AM - Riley: Hey! Are we still on for tonight?
+3/4/26, 9:17 AM - Jordan: Yes! I was about to text you.
+3/4/26, 9:18 AM - Jordan: I might be 10 min late though
+3/4/26, 9:19 AM - Riley: No problem at all
+3/4/26, 9:22 AM - Riley: I'll get us a table
+3/4/26, 9:24 AM - Jordan: You're the best 😄
+3/4/26, 9:30 AM - Riley: <attached: 00001-PHOTO.jpg>
+3/4/26, 9:31 AM - Jordan: image omitted
+3/4/26, 12:05 PM - Jordan: See you at 7!
+3/4/26, 12:06 PM - Riley: 7 at the usual place. Bring the book you mentioned
+3/4/26, 12:07 PM - Riley: I'm curious what chapter you're on
+3/4/26, 12:10 PM - Jordan changed the subject to "Tonight"
+4/13/26, 8:40 PM - Jordan: That was such a good night.
+4/13/26, 8:41 PM - Jordan: We should do it again soon
+4/13/26, 9:02 PM - Riley: Name a day and I'm there.
+I'll check my calendar tomorrow.
+Goodnight 🌙

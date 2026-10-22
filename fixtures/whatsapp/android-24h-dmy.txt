@@ -1,0 +1,56 @@
+# fixture: android-24h-dmy.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android export / 24-hour clock / DD/MM/YYYY / bracketed
+# expected-messages: 42
+# expected-system: 3
+# asserts: AC-1.2 dialects — bracketed 24h, multi-line body, <Media omitted>,
+#          deleted message, emoji, URL, system lines (encryption/subject/icon),
+#          >12 day field (14/03) forcing DMY evidence (no date confirmation needed)
+
+[01/03/2026, 09:12:03] Alex: Morning! Did you sleep okay?
+[01/03/2026, 09:20:41] Sam: Better than yesterday 😅
+[01/03/2026, 09:21:10] Sam: The neighbour's dog started at 6 again
+[01/03/2026, 10:05:00] Alex: Ugh. Want me to bring coffee later?
+[01/03/2026, 10:20:15] Sam: Yes please. Oat milk.
+[01/03/2026, 10:20:40] Sam changed the subject to "Weekend plans"
+[01/03/2026, 10:21:00] Alex: Deal. I'll swing by around 2.
+[01/03/2026, 10:21:30] Alex: Also I found that trail you mentioned — https://example.com/trail-map 👍
+[01/03/2026, 10:24:12] Sam: Okay so hear me out
+the plan is coffee then the market
+and if it rains we stay in and watch something
+[02/03/2026, 08:02:00] Sam: Did you get home okay?
+[02/03/2026, 08:11:45] Alex: Yep. Sorry I left in a rush.
+[02/03/2026, 08:12:10] Alex: I'll make it up to you this weekend.
+[02/03/2026, 08:30:00] Sam: No worries at all ❤️
+[02/03/2026, 08:30:22] Sam: I was just tired.
+[02/03/2026, 09:00:00] Alex: Fair. Sleep well tonight.
+[03/03/2026, 21:40:00] Sam: I think we should talk about the trip
+[03/03/2026, 21:58:30] Alex: Sure. What's on your mind?
+[03/03/2026, 22:05:00] Sam: I want to know if you actually want to go
+[03/03/2026, 22:20:15] Alex: I do. I'm just bad at planning.
+[04/03/2026, 00:12:00] Messages and calls are end-to-end encrypted. No one outside of this chat, not even WhatsApp, can read or listen to them.
+[04/03/2026, 00:15:00] Sam: That's not a great answer
+[04/03/2026, 00:18:45] Alex: I know. Let me be clearer: I want to go with you.
+[04/03/2026, 00:19:20] Sam: Okay. That helps.
+[08/03/2026, 13:00:00] Alex: Booked the place. Sending you the address.
+[08/03/2026, 13:05:00] Alex: It's the one with the little balcony.
+[08/03/2026, 14:02:10] Sam: You actually did it 😂
+[08/03/2026, 14:03:00] Sam: I love that.
+[08/03/2026, 14:30:00] Alex: Told you.
+[10/03/2026, 09:00:00] Alex changed this group's icon
+[10/03/2026, 09:10:00] Sam: I'm sorry I snapped earlier.
+[10/03/2026, 09:12:30] Alex: It's fine. I was hangry too.
+[10/03/2026, 09:13:00] Alex: Let's just get snacks next time.
+[10/03/2026, 09:20:00] Sam: Deal. And I'm sorry for the thing about your sister.
+[14/03/2026, 23:40:00] Sam: Can't sleep
+[14/03/2026, 23:42:00] Alex: Same. Want to call for ten minutes?
+[14/03/2026, 23:44:00] Sam: Yes
+[15/03/2026, 00:10:00] Alex: That was nice.
+[18/03/2026, 18:00:00] Alex: <Media omitted>
+[18/03/2026, 18:02:00] Sam: Cute. Where is that?
+[18/03/2026, 18:05:00] Alex: The bakery on the corner. I'll take you Sunday.
+[18/03/2026, 18:06:00] Sam: 😍
+[21/03/2026, 11:00:00] Sam: This message was deleted
+[21/03/2026, 11:01:00] Alex: What did you say 😅
+[21/03/2026, 11:02:00] Sam: Nothing. Coffee?
+[21/03/2026, 11:03:00] Alex: Always.
