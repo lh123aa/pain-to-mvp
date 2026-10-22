@@ -1,0 +1,3 @@
+# Fixture files must keep their exact bytes: parser tests assert real CRLF, BOM,
+# U+202F and U+200E. Disable all git EOL conversion for fixtures.
+fixtures/** -text
