@@ -56,6 +56,12 @@ python -m pytest tests/ -q        # 必须 32 全绿
 
 ⚠️ 直接改 `scripts/` 下生成代码会被重新生成覆盖——修改要么进生成器模板（`generators/generate_p*.py`），要么进 `apply_fixes.py` overlay。
 
+## 变现与运营
+
+- [变现路径与工作 SOP（总纲）](docs/MONETIZATION-PATH-AND-SOP.md) — 卖给谁、怎么收钱、每天做什么、谁来做、做到什么算数
+- [总进度板](docs/PROGRESS.md) — 阶段 0–3 当前状态、阻塞、下一步
+- [内容引擎](marketing/CONTENT-ENGINE.md) — 30 天选题、角度库、每日分发 SOP
+
 ## 分阶段
 
 - P0：骨架 + 模板 + 记录系统 ✅
