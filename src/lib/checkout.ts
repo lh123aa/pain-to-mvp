@@ -11,11 +11,15 @@
  *
  * 真模式流程：
  *   1. POST https://api.lemonsqueezy.com/v1/checkouts
- *      body: { variant_id, checkout_data: { email, custom: {...}, redirect_url } }
- *   2. 响应 data.attributes.checkout_url 即托管页 URL
- *   3. 用户在托管页付款 → 跳回 `${baseUrl}/report?checkout=<order_id>&order_id=<order_id>`
- *   4. 报告页调 GET /api/verify-magic-link?order_id=xxx 验签 + 取订单
- *   5. webhook 落订单数据（后续补数据库）
+ *      header: Authorization: Bearer <key> + Accept/Content-Type: application/vnd.api+json
+ *      body（JSON:API）:
+ *        { data: { type: "checkouts",
+ *                  attributes: { checkout_data: {...}, product_options: { redirect_url } },
+ *                  relationships: { store: {data:{type:"stores",id}}, variant: {data:{type:"variants",id}} } } }
+ *   2. 响应里的 `data.attributes.url` 即托管页 URL（不是旧版的 checkout_url）
+ *   3. 用户在托管页付款 → 回跳 /report（LS 的 redirect_url 是静态的，订单号靠 webhook 提供）
+ *   4. 支付事件由 /api/webhook/lemonsqueezy 验签后落库到 src/lib/orders.ts
+ *   5. 邮件里的魔链 token → GET /api/verify-magic-link?token=xxx 验签 + 取订单
  */
 
 import { makeReportFromInput, ReportData } from "./demo-report";
@@ -53,13 +57,79 @@ function isLive(): boolean {
   return !!key && live;
 }
 
-function apiHeaders() {
-  const key = process.env.LEMON_SQUEEZY_API_KEY!.trim();
-  return {
-    "Content-Type": "application/json",
+const LEMON_SQUEEZY_API_BASE = "https://api.lemonsqueezy.com/v1";
+/** Lemon Squeezy v1 是 JSON:API，Accept / Content-Type 都必须用它，用 application/json 会被 406/415 */
+const JSON_API_CONTENT_TYPE = "application/vnd.api+json";
+
+/** Lemon Squeezy JSON:API 认证 header；写请求才带 Content-Type */
+function apiHeaders(options: { jsonBody?: boolean } = {}): Record<string, string> {
+  const key = process.env.LEMON_SQUEEZY_API_KEY?.trim() || "";
+  const headers: Record<string, string> = {
+    Accept: JSON_API_CONTENT_TYPE,
     Authorization: `Bearer ${key}`,
   };
+  if (options.jsonBody) headers["Content-Type"] = JSON_API_CONTENT_TYPE;
+  return headers;
 }
+
+export type LemonCheckoutBody = {
+  data: {
+    type: "checkouts";
+    attributes: {
+      checkout_data: {
+        email?: string;
+        custom: Record<string, string>;
+      };
+      product_options: {
+        redirect_url: string;
+      };
+    };
+    relationships: {
+      store: { data: { type: "stores"; id: string } };
+      variant: { data: { type: "variants"; id: string } };
+    };
+  };
+};
+
+/**
+ * 构造 Lemon Squeezy v1 创建结账的 JSON:API 请求体（纯函数，便于单测断言形状）。
+ * 官方文档：POST /v1/checkouts
+ * https://docs.lemonsqueezy.com/api/checkouts#create-a-checkout
+ */
+export function buildCheckoutBody(
+  req: CheckoutRequest,
+  options: { storeId: string; variantId: string; redirectUrl: string }
+): LemonCheckoutBody {
+  const checkoutData: LemonCheckoutBody["data"]["attributes"]["checkout_data"] = {
+    // custom 的值统一用字符串，避免 JSON:API 序列化差异
+    custom: {
+      fileName: req.fileName || "",
+      speakerA: req.speakerA || "",
+      speakerB: req.speakerB || "",
+      pastedLen: String((req.pasted || "").length),
+    },
+  };
+  if (req.email) checkoutData.email = req.email;
+
+  return {
+    data: {
+      type: "checkouts",
+      attributes: {
+        checkout_data: checkoutData,
+        product_options: { redirect_url: options.redirectUrl },
+      },
+      relationships: {
+        store: { data: { type: "stores", id: options.storeId } },
+        variant: { data: { type: "variants", id: options.variantId } },
+      },
+    },
+  };
+}
+
+/** 可注入依赖（单测替换 fetch，避免任何真实网络请求） */
+export type LemonApiOptions = {
+  fetchImpl?: typeof fetch;
+};
 
 /**
  * 创建结账
@@ -68,7 +138,8 @@ function apiHeaders() {
  */
 export async function createCheckout(
   req: CheckoutRequest,
-  baseUrl: string
+  baseUrl: string,
+  options: LemonApiOptions = {}
 ): Promise<CheckoutResult> {
   const priceUsd = 14.99;
 
@@ -90,23 +161,15 @@ export async function createCheckout(
     );
   }
 
-  const redirectUrl = `${baseUrl}/report?checkout=${encodeURIComponent("PENDING")}`;
-  const res = await fetch("https://api.lemonsqueezy.com/v1/checkouts", {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  // LS 的 redirect_url 是静态 URL，不能带真实订单号；订单号由 webhook / 魔链邮件提供。
+  const redirectUrl = `${baseUrl}/report?checkout=PENDING`;
+  const res = await fetchImpl(`${LEMON_SQUEEZY_API_BASE}/checkouts`, {
     method: "POST",
-    headers: apiHeaders(),
-    body: JSON.stringify({
-      variant_id: variantId,
-      checkout_data: {
-        email: req.email || "",
-        redirect_url: redirectUrl,
-        custom: {
-          fileName: req.fileName,
-          speakerA: req.speakerA,
-          speakerB: req.speakerB,
-          pastedLen: (req.pasted || "").length,
-        },
-      },
-    }),
+    headers: apiHeaders({ jsonBody: true }),
+    body: JSON.stringify(
+      buildCheckoutBody(req, { storeId, variantId, redirectUrl })
+    ),
   });
 
   if (!res.ok) {
@@ -115,12 +178,17 @@ export async function createCheckout(
     throw new Error(`Lemon Squeezy checkout 创建失败 (HTTP ${res.status})`);
   }
 
-  const data = await res.json();
-  const checkoutUrl: string = data?.data?.attributes?.checkout_url;
-  const checkoutId: string = data?.data?.id || "UNKNOWN";
+  const data = (await res.json()) as {
+    data?: { id?: string; attributes?: { url?: string } };
+  };
+  const checkoutUrl = data?.data?.attributes?.url;
+  const checkoutId = data?.data?.id || "UNKNOWN";
   if (!checkoutUrl) {
-    console.error("[checkout] 响应无 checkout_url:", JSON.stringify(data).slice(0, 500));
-    throw new Error("Lemon Squeezy 响应缺少 checkout_url");
+    console.error(
+      "[checkout] 响应缺少 data.attributes.url:",
+      JSON.stringify(data).slice(0, 500)
+    );
+    throw new Error("Lemon Squeezy 响应缺少 data.attributes.url");
   }
 
   return { mock: false, url: checkoutUrl, checkoutId, priceUsd };
@@ -144,7 +212,10 @@ export type OrderInfo = {
  * 真模式：调 Lemon Squeezy /v1/orders/:id
  * mock 模式：直接放行（MOCK- 前缀的订单 id 视为已完成）
  */
-export async function verifyOrder(orderId: string): Promise<OrderInfo> {
+export async function verifyOrder(
+  orderId: string,
+  options: LemonApiOptions = {}
+): Promise<OrderInfo> {
   if (orderId.startsWith("MOCK-")) {
     return {
       orderId,
@@ -161,8 +232,9 @@ export async function verifyOrder(orderId: string): Promise<OrderInfo> {
     throw new Error("订单验证需 LEMON_SQUEEZY_LIVE=true");
   }
 
-  const res = await fetch(
-    `https://api.lemonsqueezy.com/v1/orders/${encodeURIComponent(orderId)}`,
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const res = await fetchImpl(
+    `${LEMON_SQUEEZY_API_BASE}/orders/${encodeURIComponent(orderId)}`,
     { headers: apiHeaders() }
   );
   if (res.status === 404) {
@@ -173,17 +245,29 @@ export async function verifyOrder(orderId: string): Promise<OrderInfo> {
     console.error("[verifyOrder] 错误:", res.status, text);
     throw new Error(`订单验证失败 (HTTP ${res.status})`);
   }
-  const data = await res.json();
-  const attrs = data?.data?.attributes || {};
+  const data = (await res.json()) as {
+    data?: { id?: string; attributes?: Record<string, unknown> };
+  };
+  const attrs: Record<string, unknown> = data?.data?.attributes || {};
+  const rawStatus = String(attrs.status ?? attrs.order_status ?? "").toLowerCase();
+  const status: OrderInfo["status"] =
+    rawStatus === "paid" || rawStatus === "completed"
+      ? "completed"
+      : rawStatus === "refunded" || rawStatus === "partially_refunded"
+        ? "refunded"
+        : rawStatus === "cancelled" || rawStatus === "canceled"
+          ? "canceled"
+          : "pending";
   const order: OrderInfo = {
     orderId: String(data?.data?.id || orderId),
     variantId: String(attrs.variant_id || ""),
-    email: String(attrs.email || attrs.billing_email || ""),
+    email: String(attrs.user_email || attrs.email || attrs.billing_email || ""),
     completedAt: String(attrs.completed_at || attrs.created_at || ""),
-    status: (["completed", "refunded", "canceled"].includes(attrs.order_status)
-      ? attrs.order_status
-      : "pending") as OrderInfo["status"],
-    custom: attrs.custom || {},
+    status,
+    custom:
+      (attrs.custom_data as Record<string, unknown> | undefined) ||
+      (attrs.custom as Record<string, unknown> | undefined) ||
+      {},
   };
   if (order.status === "refunded" || order.status === "canceled") {
     throw new Error(`订单状态为 ${order.status}，拒绝访问`);

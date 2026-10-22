@@ -5,12 +5,41 @@ import { Footer, TopBar } from "../components";
 import { buildDemoReport } from "../../lib/checkout";
 import { DEMO_REPORT, ReportData } from "../../lib/demo-report";
 import { track } from "../hooks";
+import {
+  CHECKOUT_ID_STORAGE_KEY,
+  CHECKOUT_MODE_STORAGE_KEY,
+  decideInitialAccess,
+  detectLiveMode,
+  extractVerifiedOrder,
+  interpretVerifyResponse,
+  type AccessMode,
+  type InvalidReason,
+  type VerifiedOrderView,
+  type WaitingReason,
+} from "../../lib/report-access";
 
 /**
  * /report — 完整报告页（6 章）
- * 真实接入后：凭 magic-link token 调后端取真报告；当前 mock 用 query 里的 preview 数据或演示内核。
- * 魔法链回访占位：?checkout=MOCK-xxx → 直接展示（演示）；真实现时验签。
+ *
+ * 访问门（P1 支付闭环）：
+ * - `?token=xxx`（邮件魔链）→ 调 /api/verify-magic-link?token= 验证，ready 才渲染；
+ * - `?order_id=xxx`（旧版直查）→ 调 /api/verify-magic-link?order_id=；
+ * - `?checkout=PENDING`（LS 支付回跳占位）→ 等待态（webhook 可能还没处理完）；
+ * - live 模式无有效凭证 → 等待态，**绝不**渲染 DEMO_REPORT；
+ * - mock 模式 → 保持原有演示体验（MOCK- 订单 / preview / 裸访问）。
+ * 决策逻辑在 src/lib/report-access.ts，本页只负责执行与展示。
  */
+
+type AccessState =
+  | { kind: "checking" }
+  | {
+      kind: "report";
+      source: "mock" | "token" | "order";
+      order: VerifiedOrderView | null;
+    }
+  | { kind: "waiting"; reason: WaitingReason }
+  | { kind: "invalid"; reason: InvalidReason; message?: string };
+
 export default function ReportPage() {
   return (
     <Suspense fallback={<div style={{ padding: 40 }}>Loading report…</div>}>
@@ -22,95 +51,248 @@ export default function ReportPage() {
 function ReportInner() {
   const sp = useSearchParams();
   const router = useRouter();
-  const isMock = (sp.get("checkout") || "").startsWith("MOCK-");
-  const checkoutParam = sp.get("checkout") || "";
-  const orderId = sp.get("order_id") || checkoutParam;
+  const [access, setAccess] = useState<AccessState>({ kind: "checking" });
+  const [checkoutRef, setCheckoutRef] = useState<string | null>(null);
 
-  // 真模式：回访时调 /api/verify-magic-link 验订单 + 取 custom 字段
-  // mock 模式：保持原行为（preview 参数或纯演示）
-  const [liveError, setLiveError] = useState<string | null>(null);
-  const [liveOrder, setLiveOrder] = useState<{ ok: boolean; order: Record<string, unknown> } | null>(null);
+  const token = sp.get("token");
+  const checkout = sp.get("checkout");
+  const orderIdParam = sp.get("order_id");
+  const preview = sp.get("preview");
+  const publicLiveFlag = process.env.NEXT_PUBLIC_LEMON_SQUEEZY_LIVE;
 
   useEffect(() => {
-    if (isMock || !orderId || orderId === "PENDING") return;
     let cancelled = false;
-    (async () => {
+
+    // 用 async IIFE：所有 setState 都发生在异步回调里，避免 effect 内同步 setState
+    // 触发级联渲染（react-hooks/set-state-in-effect）。
+    void (async () => {
+      // live 判定：checkout 页写入的 sessionStorage 提示最可信；否则用部署时的
+      // NEXT_PUBLIC_ 标志（见 lib/report-access.ts 说明）。
+      const modeHint = readSession(CHECKOUT_MODE_STORAGE_KEY);
+      const mode: AccessMode =
+        modeHint === "mock"
+          ? "mock"
+          : detectLiveMode({ NEXT_PUBLIC_LEMON_SQUEEZY_LIVE: publicLiveFlag }) ||
+              modeHint === "live"
+            ? "live"
+            : "mock";
+
+      if (cancelled) return;
+      setCheckoutRef(readSession(CHECKOUT_ID_STORAGE_KEY));
+
+      const decision = decideInitialAccess({
+        mode,
+        token,
+        checkout,
+        orderId: orderIdParam,
+        preview,
+      });
+      if (cancelled) return;
+
+      if (decision.kind === "show-report") {
+        setAccess({ kind: "report", source: decision.source, order: null });
+        track("report_view", { source: decision.source, mode });
+        return;
+      }
+      if (decision.kind === "show-waiting") {
+        setAccess({ kind: "waiting", reason: decision.reason });
+        track("report_waiting", { reason: decision.reason, mode });
+        return;
+      }
+      if (decision.kind === "show-invalid") {
+        setAccess({
+          kind: "invalid",
+          reason: decision.reason,
+          message: decision.message,
+        });
+        track("report_invalid", { reason: decision.reason, mode });
+        return;
+      }
+
+      const source = decision.kind === "verify-token" ? "token" : "order";
+      const url =
+        decision.kind === "verify-token"
+          ? `/api/verify-magic-link?token=${encodeURIComponent(decision.token)}`
+          : `/api/verify-magic-link?order_id=${encodeURIComponent(decision.orderId)}`;
+
       try {
-        const res = await fetch(`/api/verify-magic-link?order_id=${encodeURIComponent(orderId)}`);
-        const data = await res.json();
+        const res = await fetch(url, { cache: "no-store" });
+        const payload: unknown = await res.json().catch(() => ({}));
         if (cancelled) return;
-        if (!res.ok && data.error) setLiveError(String(data.error));
-        else setLiveOrder(data);
-      } catch (e) {
-        if (!cancelled) setLiveError(e instanceof Error ? e.message : "verify failed");
+
+        const interpreted = interpretVerifyResponse(res.status, payload, source);
+        if (interpreted.kind === "show-report") {
+          setAccess({
+            kind: "report",
+            source,
+            order: extractVerifiedOrder(payload),
+          });
+          track("report_view", { source, mode, ok: true });
+        } else if (interpreted.kind === "show-waiting") {
+          setAccess({ kind: "waiting", reason: interpreted.reason });
+          track("report_waiting", { reason: interpreted.reason, mode });
+        } else if (interpreted.kind === "show-invalid") {
+          setAccess({
+            kind: "invalid",
+            reason: interpreted.reason,
+            message: interpreted.message,
+          });
+          track("report_invalid", { reason: interpreted.reason, mode });
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setAccess({
+          kind: "invalid",
+          reason: "error",
+          message: err instanceof Error ? err.message : "Verification failed",
+        });
       }
     })();
+
     return () => {
       cancelled = true;
     };
-  }, [orderId, isMock]);
+  }, [token, checkout, orderIdParam, preview, publicLiveFlag]);
 
-  // 解析 preview 参数（mock 时携带的输入），否则用真订单 custom / 纯演示
+  // LS 回跳 URL 是服务端静态配置（/report?checkout=PENDING），无法带 checkout id；
+  // 进入等待态后把本会话记录的 checkout id 追加到当前 URL（?ref=chk_xxx），
+  // 便于用户报障/客服排查，也让「回跳 URL 带 checkout id」在浏览器层成立。
+  useEffect(() => {
+    if (access.kind !== "waiting" || access.reason !== "payment-pending" || !checkoutRef) {
+      return;
+    }
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("ref") === checkoutRef) return;
+      url.searchParams.set("ref", checkoutRef);
+      window.history.replaceState(null, "", url.toString());
+    } catch {
+      /* 忽略：历史 API 不可用不影响等待态展示 */
+    }
+  }, [access, checkoutRef]);
+
+  // 报告数据：live 用已验证订单的 custom；mock 用 preview / 演示内核
   const report: ReportData = useMemo(() => {
-    if (liveOrder?.ok && liveOrder.order?.custom) {
-      const c = liveOrder.order.custom as Record<string, unknown>;
+    if (access.kind !== "report") return DEMO_REPORT;
+
+    if (access.source === "mock") {
+      if (preview) {
+        try {
+          const pad = preview.replace(/-/g, "+").replace(/_/g, "/");
+          const json = JSON.parse(
+            atob(pad.padEnd(pad.length + ((4 - (pad.length % 4)) % 4), "="))
+          ) as Record<string, unknown>;
+          return buildDemoReport({
+            fileName: String(json.fileName || "(pasted)"),
+            speakerA: String(json.speakerA || "You"),
+            speakerB: String(json.speakerB || "Them"),
+          });
+        } catch {
+          /* 解析失败落回演示 */
+        }
+      }
+      return DEMO_REPORT;
+    }
+
+    const custom = access.order?.custom;
+    if (custom) {
       return buildDemoReport({
-        fileName: String(c.fileName || "(uploaded)"),
-        speakerA: String(c.speakerA || "You"),
-        speakerB: String(c.speakerB || "Them"),
+        fileName: String(custom.fileName || "(uploaded)"),
+        speakerA: String(custom.speakerA || "You"),
+        speakerB: String(custom.speakerB || "Them"),
       });
     }
-    const enc = sp.get("preview");
-    if (enc && isMock) {
-      try {
-        const pad = enc.replace(/-/g, "+").replace(/_/g, "/");
-        const json = JSON.parse(atob(pad.padEnd(pad.length + ((4 - (pad.length % 4)) % 4), "=")));
-        return buildDemoReport({
-          fileName: json.fileName,
-          speakerA: json.speakerA,
-          speakerB: json.speakerB,
-        });
-      } catch {
-        /* 解析失败落回演示 */
-      }
-    }
+    // live 已验证但订单没有 custom（如 LS API 回落查询）：仍展示报告骨架
     return DEMO_REPORT;
-  }, [sp, isMock, liveOrder]);
+  }, [access, preview]);
 
-  useEffect(() => {
-    track("report_view", {
-      mock: isMock,
-      checkout: sp.get("checkout"),
-      liveOrder: liveOrder?.ok ?? null,
-    });
-  }, [isMock, sp, liveOrder]);
+  /* ===== 访问门状态页 ===== */
 
-  // 真模式验签失败 / 退款 / 取消 → 错误态，不展示报告
-  if (!isMock && liveError) {
+  if (access.kind === "checking") {
     return (
-      <>
-        <TopBar />
-        <section className="inner">
-          <div className="wrap" style={{ maxWidth: 560, textAlign: "center", padding: "80px 24px" }}>
-            <p className="sec-label">Order verification failed</p>
-            <h1 style={{ fontSize: 24, margin: "12px 0" }}>We couldn&apos;t unlock your report</h1>
-            <p style={{ color: "var(--ink-500)", fontSize: 14.5, lineHeight: 1.6 }}>
-              {liveError}
-            </p>
-            <div style={{ marginTop: 24, display: "flex", gap: 12, justifyContent: "center" }}>
-              <button className="btn-cta" style={{ width: "auto" }} onClick={() => router.push("/")}>
-                Back to home
-              </button>
-              <a className="btn-secondary" href="/refund" style={{ display: "inline-flex", alignItems: "center" }}>
-                Request refund
-              </a>
-            </div>
-          </div>
-        </section>
-        <Footer />
-      </>
+      <StatusScreen
+        label="Checking your purchase"
+        title="One moment…"
+        message="We're verifying your access to this report."
+      >
+        <span className="mock-badge">Verifying access</span>
+      </StatusScreen>
     );
   }
+
+  if (access.kind === "invalid") {
+    const copy = INVALID_COPY[access.reason];
+    return (
+      <StatusScreen label="Access unavailable" title={copy.title} message={copy.message}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+          <button className="btn-cta" style={{ width: "auto" }} onClick={() => router.push("/")}>
+            Back to home
+          </button>
+          <a
+            className="btn-secondary"
+            href="/refund"
+            style={{ display: "inline-flex", alignItems: "center" }}
+          >
+            Refund policy
+          </a>
+          <a
+            className="btn-secondary"
+            href="/notice"
+            style={{ display: "inline-flex", alignItems: "center" }}
+          >
+            Contact support
+          </a>
+        </div>
+      </StatusScreen>
+    );
+  }
+
+  if (access.kind === "waiting") {
+    const pending = access.reason === "payment-pending";
+    return (
+      <StatusScreen
+        label={pending ? "Payment received" : "One more step"}
+        title={pending ? "Your report is being prepared" : "Open the magic link from your email"}
+        message={
+          pending
+            ? "Thanks for your purchase. We're generating your report — this usually takes a few seconds. We've also emailed you a magic link to the address you paid with; it works for 7 days."
+            : "For security, the full report opens from the magic link we email after purchase. Check your inbox (and spam) for the message from The Tell."
+        }
+      >
+        {checkoutRef && (
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-500)" }}>
+            Checkout reference: {checkoutRef}
+          </p>
+        )}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+          <button
+            className="btn-cta"
+            style={{ width: "auto" }}
+            onClick={() => window.location.reload()}
+          >
+            Refresh
+          </button>
+          <a
+            className="btn-secondary"
+            href="/refund"
+            style={{ display: "inline-flex", alignItems: "center" }}
+          >
+            Refund policy
+          </a>
+          <a
+            className="btn-secondary"
+            href="/notice"
+            style={{ display: "inline-flex", alignItems: "center" }}
+          >
+            Need help?
+          </a>
+        </div>
+      </StatusScreen>
+    );
+  }
+
+  /* ===== 报告正文 ===== */
+  const isMock = access.source === "mock";
 
   return (
     <>
@@ -237,7 +419,84 @@ function ReportInner() {
   );
 }
 
-/* ===== 子组件 ===== */
+/* ===== 状态页 / 子组件 ===== */
+
+const INVALID_COPY: Record<InvalidReason, { title: string; message: string }> = {
+  expired: {
+    title: "Your magic link has expired",
+    message:
+      "Magic links are valid for 7 days. Look for a newer email, or reply to your receipt and we'll send a fresh link.",
+  },
+  invalid: {
+    title: "This link is invalid",
+    message:
+      "The link looks incomplete or was altered. Please open the magic link from your purchase email again.",
+  },
+  revoked: {
+    title: "This order is no longer active",
+    message:
+      "The purchase was refunded or canceled, so report access has been revoked. See the refund policy for details.",
+  },
+  "not-found": {
+    title: "We couldn't find that order",
+    message:
+      "Check that you opened the link from your purchase email. If it still doesn't work, contact support.",
+  },
+  error: {
+    title: "We couldn't verify your purchase",
+    message:
+      "Something went wrong on our side. Wait a moment and refresh, or contact support if it keeps happening.",
+  },
+};
+
+function StatusScreen({
+  label,
+  title,
+  message,
+  children,
+}: {
+  label: string;
+  title: string;
+  message: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <>
+      <TopBar />
+      <section className="inner">
+        <div
+          className="wrap"
+          style={{ maxWidth: 620, textAlign: "center", padding: "80px 24px" }}
+        >
+          <p className="sec-label">{label}</p>
+          <h1 style={{ fontSize: 26, margin: "12px 0" }}>{title}</h1>
+          <p
+            style={{
+              color: "var(--ink-500)",
+              fontSize: 14.5,
+              lineHeight: 1.65,
+              margin: "0 auto 22px",
+              maxWidth: 500,
+            }}
+          >
+            {message}
+          </p>
+          <div style={{ display: "grid", gap: 12, justifyItems: "center" }}>{children}</div>
+        </div>
+      </section>
+      <Footer />
+    </>
+  );
+}
+
+function readSession(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
 
 function Chapter({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   return (

@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# 模板文件需要进版本库（不含密钥），否则新环境无从复制
+!.env.example
 
 # vercel
 .vercel
