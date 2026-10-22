@@ -40,6 +40,7 @@ export type MagicLinkVerifyResult =
         | "malformed"
         | "invalid_signature"
         | "expired"
+        | "revoked"
         | "not_configured";
     };
 
@@ -57,6 +58,14 @@ export type MagicLinkVerifyOptions = {
   now?: Date | number;
   /** 显式密钥，默认按 resolveMagicLinkSecret() 解析 */
   secret?: string;
+  /**
+   * 是否检查吊销表，默认 false（保持现有 /api/verify-magic-link 行为：
+   * 吊销后由「订单状态 refunded/deleted」返回 403；token 级 401/410 映射留给后续任务）。
+   * 退款 / 删除 API 内部需要“token 作废”语义时显式传 true。
+   */
+  checkRevocation?: boolean;
+  /** 注入吊销表（默认进程内单例），测试 / 接 DB 用 */
+  revocation?: MagicLinkRevocationStore;
 };
 
 /**
@@ -78,6 +87,69 @@ export function resolveMagicLinkSecret(
     return DEV_FALLBACK_SECRET;
   }
   return null;
+}
+
+/* ===== 魔链吊销表（退款 / 删除后 token 作废）===== */
+
+/**
+ * 吊销粒度 = 订单：某订单被退款 / 删除后，它签发过的所有魔链立即失效
+ * （比逐 token 记录更稳：吊销后即使旧 token 未过期也进不来）。
+ *
+ * 现状：进程内 Set（重启 / serverless 多实例不共享）。DB 接入口：
+ *   1. 建表 `magic_link_revocations(order_id TEXT PRIMARY KEY, revoked_at TIMESTAMPTZ)`；
+ *   2. 实现 MagicLinkRevocationStore 后 setMagicLinkRevocationStore() 注入；
+ *   3. 路由 / 页面代码不变。
+ */
+export interface MagicLinkRevocationStore {
+  isRevoked(orderId: string): boolean;
+  revoke(orderId: string): void;
+  clear(): void;
+}
+
+export class InMemoryMagicLinkRevocationStore implements MagicLinkRevocationStore {
+  private readonly revoked = new Set<string>();
+
+  isRevoked(orderId: string): boolean {
+    return this.revoked.has(orderId.trim());
+  }
+
+  revoke(orderId: string): void {
+    const id = orderId.trim();
+    if (id) this.revoked.add(id);
+  }
+
+  clear(): void {
+    this.revoked.clear();
+  }
+}
+
+let activeRevocationStore: MagicLinkRevocationStore =
+  new InMemoryMagicLinkRevocationStore();
+
+export function getMagicLinkRevocationStore(): MagicLinkRevocationStore {
+  return activeRevocationStore;
+}
+
+/** 注入吊销表（测试 / 接 DB 用） */
+export function setMagicLinkRevocationStore(
+  store: MagicLinkRevocationStore
+): void {
+  activeRevocationStore = store;
+}
+
+/** 重置为全新内存吊销表（仅测试用） */
+export function resetMagicLinkRevocationStore(): void {
+  activeRevocationStore = new InMemoryMagicLinkRevocationStore();
+}
+
+/** 吊销某订单的所有魔链（退款 / 删除成功后调用） */
+export function revokeMagicLinksForOrder(orderId: string): void {
+  activeRevocationStore.revoke(orderId);
+}
+
+/** 该订单的魔链是否已吊销 */
+export function isMagicLinkRevoked(orderId: string): boolean {
+  return activeRevocationStore.isRevoked(orderId);
 }
 
 /**
@@ -152,7 +224,25 @@ export function verifyMagicLinkToken(
     return { ok: false, reason: "expired" };
   }
 
+  if (options.checkRevocation) {
+    const revocation = options.revocation ?? activeRevocationStore;
+    if (revocation.isRevoked(orderId)) {
+      return { ok: false, reason: "revoked" };
+    }
+  }
+
   return { ok: true, payload: { orderId, iat, exp } };
+}
+
+/**
+ * 带上吊销检查的验证（退款 / 删除等“必须确认 token 已作废”的场景用）。
+ * 与 verifyMagicLinkToken 的区别仅在于默认 checkRevocation=true。
+ */
+export function verifyMagicLinkTokenWithRevocation(
+  token: string,
+  options: MagicLinkVerifyOptions = {}
+): MagicLinkVerifyResult {
+  return verifyMagicLinkToken(token, { ...options, checkRevocation: true });
 }
 
 /**

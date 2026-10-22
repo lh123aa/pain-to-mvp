@@ -5,18 +5,29 @@
  * 报告页验证」链路先跑通，不适合当生产唯一数据源。
  *
  * 接 DB 的入口（P4）：
- *   1. 新建 `src/lib/orders-db.ts`，实现同一个 `OrderStore` 接口（get/upsert/list/clear）；
+ *   1. 新建 `src/lib/orders-db.ts`，实现同一个 `OrderStore` 接口
+ *      （get / upsert / list / clear / refundOrder / deleteOrderAnalysis）；
  *   2. 在 `getOrderStore()` 里按 `process.env.DATABASE_URL` 选择内存或 DB 实现；
  *   3. 路由 / 页面只依赖 `OrderStore` 接口，不用改。
  *
+ * 状态机（W2-2 退款/删除）：
+ *   pending / completed → refunded → deleted     （refunded 是终态；deleted 是绝对终态）
+ *   completed → deleted                          （用户只删数据、不退款也允许）
+ *   canceled 保持原有终态语义；deleted 一旦进入绝不回退，也不允许被 webhook 重放改回。
+ *
  * 幂等语义：同一订单重复投递（Lemon Squeezy webhook 重试）不会产生第二条记录，
- * `upsert()` 返回 `{ created:false, changed:false }`；已完成/已退款的终态不会被
- * 迟到的旧事件改回去。
+ * `upsert()` 返回 `{ created:false, changed:false }`；终态不会被迟到的旧事件改回去。
  *
  * 注意：本模块只在服务端（API route / server component）使用，不要被客户端组件 import。
  */
 
-export type OrderStatus = "completed" | "refunded" | "canceled" | "pending";
+export type OrderStatus =
+  | "completed"
+  | "refunded"
+  | "canceled"
+  | "pending"
+  /** 数据分析结果已删除（隐私删除请求），不可回退 */
+  | "deleted";
 
 export type OrderRecord = {
   orderId: string;
@@ -32,6 +43,10 @@ export type OrderRecord = {
   lastEventName: string;
   /** Lemon Squeezy 测试模式订单 */
   testMode: boolean;
+  /** 退款时间（ISO）；status=refunded 后写入 */
+  refundedAt?: string;
+  /** 数据删除时间（ISO）；status=deleted 后写入 */
+  deletedAt?: string;
 };
 
 export type OrderUpsertResult = {
@@ -42,33 +57,69 @@ export type OrderUpsertResult = {
   changed: boolean;
 };
 
+/** 退款 / 删除这类订单状态变更的结果 */
+export type OrderMutationResult =
+  | { ok: true; order: OrderRecord; changed: boolean }
+  | { ok: false; reason: "not-found" | "invalid-transition" };
+
 export interface OrderStore {
   get(orderId: string): Promise<OrderRecord | null>;
   upsert(order: OrderRecord): Promise<OrderUpsertResult>;
   list(): Promise<OrderRecord[]>;
   /** 仅测试 / 运维用；DB 实现里等价于 truncate */
   clear(): Promise<void>;
+  /**
+   * 状态机 completed → refunded（幂等）。
+   * - 未找到 → not-found
+   * - refunded 重复调用 → ok + changed=false
+   * - deleted / canceled / pending → invalid-transition
+   * DB 实现必须用事务 / 条件更新保证不重复退款（例如 `UPDATE ... WHERE status='completed'`）。
+   */
+  refundOrder(orderId: string, at?: Date | string): Promise<OrderMutationResult>;
+  /**
+   * 删除分析数据 + 脱敏（email / custom 清空），状态 → deleted（幂等，终态不回退）。
+   * 未找到 → not-found；已 deleted → ok + changed=false。
+   * DB 实现：DELETE 关联分析数据行 + UPDATE orders SET status='deleted', email=''。
+   */
+  deleteOrderAnalysis(
+    orderId: string,
+    at?: Date | string
+  ): Promise<OrderMutationResult>;
 }
 
-const TERMINAL_STATUSES: readonly OrderStatus[] = ["refunded", "canceled"];
+const TERMINAL_STATUSES: readonly OrderStatus[] = [
+  "refunded",
+  "canceled",
+  "deleted",
+];
 
 function isTerminal(status: OrderStatus): boolean {
   return TERMINAL_STATUSES.includes(status);
 }
 
 /**
- * 状态合并规则：
- * - 已到终态（refunded / canceled）的订单，迟到的旧事件不能把它改回 completed；
+ * 状态合并规则（webhook 重放 vs 退款/删除状态机都不回退）：
+ * - deleted 是绝对终态：任何事件都不能改动它；
+ * - 任何状态收到 deleted 都进入 deleted（删除数据优先级最高）；
+ * - refunded / canceled 终态：迟到的旧事件不能改回 completed；
  * - pending 事件不能把已完成的订单降级；
- * - 其余以新事件为准（completed → refunded/canceled 可以）。
+ * - 其余以新事件为准（completed → refunded 可以）。
  */
 export function mergeOrderStatus(
   current: OrderStatus,
   incoming: OrderStatus
 ): OrderStatus {
-  if (isTerminal(current) && current !== incoming) return current;
+  if (current === "deleted") return "deleted";
+  if (incoming === "deleted") return "deleted";
+  if (current === "refunded") return current;
+  if (current === "canceled") return current;
   if (incoming === "pending" && current !== "pending") return current;
   return incoming;
+}
+
+/** refunded / canceled / deleted 都代表访问已吊销 */
+export function isAccessRevokedStatus(status: OrderStatus): boolean {
+  return isTerminal(status);
 }
 
 function isSameOrder(a: OrderRecord, b: OrderRecord): boolean {
@@ -78,8 +129,25 @@ function isSameOrder(a: OrderRecord, b: OrderRecord): boolean {
     a.variantId === b.variantId &&
     a.completedAt === b.completedAt &&
     a.testMode === b.testMode &&
+    a.refundedAt === b.refundedAt &&
+    a.deletedAt === b.deletedAt &&
     JSON.stringify(a.custom) === JSON.stringify(b.custom)
   );
+}
+
+function toIsoString(value: Date | string | undefined): string {
+  if (value instanceof Date) {
+    return Number.isFinite(value.getTime())
+      ? value.toISOString()
+      : new Date().toISOString();
+  }
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed)
+      ? new Date(parsed).toISOString()
+      : new Date().toISOString();
+  }
+  return new Date().toISOString();
 }
 
 /** 内存订单存储（进程级单例由 getOrderStore 维护） */
@@ -103,6 +171,11 @@ export class InMemoryOrderStore implements OrderStore {
     if (!current) {
       this.orders.set(incoming.orderId, incoming);
       return { order: incoming, created: true, changed: true };
+    }
+
+    // deleted 是绝对终态：数据已脱敏删除，webhook 重放不能把 PII/状态写回来
+    if (current.status === "deleted") {
+      return { order: current, created: false, changed: false };
     }
 
     const status = mergeOrderStatus(current.status, incoming.status);
@@ -130,6 +203,58 @@ export class InMemoryOrderStore implements OrderStore {
     this.orders.set(incoming.orderId, merged);
     return { order: merged, created: false, changed: true };
   }
+
+  async refundOrder(
+    orderId: string,
+    at?: Date | string
+  ): Promise<OrderMutationResult> {
+    const current = this.orders.get(orderId);
+    if (!current) return { ok: false, reason: "not-found" };
+    if (current.status === "refunded") {
+      // 幂等：重复退款请求不再改动
+      return { ok: true, order: current, changed: false };
+    }
+    if (current.status !== "completed") {
+      // pending 未付款 / canceled / deleted 均不可退款
+      return { ok: false, reason: "invalid-transition" };
+    }
+
+    const atIso = toIsoString(at);
+    const updated: OrderRecord = {
+      ...current,
+      status: "refunded",
+      refundedAt: current.refundedAt || atIso,
+      updatedAt: atIso,
+    };
+    this.orders.set(orderId, updated);
+    return { ok: true, order: updated, changed: true };
+  }
+
+  async deleteOrderAnalysis(
+    orderId: string,
+    at?: Date | string
+  ): Promise<OrderMutationResult> {
+    const current = this.orders.get(orderId);
+    if (!current) return { ok: false, reason: "not-found" };
+    if (current.status === "deleted") {
+      return { ok: true, order: current, changed: false };
+    }
+
+    const atIso = toIsoString(at);
+    // 删除/脱敏：分析输入（custom）、邮箱、variant 都不再保留；只留订单骨架用于
+    // 幂等判断与审计（orderId / 状态 / 时间戳）。接 DB 时同步删除关联分析行。
+    const updated: OrderRecord = {
+      ...current,
+      status: "deleted",
+      email: "",
+      variantId: "",
+      custom: {},
+      updatedAt: atIso,
+      deletedAt: atIso,
+    };
+    this.orders.set(orderId, updated);
+    return { ok: true, order: updated, changed: true };
+  }
 }
 
 let activeStore: OrderStore = new InMemoryOrderStore();
@@ -147,6 +272,36 @@ export function setOrderStore(store: OrderStore): void {
 /** 重置为全新的内存存储（仅测试用） */
 export function resetOrderStore(): void {
   activeStore = new InMemoryOrderStore();
+}
+
+/* ===== 订单状态变更（退款 / 删除）===== */
+
+/**
+ * completed → refunded（幂等）。调用方（/api/refund）负责 7 天窗口校验与
+ * provider 调用；这里只做本地状态机。
+ */
+export async function refundOrder(
+  orderId: string,
+  at: Date | string = new Date()
+): Promise<OrderMutationResult> {
+  return getOrderStore().refundOrder(orderId, at);
+}
+
+/**
+ * 删除分析数据 + 脱敏，状态 → deleted（幂等）。调用方（/api/delete-report）
+ * 负责 token 校验与吊销魔链。
+ */
+export async function deleteOrderAnalysis(
+  orderId: string,
+  at: Date | string = new Date()
+): Promise<OrderMutationResult> {
+  return getOrderStore().deleteOrderAnalysis(orderId, at);
+}
+
+/** 访问是否已被吊销（退款 / 取消 / 删除 → true；未找到 → false） */
+export async function isAccessRevoked(orderId: string): Promise<boolean> {
+  const order = await getOrderStore().get(orderId);
+  return !!order && isAccessRevokedStatus(order.status);
 }
 
 /* ===== Lemon Squeezy webhook 事件 → OrderRecord ===== */
