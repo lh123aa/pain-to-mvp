@@ -1,0 +1,16 @@
+# fixture: system-messages-heavy.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: content
+# expected-messages: 3
+# expected-system: 5
+# asserts: system lines (encryption notice / joined / added / subject change / removed) are excluded from messages
+
+[15/11/2025, 09:00:00] Messages and calls are end-to-end encrypted. No one outside of this chat, not even WhatsApp, can read or listen to them.
+[15/11/2025, 09:01:00] You joined using this group's invite link
+[15/11/2025, 09:02:00] Alex added Sam
+[15/11/2025, 09:03:00] Sam changed the subject to "Trip"
+[15/11/2025, 09:04:00] Alex removed Bob
+[15/11/2025, 09:05:00] Alex: hi
+[15/11/2025, 09:06:00] Sam: hello
+[15/11/2025, 09:07:00] Alex: ready?

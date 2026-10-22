@@ -1,0 +1,12 @@
+# fixture: paste-with-timestamps.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: paste (but the pasted text IS a standard export fragment, so it must delegate)
+# category: paste
+# expected-messages: 4
+# expected-system: 0
+# asserts: paste adapter detects ≥30% header lines → delegates to the WhatsApp parser (result platform "whatsapp")
+
+15/11/2025, 10:00 - Alex: pasted export with timestamps
+15/11/2025, 10:01 - Sam: the paste adapter should delegate
+15/11/2025, 10:02 - Alex: to the whatsapp parser
+15/11/2025, 10:03 - Sam: because headers are detectable

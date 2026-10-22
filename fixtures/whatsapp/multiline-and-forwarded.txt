@@ -1,0 +1,13 @@
+# fixture: multiline-and-forwarded.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: content
+# expected-messages: 3
+# expected-system: 0
+# asserts: multiline continuation is merged into the previous body; KNOWN LIMITATION documented:
+#          a forwarded block containing a fake timestamp line is parsed as a real message (pure-text limit)
+
+[15/11/2025, 10:00:00] Alex: This is the forwarded text I got:
+[15/11/2025, 09:00:00] Sam: "you're late"
+and then it continues for a while
+[15/11/2025, 10:01:00] Sam: lol

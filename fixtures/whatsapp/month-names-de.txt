@@ -1,0 +1,12 @@
+# fixture: month-names-de.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / German month names / "D. MMMM YYYY" / 24-hour
+# category: dialect
+# expected-messages: 4
+# expected-system: 0
+# asserts: de month names with umlaut (März) and day dot resolve to DMY with high confidence
+
+3. März 2026, 18:05 - Lena: hallo
+3. März 2026, 18:06 - Jan: hi
+4. März 2026, 08:00 - Lena: Frühstück?
+4. März 2026, 08:01 - Jan: gern

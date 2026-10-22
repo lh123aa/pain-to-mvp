@@ -1,0 +1,16 @@
+# fixture: media-deleted-calls.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: content
+# expected-messages: 8
+# expected-system: 0
+# asserts: <Media omitted>/<attached:>/image/video/sticker markers are media; deleted message and missed calls keep their kind
+
+[15/11/2025, 10:00:00] Alex: <Media omitted>
+[15/11/2025, 10:01:00] Sam: <attached: 00001-PHOTO.jpg>
+[15/11/2025, 10:02:00] Alex: image omitted
+[15/11/2025, 10:03:00] Sam: video omitted
+[15/11/2025, 10:04:00] Alex: sticker omitted
+[15/11/2025, 10:05:00] Sam: This message was deleted
+[15/11/2025, 10:06:00] Alex: Missed voice call
+[15/11/2025, 10:07:00] Sam: we keep missing each other

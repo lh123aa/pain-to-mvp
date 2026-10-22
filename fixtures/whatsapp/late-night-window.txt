@@ -1,0 +1,13 @@
+# fixture: late-night-window.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: time
+# expected-messages: 4
+# expected-system: 0
+# asserts: metrics late-night window is exactly 23:00–04:59 (22:59 and 05:00 are NOT late night);
+#          wall-clock hours used, no timezone conversion
+
+[15/11/2025, 22:59:00] Alex: before the window
+[15/11/2025, 23:00:00] Sam: window starts
+[16/11/2025, 04:59:00] Alex: window ends
+[16/11/2025, 05:00:00] Sam: after the window

@@ -1,0 +1,12 @@
+# fixture: iso-ymd.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / ISO-like YYYY-MM-DD / 24-hour
+# category: dialect
+# expected-messages: 4
+# expected-system: 0
+# asserts: year-first dates resolve as YMD without day/month ambiguity; day rollover stays correct
+
+2025-11-15, 10:00 - Alex: iso first
+2025-11-15, 10:01 - Sam: iso second
+2025-11-16, 08:30 - Alex: next day
+2025-11-16, 08:31 - Sam: ok

@@ -1,0 +1,12 @@
+# fixture: date-only-no-time.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / date-only lines WITHOUT a time (unsupported dialect by design)
+# category: time
+# expected-messages: 0
+# expected-system: 0
+# expected-ok: false
+# asserts: low-confidence path — parser must NOT invent times: no header match → E-3 + date-ambiguity warning;
+#          the UI is expected to switch the user to paste mode (PRD E-3 wording, no silent guessing)
+
+15/11/2025 - Alex: no time on this line
+15/11/2025 - Sam: nor this one

@@ -1,0 +1,12 @@
+# fixture: one-sided-only-speaker.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: content
+# expected-messages: 4
+# expected-system: 0
+# asserts: only one side speaks → 1 participant; conversation layer must later declare the imbalance (W-PARTNER-SILENT)
+
+[15/11/2025, 09:00:00] Alice: hi
+[15/11/2025, 09:01:00] Alice: hello?
+[15/11/2025, 09:05:00] Alice: hope you're okay
+[15/11/2025, 09:10:00] Alice: talk later

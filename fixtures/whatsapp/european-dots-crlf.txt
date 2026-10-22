@@ -1,11 +1,11 @@
 # fixture: european-dots-crlf.txt
 # source: synthetic (hand-written for tests; contains no real conversation)
-# platform: whatsapp / European (German) export / 24-hour clock / DD.MM.YYYY / dash separator
-# line-endings: LF in this file (CRLF is covered by the inline CRLF unit test)
+# platform: whatsapp / European (German) export / 24-hour clock / DD.MM.YYYY / dash separator / CRLF line endings
+# category: dialect
 # expected-messages: 10
 # expected-system: 2
-# asserts: AC-1.2 dialects — dot separator (ambiguous DMY default + needsDateConfirmation),
-#          CRLF, multi-line, <Media omitted>, system lines, mixed Chinese/English/German text
+# asserts: AC-1.2 dialects — dot separator (ambiguous DMY default + needsDateConfirmation), CRLF,
+#          multi-line, <Media omitted>, system lines, mixed Chinese/English/German text
 # expected-date-order: DMY (heuristic, needs confirmation)
 
 05.04.2026, 21:12 - Lena: Hey, bist du heute Abend wach?

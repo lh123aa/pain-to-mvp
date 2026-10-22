@@ -1,6 +1,7 @@
 # fixture: ios-12h-mdy.txt
 # source: synthetic (hand-written for tests; contains no real conversation)
 # platform: whatsapp / iOS export / 12-hour clock / M/D/YY / " - " separator
+# category: dialect
 # expected-messages: 14
 # expected-system: 1
 # asserts: AC-1.2 dialects — 12h AM/PM, dash separator, <attached: …> and "image omitted"

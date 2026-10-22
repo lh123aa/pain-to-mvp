@@ -4,9 +4,13 @@
  * 覆盖：每项指标的公式与边界（空会话 / 单条 / 单方 / 无时序 / emoji 云 / 时区中立）、
  * confidence 与 sampleSize、unavailableReason、配置覆盖、纯函数确定性。
  */
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import type { Conversation, ConversationMessage, MessageKind, SpeakerRole } from "@/parser";
+import { conversationFromChat, createSpeakerMap, parseWhatsAppTxt } from "@/parser";
 import {
   METRIC_IDS,
   computeConversationStats,
@@ -429,5 +433,62 @@ describe("metrics · helpers", () => {
     expect(hasEmoji("hi 😅")).toBe(true);
     expect(hasEmoji("❤️")).toBe(true);
     expect(hasEmoji("plain text")).toBe(false);
+  });
+});
+
+/* -------------------------------------------------------------------------------------------------
+ * fixture 驱动的规则层边界（task-12）：时间边界 fixture 不能只是"文件摆着"，要真的喂进指标层
+ * ------------------------------------------------------------------------------------------------*/
+
+function fixtureText(relativePath: string): string {
+  return readFileSync(fileURLToPath(new URL(`../../fixtures/${relativePath}`, import.meta.url)), "utf8");
+}
+
+function fixtureConversation(relativePath: string, user: string, partner: string): Conversation {
+  const parsed = parseWhatsAppTxt(fixtureText(relativePath));
+  const mapped = createSpeakerMap(parsed.chat, { user, partner });
+  if (mapped.status !== "confirmed") throw new Error(`speaker map not confirmed: ${mapped.code}`);
+  return conversationFromChat(parsed.chat, mapped.map);
+}
+
+describe("fixtures · time boundaries feed the metrics layer", () => {
+  it("exactly 6 h stays one session; > 6 h starts a new one; out-of-order gaps are ignored", () => {
+    const conversation = fixtureConversation("whatsapp/clock-anomalies.txt", "Alex", "Sam");
+    const stats = computeConversationStats(conversation);
+    const metrics = computeMetrics(conversation);
+
+    // 10:00 → 16:00 = exactly 6 h → same session；16:01 → … → 22:02 > 6 h → new session。
+    expect(stats.sessionCount).toBe(2);
+    // 回复样本：Sam 的 360 min（恰好 6h 仍是回复）+ Alex 的 1 min；乱序的负间隔被忽略。
+    expect(metrics.metrics.reply_median_latency.sampleSize).toBe(2);
+    expect(metrics.metrics.reply_median_latency.details.userMedianMinutes).toBe(1);
+    expect(metrics.metrics.reply_median_latency.details.partnerMedianMinutes).toBe(360);
+    expect(metrics.metrics.reply_median_latency.value).toBe(180.5);
+  });
+
+  it("late-night window counts 23:00 and 04:59 but not 22:59 / 05:00", () => {
+    const conversation = fixtureConversation("whatsapp/late-night-window.txt", "Alex", "Sam");
+    const metrics = computeMetrics(conversation);
+    expect(metrics.metrics.late_night_share.value).toBe(0.5); // 2 of 4
+    expect(metrics.metrics.late_night_share.details.userRate).toBe(0.5);
+    expect(metrics.metrics.late_night_share.details.partnerRate).toBe(0.5);
+  });
+
+  it("cross-year + leap-day fixture keeps wall-clock dates and positive intervals", () => {
+    const conversation = fixtureConversation("whatsapp/year-boundary-leap.txt", "Riley", "Jordan");
+    expect(conversation.meta.messageCount).toBe(4);
+    expect(conversation.meta.startedAt).toBe(Date.UTC(2023, 11, 31, 23, 59));
+    expect(conversation.meta.endedAt).toBe(Date.UTC(2024, 1, 29, 12, 1));
+    const metrics = computeMetrics(conversation);
+    expect(metrics.metrics.reply_median_latency.sampleSize).toBe(2);
+    expect(metrics.metrics.reply_median_latency.value).toBe(1.5);
+  });
+
+  it("midnight crossing keeps a positive 6-second reply gap", () => {
+    const conversation = fixtureConversation("whatsapp/midnight-crossing.txt", "Alex", "Sam");
+    const metrics = computeMetrics(conversation);
+    expect(metrics.metrics.reply_median_latency.details.partnerMedianMinutes).toBe(0.1); // 6 s
+    expect(conversation.meta.startedAt).toBe(Date.UTC(2025, 10, 15, 23, 59, 59));
+    expect(conversation.meta.endedAt).toBe(Date.UTC(2025, 10, 16, 23, 59));
   });
 });

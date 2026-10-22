@@ -1,0 +1,15 @@
+# fixture: clock-anomalies.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: time
+# expected-messages: 5
+# expected-system: 0
+# asserts: exact 6h gap is still the SAME session (session threshold is strict "> 6h");
+#          a +6h clock jump (timezone-approximate travel) and an out-of-order timestamp do not crash parsing;
+#          source order is preserved; negative gaps are not counted as replies by the metrics layer
+
+[15/11/2025, 10:00:00] Alex: morning
+[15/11/2025, 16:00:00] Sam: exactly six hours later
+[15/11/2025, 16:01:00] Alex: one minute reply
+[15/11/2025, 09:00:00] Sam: older timestamp appears (out-of-order)
+[15/11/2025, 22:02:00] Alex: new session after the long gap

@@ -1,7 +1,9 @@
-# fixture: paste-two-speaker.txt
+# fixture: two-speaker.txt
 # source: synthetic (hand-written for tests; contains no real conversation)
 # platform: paste (no timestamps — FR-3 untimed fallback cards, AC-3.3)
+# category: paste
 # expected-messages: 9
+# expected-system: 0
 # asserts: conservative paste parsing — "Name: text" only, multi-line continuation,
 #          zero timestamps, low confidence, explicit speaker mapping still required
 

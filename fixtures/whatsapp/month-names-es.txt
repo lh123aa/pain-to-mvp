@@ -1,0 +1,12 @@
+# fixture: month-names-es.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Spanish month names / "D de MMMM de YYYY" / 24-hour
+# category: dialect
+# expected-messages: 4
+# expected-system: 0
+# asserts: es month names resolve to DMY with high confidence (order is explicit in the format, no confirmation needed)
+
+12 de enero de 2026, 10:30 - Ana: hola
+12 de enero de 2026, 10:31 - Beto: hola
+13 de enero de 2026, 09:05 - Ana: ¿desayunamos?
+13 de enero de 2026, 09:06 - Beto: claro

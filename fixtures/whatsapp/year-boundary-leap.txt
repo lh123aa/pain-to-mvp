@@ -1,0 +1,12 @@
+# fixture: year-boundary-leap.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: time
+# expected-messages: 4
+# expected-system: 0
+# asserts: cross-year (2023 → 2024) and leap day (29/02/2024) both resolve on the wall clock
+
+[31/12/2023, 23:59:00] Riley: last one this year
+[01/01/2024, 00:01:00] Jordan: happy new year
+[29/02/2024, 12:00:00] Riley: leap day!
+[29/02/2024, 12:01:00] Jordan: once every four years

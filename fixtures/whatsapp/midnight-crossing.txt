@@ -1,0 +1,12 @@
+# fixture: midnight-crossing.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY with seconds
+# category: time
+# expected-messages: 4
+# expected-system: 0
+# asserts: 23:59:59 → 00:00:05 crosses midnight without day/date confusion; gap stays positive
+
+[15/11/2025, 23:59:59] Alex: still awake
+[16/11/2025, 00:00:05] Sam: technically me too
+[16/11/2025, 00:01:10] Alex: new day
+[16/11/2025, 23:59:00] Sam: long day

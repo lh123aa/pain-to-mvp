@@ -5,12 +5,14 @@
  * - 7 种导出方言 + 多语言月份名（en/es/de）
  * - 多行、系统消息、媒体、已删除、通话、空消息、URL、emoji、CRLF、BOM、窄空格
  * - 日期歧义（needsDateConfirmation）与显式 dateOrder 重解析
- * - 3 份手写合成 fixture + 1 份 paste fixture（fixtures/ 纪律见 fixtures/README.md）
+ * - 28 份合成 fixture 矩阵（whatsapp 25 + paste 3）；表驱动断言见文件末尾
+ *   「fixture matrix」与「fixture inventory」，纪律见 fixtures/README.md
  * - 说话人显式映射：未确认一律 needsConfirmation；禁止猜测；群聊拒绝；改昵称归并
  *
  * 时间基准：wall-clock epoch ms（Date.UTC(本地钟面时间)），与运行机器时区无关。
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -478,5 +480,215 @@ describe("speaker map · explicit confirmation only (FR-2)", () => {
       expect(built.conversation.meta.messageCount).toBe(42);
       expect(built.conversation.user.messageCount).toBe(21);
     }
+  });
+});
+
+/* -------------------------------------------------------------------------------------------------
+ * fixture 矩阵（task-12）：28 份合成 fixture + 表驱动断言 + 清单/覆盖矩阵
+ * ------------------------------------------------------------------------------------------------*/
+
+type FixtureCategory = "dialect" | "content" | "time" | "speaker" | "paste";
+
+interface FixtureRow {
+  /** 相对 fixtures/ 的路径 */
+  file: string;
+  category: FixtureCategory;
+  /** 用哪个适配器解析 */
+  parser: "whatsapp" | "paste";
+  /** 期望的 chat.platform（默认 = parser；paste 委托时为 whatsapp） */
+  platform?: "whatsapp" | "paste";
+  messages: number;
+  system: number;
+  dateOrder: string;
+  dateOrderSource?: string;
+  needsDateConfirmation?: boolean;
+  participants?: number;
+  ok?: boolean;
+  /** 除基础 W-PREAMBLE / W-SMALL-SAMPLE / W-UNTIMED 外必须出现的 issue code */
+  extraWarnings?: string[];
+}
+
+/**
+ * `FIXTURE_MATRIX`（28 行）：每行 = 一份 fixture 的完整预期。
+ * 表是测试的单一事实源；文件头 `# expected-messages` 等元数据会被交叉校验（防文档漂移）。
+ */
+const FIXTURE_MATRIX: FixtureRow[] = [
+  // 方言（9）
+  { file: "whatsapp/android-24h-dmy.txt", category: "dialect", parser: "whatsapp", messages: 42, system: 3, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/ios-12h-mdy.txt", category: "dialect", parser: "whatsapp", messages: 14, system: 1, dateOrder: "MDY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/european-dots-crlf.txt", category: "dialect", parser: "whatsapp", messages: 10, system: 2, dateOrder: "DMY", dateOrderSource: "heuristic", needsDateConfirmation: true, participants: 2, extraWarnings: ["W-DATE-AMBIGUOUS"] },
+  { file: "whatsapp/android-no-seconds.txt", category: "dialect", parser: "whatsapp", messages: 5, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/iso-ymd.txt", category: "dialect", parser: "whatsapp", messages: 4, system: 0, dateOrder: "YMD", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/month-names-es.txt", category: "dialect", parser: "whatsapp", messages: 4, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/month-names-de.txt", category: "dialect", parser: "whatsapp", messages: 4, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/month-first-en.txt", category: "dialect", parser: "whatsapp", messages: 4, system: 0, dateOrder: "MDY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/encoding-bom-narrow.txt", category: "dialect", parser: "whatsapp", messages: 4, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  // 内容边界（8）
+  { file: "whatsapp/system-messages-heavy.txt", category: "content", parser: "whatsapp", messages: 3, system: 5, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/media-deleted-calls.txt", category: "content", parser: "whatsapp", messages: 8, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/multiline-and-forwarded.txt", category: "content", parser: "whatsapp", messages: 3, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/emoji-mixed-scripts.txt", category: "content", parser: "whatsapp", messages: 6, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/long-line-5k.txt", category: "content", parser: "whatsapp", messages: 2, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/empty-file.txt", category: "content", parser: "whatsapp", messages: 0, system: 0, dateOrder: "DMY", dateOrderSource: "heuristic", needsDateConfirmation: true, participants: 0, ok: false, extraWarnings: ["E-3", "W-DATE-AMBIGUOUS"] },
+  { file: "whatsapp/single-message.txt", category: "content", parser: "whatsapp", messages: 1, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 1 },
+  { file: "whatsapp/one-sided-only-speaker.txt", category: "content", parser: "whatsapp", messages: 4, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 1 },
+  // 时间边界（4）
+  { file: "whatsapp/year-boundary-leap.txt", category: "time", parser: "whatsapp", messages: 4, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/midnight-crossing.txt", category: "time", parser: "whatsapp", messages: 4, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/clock-anomalies.txt", category: "time", parser: "whatsapp", messages: 5, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/late-night-window.txt", category: "time", parser: "whatsapp", messages: 4, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/date-only-no-time.txt", category: "time", parser: "whatsapp", messages: 0, system: 0, dateOrder: "DMY", dateOrderSource: "heuristic", needsDateConfirmation: true, participants: 0, ok: false, extraWarnings: ["E-3", "W-DATE-AMBIGUOUS"] },
+  // 说话人（3）
+  { file: "whatsapp/speakers-rename.txt", category: "speaker", parser: "whatsapp", messages: 5, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 3, extraWarnings: ["W-RENAME-SUSPECTED"] },
+  { file: "whatsapp/speakers-similar-names.txt", category: "speaker", parser: "whatsapp", messages: 4, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 2 },
+  { file: "whatsapp/speakers-group-third-party.txt", category: "speaker", parser: "whatsapp", messages: 6, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", needsDateConfirmation: false, participants: 3, extraWarnings: ["W-RENAME-SUSPECTED"] },
+  // 粘贴（3）
+  { file: "paste/two-speaker.txt", category: "paste", parser: "paste", messages: 9, system: 0, dateOrder: "unknown", participants: 2 },
+  { file: "paste/paste-with-timestamps.txt", category: "paste", parser: "paste", platform: "whatsapp", messages: 4, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", participants: 2 },
+  { file: "paste/paste-mixed-labels-and-headers.txt", category: "paste", parser: "paste", platform: "whatsapp", messages: 6, system: 0, dateOrder: "DMY", dateOrderSource: "evidence", participants: 2 },
+];
+
+const FIXTURES_DIR = fileURLToPath(new URL("../../fixtures", import.meta.url));
+
+function listFixtureFiles(): string[] {
+  const whatsappFiles = readdirSync(join(FIXTURES_DIR, "whatsapp"))
+    .filter((name) => name.endsWith(".txt"))
+    .map((name) => `whatsapp/${name}`);
+  const pasteFiles = readdirSync(join(FIXTURES_DIR, "paste"))
+    .filter((name) => name.endsWith(".txt"))
+    .map((name) => `paste/${name}`);
+  return [...whatsappFiles, ...pasteFiles].sort();
+}
+
+interface DeclaredHeader {
+  hasHeader: boolean;
+  messages: number;
+  system: number;
+  category: string | null;
+  ok: boolean;
+}
+
+/** 读取文件头声明的预期（用于交叉校验表与文档不漂移；BOM 会被剥掉）。 */
+function declaredHeader(text: string): DeclaredHeader {
+  const clean = text.startsWith("\uFEFF") ? text.slice(1) : text;
+  return {
+    hasHeader: /^# fixture:\s*.+$/m.test(clean),
+    messages: Number(/^# expected-messages:\s*(\d+)/m.exec(clean)?.[1] ?? Number.NaN),
+    system: Number(/^# expected-system:\s*(\d+)/m.exec(clean)?.[1] ?? Number.NaN),
+    category: /^# category:\s*([a-z]+)/m.exec(clean)?.[1] ?? null,
+    ok: (/^# expected-ok:\s*(true|false)/m.exec(clean)?.[1] ?? "true") === "true",
+  };
+}
+
+describe("fixture matrix · table-driven parser assertions", () => {
+  for (const row of FIXTURE_MATRIX) {
+    it(`${row.category} · ${row.file}`, () => {
+      const text = fixture(row.file);
+      const declared = declaredHeader(text);
+
+      // 文件头元数据 ⇔ 矩阵表（防文档漂移）；empty-file 是 0 字节例外。
+      if (row.file === "whatsapp/empty-file.txt") {
+        expect(text.length).toBe(0);
+      } else {
+        expect(declared.hasHeader).toBe(true);
+        expect(declared.messages).toBe(row.messages);
+        expect(declared.system).toBe(row.system);
+        expect(declared.category).toBe(row.category);
+        expect(declared.ok).toBe(row.ok ?? true);
+      }
+
+      const result = row.parser === "whatsapp" ? parseWhatsAppTxt(text) : parsePastedText(text);
+      const { chat } = result;
+      expect(result.ok).toBe(row.ok ?? true);
+      expect(chat.platform).toBe(row.platform ?? row.parser);
+      expect(chat.meta.messageCount).toBe(row.messages);
+      expect(chat.meta.systemCount).toBe(row.system);
+      expect(chat.meta.dateOrder).toBe(row.dateOrder);
+      if (row.dateOrderSource !== undefined) expect(chat.meta.dateOrderSource).toBe(row.dateOrderSource);
+      if (row.needsDateConfirmation !== undefined) {
+        expect(chat.meta.needsDateConfirmation).toBe(row.needsDateConfirmation);
+      }
+      if (row.participants !== undefined) expect(chat.participants.length).toBe(row.participants);
+
+      // 警告码：基础诚实降级 + 该 fixture 特有
+      const codes = issueCodes(chat);
+      if (declared.hasHeader && (row.platform ?? row.parser) === "whatsapp") {
+        expect(codes).toContain("W-PREAMBLE"); // 文件头注释会作为 preamble 出现（不含正文）
+      }
+      if (row.messages > 0 && row.messages < 500) {
+        expect(codes).toContain("W-SMALL-SAMPLE");
+      }
+      if (row.parser === "paste" && (row.platform ?? "paste") === "paste" && row.messages > 0) {
+        expect(codes).toContain("W-UNTIMED");
+      }
+      for (const code of row.extraWarnings ?? []) {
+        expect(codes).toContain(code);
+      }
+      if (row.ok === false) {
+        expect(codes.some((code) => code.startsWith("E-"))).toBe(true);
+      }
+    });
+  }
+});
+
+describe("fixture inventory · ≥25 unique, complete table coverage", () => {
+  it("directory has ≥25 fixtures, unique file names, and matches the table exactly", () => {
+    const files = listFixtureFiles();
+    expect(files.length).toBeGreaterThanOrEqual(25);
+    expect(files.length).toBe(FIXTURE_MATRIX.length);
+    expect(new Set(files).size).toBe(files.length);
+
+    const basenames = files.map((file) => file.split("/").pop() ?? file);
+    expect(new Set(basenames).size).toBe(basenames.length); // 文件名唯一（跨目录也不重名）
+
+    expect([...FIXTURE_MATRIX.map((row) => row.file)].sort()).toEqual(files);
+  });
+
+  it("every fixture declares fixture/source/category/expected counts (empty-file documented exception)", () => {
+    for (const file of listFixtureFiles()) {
+      const text = fixture(file);
+      if (file === "whatsapp/empty-file.txt") {
+        expect(text.length).toBe(0);
+        continue;
+      }
+      expect(text).toMatch(/^(\uFEFF)?# fixture: /);
+      expect(text).toContain("# source: synthetic");
+      expect(text).toMatch(/# category: (dialect|content|time|speaker|paste)/);
+      expect(text).toMatch(/# expected-messages: \d+/);
+      expect(text).toMatch(/# expected-system: \d+/);
+      expect(text).toMatch(/# asserts: /);
+    }
+  });
+
+  it("covers all five categories with the required breadth", () => {
+    const counts: Record<FixtureCategory, number> = { dialect: 0, content: 0, time: 0, speaker: 0, paste: 0 };
+    for (const row of FIXTURE_MATRIX) counts[row.category] += 1;
+    expect(counts.dialect).toBe(9);
+    expect(counts.content).toBe(8);
+    expect(counts.time).toBe(5);
+    expect(counts.speaker).toBe(3);
+    expect(counts.paste).toBe(3);
+    expect(FIXTURE_MATRIX.filter((row) => row.parser === "whatsapp").length).toBeGreaterThanOrEqual(24);
+  });
+
+  it("encoding boundaries are real bytes (BOM, U+202F, U+200E, CRLF)", () => {
+    const encoded = fixture("whatsapp/encoding-bom-narrow.txt");
+    expect(encoded.charCodeAt(0)).toBe(0xfeff);
+    expect(encoded).toContain("\u202f");
+    expect(encoded).toContain("\u200e");
+
+    const european = fixture("whatsapp/european-dots-crlf.txt");
+    expect(european).toContain("\r\n");
+    expect(european).not.toMatch(/(?<!\r)\n/); // 不允许混入裸 LF
+  });
+
+  it("long-line fixture keeps a single message body over 5000 characters", () => {
+    const parsed = parseWhatsAppTxt(fixture("whatsapp/long-line-5k.txt"));
+    const longest = analysisMessages(parsed.chat).reduce(
+      (max, message) => Math.max(max, message.text.length),
+      0,
+    );
+    expect(longest).toBeGreaterThan(5000);
+    expect(parsed.chat.meta.messageCount).toBe(2);
   });
 });

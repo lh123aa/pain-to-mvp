@@ -1,0 +1,12 @@
+﻿# fixture: encoding-bom-narrow.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / iOS-style 12-hour / UTF-8 BOM + U+202F before AM/PM + U+200E LRM inside body
+# category: dialect
+# expected-messages: 4
+# expected-system: 0
+# asserts: BOM stripped from first line; U+202F normalized before AM/PM; U+200E does not break body parsing
+
+15/11/2025, 9:15 AM - Riley: narrow no-break space before AM
+15/11/2025, 9:16 AM - Jordan: ‎leading LRM in body
+15/11/2025, 9:17 PM - Riley: normal spacing
+15/11/2025, 9:18 PM - Jordan: last

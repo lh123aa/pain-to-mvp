@@ -1,0 +1,12 @@
+# fixture: speakers-similar-names.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: speaker
+# expected-messages: 4
+# expected-system: 0
+# asserts: two similar-but-different names (Alex / Alexandra) stay separate senders (no prefix merging, FR-2 no guessing)
+
+[15/11/2025, 09:00:00] Alex: hey
+[15/11/2025, 09:01:00] Alexandra: hey back
+[15/11/2025, 09:02:00] Alex: weekend?
+[15/11/2025, 09:03:00] Alexandra: yes

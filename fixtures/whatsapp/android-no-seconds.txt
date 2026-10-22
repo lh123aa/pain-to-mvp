@@ -1,0 +1,13 @@
+# fixture: android-no-seconds.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / 24-hour clock / DD/MM/YYYY / unbracketed / " - " and " – " separators / NO seconds
+# category: dialect
+# expected-messages: 5
+# expected-system: 0
+# asserts: header without seconds → timestampPrecision="minute"; DMY evidence from day 15; en dash separator accepted
+
+15/11/2025, 09:10 - Alex: Morning
+15/11/2025, 09:12 – Sam: Morning! Slept okay?
+15/11/2025, 09:14 - Alex: Mostly. Coffee?
+15/11/2025, 09:15 - Sam: Always
+15/11/2025, 09:20 - Alex: On my way

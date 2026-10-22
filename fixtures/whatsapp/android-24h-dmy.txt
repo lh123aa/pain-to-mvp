@@ -1,6 +1,7 @@
 # fixture: android-24h-dmy.txt
 # source: synthetic (hand-written for tests; contains no real conversation)
 # platform: whatsapp / Android export / 24-hour clock / DD/MM/YYYY / bracketed
+# category: dialect
 # expected-messages: 42
 # expected-system: 3
 # asserts: AC-1.2 dialects — bracketed 24h, multi-line body, <Media omitted>,

@@ -1,0 +1,17 @@
+# fixture: paste-mixed-labels-and-headers.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: paste / mixed: timestamped export headers + un-timestamped "Name: text" lines
+# category: paste
+# expected-messages: 6
+# expected-system: 0
+# asserts: enough header lines (≥30%) → delegates to WhatsApp parser; un-timestamped lines become
+#          continuations of the previous message (documented deterministic behaviour, no silent speaker guessing)
+
+15/11/2025, 10:00 - Alex: first with timestamp
+Me: un-timestamped line becomes a continuation
+15/11/2025, 10:01 - Sam: second with timestamp
+You: another un-timestamped line
+15/11/2025, 10:02 - Alex: third
+15/11/2025, 10:03 - Sam: fourth
+15/11/2025, 10:04 - Alex: fifth
+15/11/2025, 10:05 - Sam: sixth

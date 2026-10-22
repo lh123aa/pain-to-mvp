@@ -1,0 +1,14 @@
+# fixture: speakers-rename.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: speaker
+# expected-messages: 5
+# expected-system: 0
+# asserts: non-overlapping rename (Alice → Al) yields 3 parser senders + W-RENAME-SUSPECTED;
+#          speaker-map must merge only when the user explicitly selects both names (FR-1 nickname change)
+
+[15/11/2025, 09:00:00] Alice: morning
+[15/11/2025, 09:01:00] Bob: hey
+[16/11/2025, 09:00:00] Al: new phone, same me
+[16/11/2025, 09:01:00] Bob: noted
+[16/11/2025, 09:02:00] Al: good

@@ -1,0 +1,9 @@
+# fixture: single-message.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: content
+# expected-messages: 1
+# expected-system: 0
+# asserts: a one-message conversation parses without crashing; W-SMALL-SAMPLE honesty warning fires; 1 participant
+
+[15/11/2025, 10:00:00] Alex: just one message

@@ -1,0 +1,12 @@
+# fixture: month-first-en.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / English month-first / "Mon D, YYYY" / 12-hour
+# category: dialect
+# expected-messages: 4
+# expected-system: 0
+# asserts: English month-first format resolves as MDY with high confidence (explicit order)
+
+Mar 4, 2026, 9:15 AM - Riley: hello
+Mar 4, 2026, 9:16 AM - Jordan: hey
+Apr 13, 2026, 8:40 PM - Jordan: long time
+Apr 13, 2026, 8:41 PM - Riley: too long

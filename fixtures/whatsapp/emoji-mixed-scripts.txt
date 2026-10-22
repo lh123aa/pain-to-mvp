@@ -1,0 +1,14 @@
+# fixture: emoji-mixed-scripts.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: content
+# expected-messages: 6
+# expected-system: 0
+# asserts: emoji cloud / Chinese / Cyrillic / Arabic / URL with query survive; final line is an empty message body
+
+[15/11/2025, 12:00:00] Alex: 😅😂🥲❤️💀🎉
+[15/11/2025, 12:01:00] Sam: 中文 mixed with English 🎉
+[15/11/2025, 12:02:00] Alex: Привет! Как дела?
+[15/11/2025, 12:03:00] Sam: مرحبا
+[15/11/2025, 12:04:00] Alex: link https://example.com/a?b=1&c=2
+[15/11/2025, 12:05:00] Sam:

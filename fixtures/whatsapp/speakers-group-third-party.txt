@@ -1,0 +1,15 @@
+# fixture: speakers-group-third-party.txt
+# source: synthetic (hand-written for tests; contains no real conversation)
+# platform: whatsapp / Android / bracketed 24-hour DD/MM/YYYY
+# category: speaker
+# expected-messages: 6
+# expected-system: 0
+# asserts: a third-party name appears mid-conversation → 3 senders + W-RENAME-SUSPECTED;
+#          speaker-map must reject this as a group chat (E-4) unless the user explicitly maps every sender
+
+[15/11/2025, 09:00:00] Alex: hi all
+[15/11/2025, 09:01:00] Sam: hey
+[15/11/2025, 09:02:00] Bob: third wheel here
+[15/11/2025, 09:03:00] Alex: lol
+[15/11/2025, 09:04:00] Sam: plan?
+[15/11/2025, 09:05:00] Bob: count me in
