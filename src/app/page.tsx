@@ -31,10 +31,14 @@ export default function Home() {
               <CtaLink href="/analyze" position="hero">
                 Analyze my chat <span className="arr" aria-hidden="true">→</span>
               </CtaLink>
+              <a className="btn-secondary" href="/sample" style={{ alignSelf: "center" }}>
+                See a sample report →
+              </a>
             </div>
             <p className="cta-fine">
-              Takes about 1–5&nbsp;minutes · From <span className="tnum">$14.99</span> · No
-              subscription
+              Takes about 1–5&nbsp;minutes · One-time <span className="tnum">$14.99</span> · 7-day
+              refund · No subscription ·{" "}
+              <a href="/refund">Refund policy</a> · <a href="/terms">Terms</a>
             </p>
             <div className="trust">
               <span className="trust-item">
@@ -150,6 +154,49 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ===== 区块 3.5 · What's in the report ===== */}
+      <section className="block" aria-labelledby="chapters-h">
+        <div className="wrap">
+          <p className="sec-label rise">What you get</p>
+          <h2 id="chapters-h" className="rise">
+            Six chapters, one evidence-linked report.
+          </h2>
+          <ol
+            className="rise"
+            style={{ margin: "18px 0 0", paddingLeft: 22, lineHeight: 1.9, color: "var(--ink-700)" }}
+          >
+            <li>
+              <strong>At a glance</strong> — the score, your attachment direction, and how
+              confident we are.
+            </li>
+            <li>
+              <strong>Attachment picture</strong> — both sides, with the behavioural signals behind
+              each call.
+            </li>
+            <li>
+              <strong>Communication health</strong> — five dimensions and the ten metrics they come
+              from.
+            </li>
+            <li>
+              <strong>Turning points</strong> — pauses, late-night clusters, repair moments, and the
+              last message.
+            </li>
+            <li>
+              <strong>Evidence &amp; confidence</strong> — short quoted excerpts, plus a plain list
+              of what this report cannot know.
+            </li>
+            <li>
+              <strong>Next 7 days</strong> — small, specific actions chosen from your weakest
+              dimension.
+            </li>
+          </ol>
+          <p className="acc-note rise">
+            <a href="/sample">Read the full sample report →</a> ·{" "}
+            <a href="/methodology">How scores are computed →</a>
+          </p>
+        </div>
+      </section>
+
       {/* ===== 区块 4 · Privacy promise ===== */}
       <section className="privacy block" aria-labelledby="priv-h">
         <div className="wrap">
@@ -183,6 +230,10 @@ export default function Home() {
           <a className="priv-link rise" href="/privacy">
             Read the plain-English privacy policy →
           </a>
+          <p className="acc-note rise" style={{ marginTop: 10 }}>
+            Local parsing · deleted after 90 days · never used to train models · one-click delete ·{" "}
+            <a href="/notice">notice for people in your chats</a>
+          </p>
         </div>
       </section>
 
@@ -193,7 +244,9 @@ export default function Home() {
             Built on published attachment research — <span className="tnum">135</span> sources
             reviewed. <a href="/methodology">See the methodology →</a>
           </p>
-          <p className="proof-soon rise">Beta reader quotes coming soon.</p>
+          <p className="proof-soon rise">
+            We&apos;re in beta — no paid testimonials yet. Samples are synthetic.
+          </p>
         </div>
       </section>
 
