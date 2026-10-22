@@ -1,16 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Footer, TopBar } from "../components";
 import { track } from "../hooks";
-import {
-  conversationFromChat,
-  createSpeakerMap,
-  detectInputFormat,
-  parsePastedText,
-  parseWhatsAppTxt,
-} from "@/parser";
+import { conversationFromChat, createSpeakerMap } from "@/parser";
 import type {
   Conversation,
   DateOrder,
@@ -18,6 +12,8 @@ import type {
   ParseIssue,
   SpeakerMapResult,
 } from "@/parser";
+import { createParseWorker } from "@/parser/worker-client";
+import type { ParseWorker } from "@/parser/worker-client";
 import { buildReportFeatures, formatDateRange } from "@/rules";
 import type { ReportFeatures } from "@/rules";
 import {
@@ -34,6 +30,9 @@ import {
  *
  * 浏览器内完成 读取 → 检测格式 → 解析 → 日期顺序确认 → 说话人锁定 →
  * buildReportFeatures → 本地保存 → /report/preview。原文不出浏览器。
+ *
+ * 解析在 Web Worker 里执行（大文件不阻塞主线程）；Worker 不可用/超时/报错时
+ * worker-client 自动回退到同一份纯函数在主线程同步解析（功能不丢、错误态不变）。
  *
  * 纪律：
  * - 说话人只认用户输入/点选的昵称，绝不按性别、左右、语气猜（PRD FR-2）；
@@ -200,6 +199,23 @@ export default function AnalyzePage() {
   const [mergePartner, setMergePartner] = useState<string[]>([]);
   const [speakerError, setSpeakerError] = useState<{ message: string; hint?: string } | null>(null);
 
+  // Web Worker 客户端：懒创建（SSR 安全）；Worker 不可用/超时自动回退主线程同步解析。
+  const parseWorkerRef = useRef<ParseWorker | null>(null);
+  const parseRequestIdRef = useRef(0);
+
+  useEffect(
+    () => () => {
+      parseWorkerRef.current?.terminate();
+      parseWorkerRef.current = null;
+    },
+    [],
+  );
+
+  function getParseWorker(): ParseWorker {
+    if (!parseWorkerRef.current) parseWorkerRef.current = createParseWorker();
+    return parseWorkerRef.current;
+  }
+
   function resetFlow() {
     setFlow({ kind: "form" });
     setBusy(false);
@@ -294,20 +310,35 @@ export default function AnalyzePage() {
   ) {
     setBusy(true);
     setBusyLabel("Parsing in this tab…");
-    // 让 loading 状态先绘制一帧，再跑同步解析（大文件可能阻塞几百毫秒）
+    // 让 busy 状态先绘制一帧。Worker 正常时解析在后台线程；Worker 不可用/超时回退主线程时
+    // 这一步更是必要 —— 否则同步 fallback 会先阻塞，用户看不到任何状态反馈。
     await new Promise((resolve) => setTimeout(resolve, 0));
+    // 解析在 Web Worker 里跑（大文件不阻塞主线程）。Worker 不可用 / 超时 / 报错时，
+    // worker-client 自动回退到同一份纯函数在主线程同步执行 —— 行为与错误态保持一致。
     try {
-      const detection = detectInputFormat(text);
-      const parsed =
-        detection.format === "whatsapp"
-          ? parseWhatsAppTxt(text, { dateOrder })
-          : detection.format === "paste"
-            ? parsePastedText(text, { dateOrder })
-            : source === "file"
-              ? parseWhatsAppTxt(text, { dateOrder })
-              : parsePastedText(text, { dateOrder });
+      const response = await getParseWorker().parse({
+        id: (parseRequestIdRef.current += 1),
+        text,
+        source,
+        ...(dateOrder === undefined ? {} : { dateOrder }),
+      });
+      const issues = response.issues;
+      const chat = response.chat;
 
-      const chat = parsed.chat;
+      // 传输/解析器内部异常：与既有 catch 分支同一套人话错误。
+      if (chat === null) {
+        console.error("[analyze] parse failed", response.ok ? "missing chat" : response.error);
+        setFlow({
+          kind: "error",
+          error: {
+            title: "We couldn’t read this conversation",
+            body: "The parser stopped unexpectedly. Your text stayed in this tab and was never uploaded.",
+            hint: "Try a different export, or paste the conversation instead.",
+          },
+        });
+        return;
+      }
+
       if (chat.meta.tier === "over-limit") {
         setFlow({
           kind: "error",
@@ -320,17 +351,17 @@ export default function AnalyzePage() {
         return;
       }
 
-      const errorIssue = parsed.issues.find((issue) => issue.severity === "error");
+      const errorIssue = issues.find((issue) => issue.severity === "error");
       if (chat.meta.messageCount === 0) {
         setFlow({ kind: "error", error: emptyError(errorIssue, source) });
         return;
       }
-      if (!parsed.ok && errorIssue) {
+      if (!response.ok && errorIssue) {
         setFlow({ kind: "error", error: parseError(errorIssue, source) });
         return;
       }
 
-      // 日期歧义：必须先让用户确认一次，选后带 dateOrder 重解析。
+      // 日期歧义：必须先让用户确认一次，选后带 dateOrder 重解析（同样走 worker/fallback）。
       if (chat.meta.needsDateConfirmation && dateOrder === undefined) {
         setFlow({ kind: "date", text, source, fileLabel });
         return;
