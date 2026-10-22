@@ -47,3 +47,12 @@ date,metric,value,unit,source,confidence,note
 2026-10-22,bili_login_ok,0,bool,B站 nav API,high,isLogin:false
 2026-10-22,zhihu_answer_collapsed,1,count,知乎回答页,high,collapsedBy=community
 2026-10-22,afdian_profile_visitors,16,count,爱发电 dashboard,high,主页 32 次
+2026-10-22,bili_login_ok,1,bool,B站 nav API,high,isLogin:true（10-21 曾丢失）
+2026-10-22,bili_comments_posted,3,count,B站 x/v2/reply/main 复查,high,rpid 317850582929 / 317851534737 / 317851753137
+2026-10-22,zhihu_article_published,1,count,知乎创作中心,high,第 6 篇创作；0 CTA；AI 声明
+2026-10-22,zhihu_article_reads,1,count,知乎创作中心 22:25,high,发布约 30 分钟
+2026-10-22,zhihu_pin_views,4,count,知乎创作中心 22:25,high,0 赞/0 评论
+2026-10-22,content_interactions,0,count,三平台巡检 22:25,high,仍 0 评论/0 赞；文章 0 评论
+2026-10-22,business_dms,0,count,知乎/爱发电私信 22:25,high,仅官方/无业务
+2026-10-22,v2ex_reachable,0,bool,浏览器导航两次,high,ERR_CONNECTION_TIMED_OUT
+2026-10-22,content_posts_total,8,count,PUBLISHED.md 台账,high,爱发电 3 + B站 2 + 知乎 3

@@ -1,9 +1,9 @@
 # INDEX . pain-to-mvp 痛点→MVP机会发现管线
 
-> 由 journal.py 自动生成（2026-10-22T19:10:51）。按类型/时间检索本项目全部记录。
+> 由 journal.py 自动生成（2026-10-22T22:34:27）。按类型/时间检索本项目全部记录。
 
 - 阶段：S2 构建 . 终局：进行中
-- 日记 104 条 . 档案 17 份
+- 日记 116 条 . 档案 18 份
 
 ## 档案
 
@@ -13,9 +13,10 @@
 - **ADR-0002** [P0 域校验选纯词表规则 + 阈值0.3→0.5（真实数据证伪后收紧）](records/decisions/ADR-0002-p0-0-3-0-5.md) -- 2026-10-15 . accepted
 - **ADR-0003** [工作约定：每阶段完成必须展示全局进度看板](records/decisions/ADR-0003-record.md) -- 2026-10-15 . accepted
 
-### 问题 problem（1）
+### 问题 problem（2）
 
 - **PB-0001** [v_voucher 二次拦截（10-17 10:00 直播没人看轮）：fail-close 生产实证 EXIT=1](records/problems/PB-0001-v-voucher-10-17-10-00-fail-close-exit-1.md) -- 2026-10-17 . open
+- **PB-0002** [V2EX 网络层超时：今日不作为分发渠道](records/problems/PB-0002-v2ex.md) -- 2026-10-22 . open
 
 ### 解法 solution（3）
 
@@ -44,7 +45,7 @@
 
 ## 日记
 
-- [2026-10-22](journal/2026-10-22.md) -- 11 条：T3 M8
+- [2026-10-22](journal/2026-10-22.md) -- 23 条：T5 M17 P1
 - [2026-10-21](journal/2026-10-21.md) -- 10 条：T5 M5
 - [2026-10-20](journal/2026-10-20.md) -- 8 条：D5 T1 B1 M1
 - [2026-10-19](journal/2026-10-19.md) -- 16 条：T10 M1 D5
