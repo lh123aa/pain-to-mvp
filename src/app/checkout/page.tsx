@@ -7,6 +7,10 @@ import {
   CHECKOUT_ID_STORAGE_KEY,
   CHECKOUT_MODE_STORAGE_KEY,
 } from "../../lib/report-access";
+import {
+  CHECKOUT_CLIENT_REF_STORAGE_KEY,
+  generateClientRef,
+} from "../../lib/checkout";
 
 /**
  * /checkout — 结账页
@@ -77,6 +81,18 @@ function CheckoutInner() {
     setStatus("creating");
     setError(null);
 
+    // W3-2：生成跨设备关联 id 并立即落到 sessionStorage（report 页支付完成后
+    // 用它调 /api/order-status 拿上传 token；mock 分支同样记录，但不上传报告）。
+    const clientRef = generateClientRef();
+    writeSession(CHECKOUT_CLIENT_REF_STORAGE_KEY, clientRef);
+    // 镜像到 localStorage：邮件魔链可能在新标签页打开（sessionStorage 不共享），
+    // report 页需要 checkoutRef 才能把已生成的报告同步到服务端。
+    try {
+      localStorage.setItem(CHECKOUT_CLIENT_REF_STORAGE_KEY, clientRef);
+    } catch {
+      // storage 不可用：跨标签页同步降级，不影响支付链路
+    }
+
     const input = safeReadInput();
     try {
       const res = await fetch("/api/checkout", {
@@ -85,6 +101,7 @@ function CheckoutInner() {
         body: JSON.stringify({
           ...input,
           email: email || undefined,
+          clientRef,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as CheckoutApiResponse;

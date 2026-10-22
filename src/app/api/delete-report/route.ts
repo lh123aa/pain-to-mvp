@@ -1,4 +1,4 @@
-﻿/**
+/**
  * POST /api/delete-report
  * =======================
  * 用户删除自己的报告与分析数据（隐私删除，GDPR/CCPA 风格）。
@@ -29,6 +29,7 @@ import {
   revokeMagicLinksForOrder,
   verifyMagicLinkToken,
 } from "@/lib/magic-link";
+import { getReportStore } from "@/lib/report-store";
 
 // Node.js runtime is the App Router default; do not declare it; Next 16 cacheComponents rejects the segment config.
 
@@ -73,9 +74,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 幂等：已经删过 → 返回成功（并确保魔链处于吊销状态）
+  // 幂等：已经删过 → 返回成功（并确保魔链/报告都处于删除状态）
   if (order.status === "deleted") {
     revokeMagicLinksForOrder(tokenOrderId);
+    const reportFailure = await deleteStoredReport(tokenOrderId);
+    if (reportFailure) return reportFailure;
     return NextResponse.json({
       ok: true,
       alreadyDeleted: true,
@@ -93,10 +96,34 @@ export async function POST(req: NextRequest) {
 
   revokeMagicLinksForOrder(tokenOrderId);
 
+  // W3-2：跨设备报告与订单同源删除（报告里含引用，属于用户数据分析结果）
+  const reportFailure = await deleteStoredReport(tokenOrderId);
+  if (reportFailure) return reportFailure;
+
   return NextResponse.json({
     ok: true,
     deletedAt: mutation.order.deletedAt || mutation.order.updatedAt,
   });
+}
+
+/**
+ * 删除已落库的报告；失败返回 500（让调用方重试：订单已是 deleted，重试会走
+ * 幂等分支再删一次报告）。
+ */
+async function deleteStoredReport(orderId: string): Promise<NextResponse | null> {
+  try {
+    await getReportStore().deleteReport(orderId);
+    return null;
+  } catch (err) {
+    console.error(
+      `[delete-report] 删除报告失败 order=${orderId}:`,
+      err instanceof Error ? err.message : err
+    );
+    return NextResponse.json(
+      { ok: false, error: "report deletion failed; please retry" },
+      { status: 500 }
+    );
+  }
 }
 
 /* ===== 小工具 ===== */

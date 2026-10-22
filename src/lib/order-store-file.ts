@@ -83,8 +83,10 @@ export class FileOrderStore implements OrderStore {
       throw new FileOrderStoreError("FileOrderStore 需要非空目录");
     }
     this.dir = path.resolve(normalizedDir);
+    // 文件存储只用于本地/单实例 staging；显式 opt-out 打包追踪，避免 Turbopack
+    // 因动态路径把整个项目打进 server bundle（生产应使用 Postgres 实现）。
     this.filePath = path.join(
-      this.dir,
+      /*turbopackIgnore: true*/ this.dir,
       options.fileName ?? DEFAULT_ORDERS_FILE_NAME
     );
     this.tmpFilePath = `${this.filePath}.tmp`;

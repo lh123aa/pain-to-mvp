@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Footer, TopBar } from "../components";
 import { buildDemoReport } from "../../lib/checkout";
@@ -13,6 +13,15 @@ import {
 } from "../../lib/report-contract";
 import { track } from "../hooks";
 import { clearSession } from "../../lib/client-session";
+import {
+  CHECKOUT_REF_STORAGE_KEY,
+  CONTRACT_CHECKOUT_REF_STORAGE_KEY,
+  interpretSyncResult,
+  loadServerReport,
+  shouldSyncReport,
+  syncReportToServer,
+  type ReportSyncResult,
+} from "../../lib/report-sync";
 import {
   NETWORK_FAILURE_STATUS,
   buildDeleteRequest,
@@ -60,12 +69,14 @@ type AccessState =
   | { kind: "waiting"; reason: WaitingReason }
   | { kind: "invalid"; reason: InvalidReason; message?: string };
 
-/** The locally built report plus the metadata we want to show in the header. */
+/** The report plus the metadata we want to show in the header. */
 type LocalReportState = {
   report: ReportDataV2;
   fileName: string;
   speakers: { user: string; partner: string };
   createdAt: string;
+  /** local = built in this browser from tell:features:v1; server = fetched via magic link. */
+  origin: "local" | "server";
 };
 
 /**
@@ -108,12 +119,59 @@ function readLocalReport(): LocalReportState | null {
         fileName: parsed.fileName || "(unknown export)",
         speakers: parsed.speakers,
         createdAt: parsed.createdAt,
+        origin: "local",
       };
     } catch {
       continue;
     }
   }
   return null;
+}
+
+/** Read a sessionStorage key with a localStorage fallback; never throws. */
+function readStorage(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const session = window.sessionStorage.getItem(key);
+    if (session) return session;
+  } catch {
+    /* storage disabled: fall through to localStorage */
+  }
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Client reference written by /checkout for cross-device sync. The checkout
+ * task owns the key (`CHECKOUT_CLIENT_REF_STORAGE_KEY` = "tell:checkout-client-ref");
+ * this page only reads it. We try that actual key first, then the documented
+ * spec key / hyphen variant, then the legacy checkout id for older sessions.
+ */
+function readCheckoutRef(): string | null {
+  for (const key of [
+    CHECKOUT_REF_STORAGE_KEY,
+    CONTRACT_CHECKOUT_REF_STORAGE_KEY,
+    "tell:checkout-ref",
+    CHECKOUT_ID_STORAGE_KEY,
+  ]) {
+    const value = readStorage(key);
+    if (value) return value;
+  }
+  return null;
+}
+
+/** Wrap a server-fetched report in the header state RealReportView expects. */
+function toServerReportState(report: ReportDataV2, savedAt: string | null): LocalReportState {
+  return {
+    report,
+    fileName: "Saved report",
+    speakers: { user: "You", partner: "Your partner" },
+    createdAt: savedAt ?? report.meta.generatedAt,
+    origin: "server",
+  };
 }
 
 /**
@@ -151,6 +209,17 @@ function ReportInner() {
   const [checkoutRef, setCheckoutRef] = useState<string | null>(null);
   const [localReport, setLocalReport] = useState<LocalReportState | null>(null);
   const [localReportChecked, setLocalReportChecked] = useState(false);
+  // Device 2 (magic link only): report fetched from GET /api/report.
+  const [serverReport, setServerReport] = useState<{
+    report: ReportDataV2;
+    savedAt: string | null;
+  } | null>(null);
+  const [serverLoadState, setServerLoadState] = useState<
+    "idle" | "loading" | "not-found" | "deleted" | "error"
+  >("idle");
+  // Device 1: silent cross-device upload result (only `saved` is ever rendered).
+  const [syncResult, setSyncResult] = useState<ReportSyncResult | null>(null);
+  const syncStartedRef = useRef(false);
 
   const token = sp.get("token");
   const checkout = sp.get("checkout");
@@ -284,6 +353,92 @@ function ReportInner() {
     };
   }, []);
 
+  // 设备 1（跨设备同步）：本机生成了报告且 live 已支付（token 已验证）时，
+  // 渲染后在后台静默上传一次。success 显示提示；queued/skipped/failed 全部
+  // 静默，绝不影响报告本身。
+  useEffect(() => {
+    if (syncStartedRef.current) return;
+    if (!localReportChecked || localReport === null) return;
+    if (access.kind !== "report") return;
+    const isMockAccess = access.source === "mock";
+    if (!shouldSyncReport({ isMock: isMockAccess, token, hasLocalFeatures: true })) return;
+    syncStartedRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      const result = await syncReportToServer({
+        checkoutRef: readCheckoutRef(),
+        report: localReport.report,
+        fetchImpl: fetch,
+      });
+      if (cancelled) return;
+      track("report_sync", { status: result.status, reason: result.reason });
+      setSyncResult(result);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [localReportChecked, localReport, access, token]);
+
+  // 支付完成首次回跳（?checkout=PENDING）：本机有报告、有 checkoutRef 时轮询订单状态，
+  // 一旦 webhook 落库就立即上传报告。这样用户之后从邮件魔链打开（哪怕在另一台设备）
+  // 也能看到同一份报告；失败静默，不阻塞等待页。
+  useEffect(() => {
+    if (syncStartedRef.current) return;
+    if (!localReportChecked || localReport === null) return;
+    if (access.kind !== "waiting" || access.reason !== "payment-pending") return;
+    const ref = readCheckoutRef();
+    if (!ref) return;
+    syncStartedRef.current = true;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const attempt = async (n: number) => {
+      const result = await syncReportToServer({
+        checkoutRef: ref,
+        report: localReport.report,
+        fetchImpl: fetch,
+      });
+      if (cancelled) return;
+      track("report_sync", { status: result.status, reason: result.reason });
+      setSyncResult(result);
+      if (result.status === "saved" || result.status === "failed") return;
+      if (n < 20) timer = setTimeout(() => void attempt(n + 1), 3000);
+    };
+    void attempt(0);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [localReportChecked, localReport, access]);
+
+  // 设备 2（跨设备读取）：本机没有特征、但持有效魔链 token 时，从服务端取
+  // 已同步的报告 JSON 并走同一条 RealReportView 渲染路径。404 → 等待态，
+  // 410 → 已删除态。mock 模式永远不会进入这里。
+  useEffect(() => {
+    if (!localReportChecked || localReport !== null) return;
+    if (access.kind !== "report" || access.source === "mock") return;
+    if (!token) return;
+    let cancelled = false;
+    void (async () => {
+      setServerLoadState("loading");
+      const result = await loadServerReport({ token, fetchImpl: fetch });
+      if (cancelled) return;
+      if (result.status === "loaded") {
+        setServerReport({ report: result.report, savedAt: result.savedAt });
+        setServerLoadState("idle");
+      } else if (result.status === "not-found") {
+        setServerLoadState("not-found");
+      } else if (result.status === "deleted") {
+        setServerLoadState("deleted");
+      } else {
+        setServerLoadState("error");
+      }
+      track("report_server_load", { status: result.status });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [localReportChecked, localReport, access, token]);
+
   // 报告数据：live 用已验证订单的 custom；mock 用 preview / 演示内核
   const report: ReportData = useMemo(() => {
     if (access.kind !== "report") return DEMO_REPORT;
@@ -368,7 +523,9 @@ function ReportInner() {
         title={pending ? "Your report is being prepared" : "Open the magic link from your email"}
         message={
           pending
-            ? "Thanks for your purchase. We're generating your report — this usually takes a few seconds. We've also emailed you a magic link to the address you paid with; it works for 7 days."
+            ? syncResult !== null && syncResult.status === "saved"
+              ? "Saved — open the magic link on any device. We also emailed you a magic link to the address you paid with; it works for 7 days."
+              : "Thanks for your purchase. We're preparing your report and saving it so the magic link works on any device. We've also emailed you a magic link to the address you paid with; it works for 7 days."
             : "For security, the full report opens from the magic link we email after purchase. Check your inbox (and spam) for the message from The Tell."
         }
       >
@@ -406,6 +563,10 @@ function ReportInner() {
 
   /* ===== 报告正文 ===== */
   const isMock = access.source === "mock";
+  const syncNotice =
+    syncResult !== null && syncResult.status === "saved"
+      ? interpretSyncResult(syncResult).title
+      : null;
 
   // 访问门已通过（mock 或已验证 token/order）。有本机分析数据 → 渲染真实六章报告；
   // 没有时：mock 保留演示报告，live 绝不回落到 demo（报告数据只在执行分析的浏览器里）。
@@ -429,11 +590,107 @@ function ReportInner() {
         token={token}
         orderStatus={access.order?.status ?? null}
         onBackHome={() => router.push("/")}
+        syncNotice={syncNotice}
       />
     );
   }
 
   if (!isMock) {
+    // 设备 2：本机没有分析数据，但订单已把这报告同步到服务端 → 用取回的
+    // report JSON 走同一条六章渲染路径。
+    if (serverReport !== null) {
+      return (
+        <RealReportView
+          state={toServerReportState(serverReport.report, serverReport.savedAt)}
+          isMock={false}
+          token={token}
+          orderStatus={access.order?.status ?? null}
+          onBackHome={() => router.push("/")}
+        />
+      );
+    }
+
+    if (token) {
+      if (serverLoadState === "deleted") {
+        return (
+          <StatusScreen
+            label="Report deleted"
+            title="This report is no longer available"
+            message="The analysis data for this report was deleted, or it is past its retention window, so this magic link can no longer open it. You can start a new analysis at any time."
+          >
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+              <button className="btn-cta" style={{ width: "auto" }} onClick={() => router.push("/analyze")}>
+                Analyze a chat
+              </button>
+              <a className="btn-secondary" href="/privacy" style={{ display: "inline-flex", alignItems: "center" }}>
+                Privacy
+              </a>
+              <a className="btn-secondary" href="/notice" style={{ display: "inline-flex", alignItems: "center" }}>
+                Contact support
+              </a>
+            </div>
+          </StatusScreen>
+        );
+      }
+
+      if (serverLoadState === "not-found") {
+        return (
+          <StatusScreen
+            label="Payment received"
+            title="Your report is being prepared"
+            message="We found your order, but the saved report isn't ready for this link yet. Wait a moment and refresh, or reopen the magic link from your email."
+          >
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+              <button
+                className="btn-cta"
+                style={{ width: "auto" }}
+                onClick={() => window.location.reload()}
+              >
+                Refresh
+              </button>
+              <a className="btn-secondary" href="/notice" style={{ display: "inline-flex", alignItems: "center" }}>
+                Need help?
+              </a>
+            </div>
+          </StatusScreen>
+        );
+      }
+
+      if (serverLoadState === "error") {
+        return (
+          <StatusScreen
+            label="Report unavailable"
+            title="We couldn't load this report"
+            message="The saved report couldn't be fetched right now. Refresh to try again - your purchase is safe."
+          >
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+              <button
+                className="btn-cta"
+                style={{ width: "auto" }}
+                onClick={() => window.location.reload()}
+              >
+                Refresh
+              </button>
+              <a className="btn-secondary" href="/notice" style={{ display: "inline-flex", alignItems: "center" }}>
+                Contact support
+              </a>
+            </div>
+          </StatusScreen>
+        );
+      }
+
+      // idle / loading: the fetch effect is about to run (or is running).
+      return (
+        <StatusScreen
+          label="Opening your report"
+          title="One moment…"
+          message="Fetching the report saved for this link."
+        >
+          <span className="mock-badge">Loading report data</span>
+        </StatusScreen>
+      );
+    }
+
     return (
       <StatusScreen
         label="Report data not found"
@@ -712,12 +969,15 @@ function RealReportView({
   token,
   orderStatus,
   onBackHome,
+  syncNotice = null,
 }: {
   state: LocalReportState;
   isMock: boolean;
   token: string | null;
   orderStatus: string | null;
   onBackHome: () => void;
+  /** Device 1 only: "Saved — open this link on any device" after a successful upload. */
+  syncNotice?: string | null;
 }) {
   const { report, fileName, speakers } = state;
   const [confirm, setConfirm] = useState<"refund" | "delete" | null>(null);
@@ -807,6 +1067,28 @@ function RealReportView({
             </div>
           )}
 
+          {syncNotice && (
+            <p
+              data-testid="report-sync-saved"
+              role="status"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontFamily: "var(--font-mono)",
+                fontSize: 11.5,
+                letterSpacing: "0.04em",
+                background: "var(--teal-tint)",
+                color: "var(--teal-deep)",
+                borderRadius: 4,
+                padding: "4px 10px",
+                marginBottom: 14,
+              }}
+            >
+              {syncNotice}
+            </p>
+          )}
+
           <div className="report-hero">
             <p className="sec-label">The Tell · Relationship Report</p>
             <div className="report-score">
@@ -825,7 +1107,9 @@ function RealReportView({
                 lineHeight: 1.7,
               }}
             >
-              {fileName} · {speakers.user} vs {speakers.partner}
+              {state.origin === "server"
+                ? "Saved copy from your order"
+                : `${fileName} · ${speakers.user} vs ${speakers.partner}`}
               <br />
               {report.meta.sample.messages} messages · {report.meta.sample.dateRange} · confidence{" "}
               {Math.round(report.headline.confidence * 100)}% ({report.headline.confidenceLabel})

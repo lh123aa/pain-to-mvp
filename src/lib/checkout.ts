@@ -40,7 +40,42 @@ export type CheckoutRequest = {
   speakerB: string;
   pasted?: string;
   email?: string;
+  /**
+   * W3-2 跨设备报告：checkout 页生成的随机关联 id（`tell_<random>`）。
+   * 原样放进 LS `checkout_data.custom.client_ref`，webhook 回传后落 OrderRecord.clientRef。
+   * 不传时 checkout 流程仍然可用（旧调用方 / 测试兼容），但没有跨设备关联。
+   */
+  clientRef?: string;
 };
+
+/**
+ * checkout 页把 clientRef 写到 sessionStorage 的 key（W3-2 跨页契约）。
+ * `report` 页（report-engineer 在接线）读取它后调 `GET /api/order-status?ref=`。
+ */
+export const CHECKOUT_CLIENT_REF_STORAGE_KEY = "tell:checkout-client-ref";
+
+const CLIENT_REF_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+/**
+ * 生成 clientRef：`tell_<16 字节随机 base36>`。
+ * 用 Web Crypto（浏览器 / Node 18+ 都有），没有时退回 Math.random（仅本地降级）。
+ */
+export function generateClientRef(): string {
+  const bytes = new Uint8Array(16);
+  const cryptoObj = globalThis.crypto;
+  if (cryptoObj && typeof cryptoObj.getRandomValues === "function") {
+    cryptoObj.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i += 1) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  let suffix = "";
+  for (const byte of bytes) {
+    suffix += CLIENT_REF_ALPHABET[byte % CLIENT_REF_ALPHABET.length];
+  }
+  return `tell_${suffix}`;
+}
 
 /** 生成演示报告（mock 数据源；真实内核到位后替换为解析+规则+LLM 结果） */
 export function buildDemoReport(req: CheckoutRequest): ReportData {
@@ -98,16 +133,26 @@ export type LemonCheckoutBody = {
  */
 export function buildCheckoutBody(
   req: CheckoutRequest,
-  options: { storeId: string; variantId: string; redirectUrl: string }
+  options: {
+    storeId: string;
+    variantId: string;
+    redirectUrl: string;
+    /** W3-2：透传 clientRef；只在有值时写入 custom（旧调用方/测试形状不变） */
+    clientRef?: string;
+  }
 ): LemonCheckoutBody {
+  const custom: Record<string, string> = {
+    fileName: req.fileName || "",
+    speakerA: req.speakerA || "",
+    speakerB: req.speakerB || "",
+    pastedLen: String((req.pasted || "").length),
+  };
+  const clientRef = options.clientRef?.trim();
+  if (clientRef) custom.client_ref = clientRef;
+
   const checkoutData: LemonCheckoutBody["data"]["attributes"]["checkout_data"] = {
     // custom 的值统一用字符串，避免 JSON:API 序列化差异
-    custom: {
-      fileName: req.fileName || "",
-      speakerA: req.speakerA || "",
-      speakerB: req.speakerB || "",
-      pastedLen: String((req.pasted || "").length),
-    },
+    custom,
   };
   if (req.email) checkoutData.email = req.email;
 
@@ -168,7 +213,12 @@ export async function createCheckout(
     method: "POST",
     headers: apiHeaders({ jsonBody: true }),
     body: JSON.stringify(
-      buildCheckoutBody(req, { storeId, variantId, redirectUrl })
+      buildCheckoutBody(req, {
+        storeId,
+        variantId,
+        redirectUrl,
+        clientRef: req.clientRef,
+      })
     ),
   });
 

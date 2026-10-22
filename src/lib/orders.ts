@@ -57,6 +57,14 @@ export type OrderRecord = {
   refundedAt?: string;
   /** 数据删除时间（ISO）；status=deleted 后写入 */
   deletedAt?: string;
+  /**
+   * checkout 页生成的关联 id（`tell_<random>`，W3-2 跨设备报告链路）。
+   * 通过 LS `checkout_data.custom.client_ref` 提交，webhook 的
+   * `meta.custom_data.client_ref` 回传后落在这里；
+   * `GET /api/order-status?ref=` 用它把「浏览器里的 checkout」和「服务端订单」对上。
+   * 非 PII，可安全保留；删除报告时不清除（用于审计 / 幂等）。
+   */
+  clientRef?: string;
 };
 
 export type OrderUpsertResult = {
@@ -95,6 +103,12 @@ export interface OrderStore {
     orderId: string,
     at?: Date | string
   ): Promise<OrderMutationResult>;
+  /**
+   * 可选：按 checkout 页生成的 clientRef 查订单（W3-2）。
+   * InMemory / File 用 list() 兜底即可；PgOrderStore 建议加
+   * `CREATE UNIQUE INDEX orders_client_ref_idx ON orders(client_ref)` 后实现本方法。
+   */
+  findByClientRef?(clientRef: string): Promise<OrderRecord | null>;
 }
 
 const TERMINAL_STATUSES: readonly OrderStatus[] = [
@@ -141,8 +155,15 @@ function isSameOrder(a: OrderRecord, b: OrderRecord): boolean {
     a.testMode === b.testMode &&
     a.refundedAt === b.refundedAt &&
     a.deletedAt === b.deletedAt &&
+    a.clientRef === b.clientRef &&
     JSON.stringify(a.custom) === JSON.stringify(b.custom)
   );
+}
+
+/** 订单的 clientRef：优先顶层字段，兼容从文件存储回读后只在 custom 里的情况 */
+export function getOrderClientRef(order: OrderRecord | null | undefined): string {
+  if (!order) return "";
+  return order.clientRef || readString(order.custom?.client_ref);
 }
 
 function toIsoString(value: Date | string | undefined): string {
@@ -191,6 +212,9 @@ export function applyUpsertTransition(
     email: incoming.email || current.email,
     variantId: incoming.variantId || current.variantId,
     status,
+    // clientRef 只增不减：webhook 重放缺字段时保留已有值
+    clientRef:
+      incoming.clientRef || getOrderClientRef(current) || undefined,
     custom:
       Object.keys(incoming.custom).length > 0
         ? { ...current.custom, ...incoming.custom }
@@ -318,6 +342,15 @@ export class InMemoryOrderStore implements OrderStore {
     }
     return result;
   }
+
+  async findByClientRef(clientRef: string): Promise<OrderRecord | null> {
+    const ref = clientRef.trim();
+    if (!ref) return null;
+    for (const order of this.orders.values()) {
+      if (getOrderClientRef(order) === ref) return order;
+    }
+    return null;
+  }
 }
 
 /* ===== 存储选择（内存 / 文件 / 注入） ===== */
@@ -400,6 +433,30 @@ export async function deleteOrderAnalysis(
 export async function isAccessRevoked(orderId: string): Promise<boolean> {
   const order = await getOrderStore().get(orderId);
   return !!order && isAccessRevokedStatus(order.status);
+}
+
+/**
+ * 按 checkout 页生成的 clientRef 找订单（W3-2 跨设备报告链路）。
+ * - 存储实现了 `findByClientRef` 就直接用（Pg 建议加唯一索引）；
+ * - 否则回退 `list()` 扫描（内存 / 文件实现的小数据量足够）。
+ */
+export async function findOrderByClientRef(
+  clientRef: string
+): Promise<OrderRecord | null> {
+  const ref = clientRef.trim();
+  if (!ref) return null;
+
+  const store = getOrderStore();
+  if (typeof store.findByClientRef === "function") {
+    const found = await store.findByClientRef(ref);
+    if (found) return found;
+  }
+
+  const orders = await store.list();
+  for (const order of orders) {
+    if (getOrderClientRef(order) === ref) return order;
+  }
+  return null;
 }
 
 /* ===== Lemon Squeezy webhook 事件 → OrderRecord ===== */
@@ -498,6 +555,14 @@ export function parseLemonOrderEvent(
     readString(attrs.completed_at) ||
     (status === "completed" ? updatedAt : "");
 
+  // checkout_data.custom 会由 LS 原样回传到 webhook 的 meta.custom_data；
+  // client_ref（W3-2）从 custom 里取出来提到顶层，便于按 ref 查订单。
+  const custom = toCustom(meta.custom_data ?? attrs.custom_data ?? attrs.custom);
+  const clientRef =
+    readString(custom.client_ref) ||
+    readString(meta.client_ref) ||
+    readString(attrs.client_ref);
+
   const order: OrderRecord = {
     orderId,
     variantId:
@@ -507,12 +572,13 @@ export function parseLemonOrderEvent(
       readString(attrs.email) ||
       readString(attrs.customer_email),
     status,
-    custom: toCustom(meta.custom_data ?? attrs.custom_data ?? attrs.custom),
+    custom,
     createdAt,
     updatedAt,
     completedAt,
     lastEventName: eventName,
     testMode: meta.test_mode === true || attrs.test_mode === true,
+    ...(clientRef ? { clientRef } : {}),
   };
 
   return { eventName, order };
