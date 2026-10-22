@@ -12,6 +12,19 @@ import {
   type ReportDataV2,
 } from "../../lib/report-contract";
 import { track } from "../hooks";
+import { clearSession } from "../../lib/client-session";
+import {
+  NETWORK_FAILURE_STATUS,
+  buildDeleteRequest,
+  buildRefundRequest,
+  deleteAvailability,
+  interpretDeleteResponse,
+  interpretRefundResponse,
+  refundAvailability,
+  shouldClearLocalData,
+  type ReportActionOutcome,
+  type ReportActionRequest,
+} from "../../lib/report-actions";
 import {
   CHECKOUT_ID_STORAGE_KEY,
   CHECKOUT_MODE_STORAGE_KEY,
@@ -101,6 +114,26 @@ function readLocalReport(): LocalReportState | null {
     }
   }
   return null;
+}
+
+/**
+ * Thin fetch wrapper for the two privacy actions. The decision matrix lives in
+ * `lib/report-actions.ts`; this wrapper only turns network failures into a
+ * status code the interpreter already understands.
+ */
+async function postReportAction(request: ReportActionRequest): Promise<{ status: number; body: unknown }> {
+  try {
+    const response = await fetch(request.endpoint, {
+      method: request.method,
+      headers: request.headers,
+      body: JSON.stringify(request.body),
+      cache: "no-store",
+    });
+    const body: unknown = await response.json().catch(() => ({}));
+    return { status: response.status, body };
+  } catch {
+    return { status: NETWORK_FAILURE_STATUS, body: null };
+  }
 }
 
 export default function ReportPage() {
@@ -393,7 +426,9 @@ function ReportInner() {
       <RealReportView
         state={localReport}
         isMock={isMock}
-        onRefund={() => router.push("/refund")}
+        token={token}
+        orderStatus={access.order?.status ?? null}
+        onBackHome={() => router.push("/")}
       />
     );
   }
@@ -451,13 +486,16 @@ function ReportInner() {
               <button className="btn-cta" onClick={() => window.print()} style={{ width: "auto" }}>
                 Download PDF <span className="arr">↓</span>
               </button>
-              <button
+              <a
                 className="btn-secondary"
-                onClick={() => router.push("/refund")}
-                style={{ alignSelf: "center" }}
+                href="/refund"
+                style={{ alignSelf: "center", display: "inline-flex", alignItems: "center" }}
               >
                 Request refund
-              </button>
+              </a>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <LocalDeleteControl />
             </div>
           </div>
 
@@ -667,17 +705,97 @@ function scoreColor(score: number): string {
   return "var(--clay)";
 }
 
-/** 从本地特征构建出的六章报告（全英文、带证据与置信度）。 */
+/** 从本地特征构建出的六章报告（全英文，带证据/置信度 + 隐私操作）。 */
 function RealReportView({
   state,
   isMock,
-  onRefund,
+  token,
+  orderStatus,
+  onBackHome,
 }: {
   state: LocalReportState;
   isMock: boolean;
-  onRefund: () => void;
+  token: string | null;
+  orderStatus: string | null;
+  onBackHome: () => void;
 }) {
   const { report, fileName, speakers } = state;
+  const [confirm, setConfirm] = useState<"refund" | "delete" | null>(null);
+  const [pending, setPending] = useState<"refund" | "delete" | null>(null);
+  const [lastAction, setLastAction] = useState<"refund" | "delete" | null>(null);
+  const [outcome, setOutcome] = useState<ReportActionOutcome | null>(null);
+
+  const refund = refundAvailability({ token, isMock, orderStatus });
+  const remove = deleteAvailability({ token, isMock, orderStatus });
+
+  async function runServerAction(kind: "refund" | "delete") {
+    const request = kind === "refund" ? buildRefundRequest(token) : buildDeleteRequest({ token });
+    if (request === null) return;
+    setConfirm(null);
+    setPending(kind);
+    setLastAction(kind);
+    setOutcome(null);
+    const response = await postReportAction(request);
+    const interpreted =
+      kind === "refund"
+        ? interpretRefundResponse(response.status, response.body)
+        : interpretDeleteResponse(response.status, response.body);
+    if (shouldClearLocalData(interpreted)) clearSession();
+    track(kind === "refund" ? "report_refund" : "report_delete", {
+      status: response.status,
+      alreadyDone: interpreted.kind === "success" ? interpreted.alreadyDone : false,
+    });
+    setPending(null);
+    setOutcome(interpreted);
+  }
+
+  function handleLocalDeleted() {
+    setConfirm(null);
+    setOutcome({
+      kind: "success",
+      alreadyDone: false,
+      title: "Deleted from this device",
+      message:
+        "This analysis has been removed from this browser. Server-side data was not changed - use Delete my data if you also want it removed from our servers.",
+      clearLocalData: true,
+      accessRevoked: false,
+    });
+  }
+
+  // A completed action replaces the report with a confirmation screen: after a
+  // refund the link is revoked, and after a deletion there is nothing left to show.
+  if (outcome?.kind === "success") {
+    return (
+      <StatusScreen label="Privacy request complete" title={outcome.title} message={outcome.message}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+          <button className="btn-cta" style={{ width: "auto" }} onClick={onBackHome}>
+            Back to home
+          </button>
+          <a
+            className="btn-secondary"
+            href="/refund"
+            style={{ display: "inline-flex", alignItems: "center" }}
+          >
+            Refund policy
+          </a>
+          <a
+            className="btn-secondary"
+            href="/notice"
+            style={{ display: "inline-flex", alignItems: "center" }}
+          >
+            Contact support
+          </a>
+        </div>
+      </StatusScreen>
+    );
+  }
+
+  const disabledHelpers: string[] = [];
+  if (!refund.available) disabledHelpers.push(refund.helper);
+  if (!remove.available && !disabledHelpers.includes(remove.helper)) {
+    disabledHelpers.push(remove.helper);
+  }
+
   return (
     <>
       <TopBar />
@@ -713,14 +831,169 @@ function RealReportView({
               {Math.round(report.headline.confidence * 100)}% ({report.headline.confidenceLabel})
             </p>
 
-            <div className="report-actions" style={{ display: "flex", gap: 12, marginTop: 18 }}>
+            <div
+              className="report-actions"
+              data-testid="report-actions"
+              style={{ display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap" }}
+            >
               <button className="btn-cta" onClick={() => window.print()} style={{ width: "auto" }}>
                 Download PDF <span className="arr">↓</span>
               </button>
-              <button className="btn-secondary" onClick={onRefund} style={{ alignSelf: "center" }}>
-                Request refund
+              <button
+                className="btn-secondary"
+                data-testid="refund-button"
+                disabled={!refund.available || pending !== null}
+                onClick={() => {
+                  setOutcome(null);
+                  setConfirm("refund");
+                }}
+                style={{
+                  alignSelf: "center",
+                  opacity: refund.available ? 1 : 0.55,
+                  cursor: refund.available ? "pointer" : "not-allowed",
+                }}
+              >
+                {pending === "refund" ? "Refunding…" : "Request refund"}
+              </button>
+              <button
+                className="btn-secondary"
+                data-testid="delete-button"
+                disabled={!remove.available || pending !== null}
+                onClick={() => {
+                  setOutcome(null);
+                  setConfirm("delete");
+                }}
+                style={{
+                  alignSelf: "center",
+                  opacity: remove.available ? 1 : 0.55,
+                  cursor: remove.available ? "pointer" : "not-allowed",
+                }}
+              >
+                {pending === "delete" ? "Deleting…" : "Delete my data"}
               </button>
             </div>
+
+            {disabledHelpers.length > 0 && (
+              <p style={{ fontSize: 13, color: "var(--ink-500)", marginTop: 10, lineHeight: 1.6 }}>
+                {disabledHelpers.join(" ")}
+              </p>
+            )}
+            {!remove.available && (
+              <div style={{ marginTop: 12 }}>
+                <LocalDeleteControl
+                  label="Delete this analysis from this device"
+                  onDeleted={handleLocalDeleted}
+                />
+              </div>
+            )}
+
+            {confirm === "refund" && (
+              <div className="risk-card" data-testid="refund-confirm" style={{ marginTop: 16 }}>
+                <div className="risk-head">
+                  <span className="risk-level mid">Confirm</span>
+                  <span className="risk-label">Refund your purchase?</span>
+                </div>
+                <p>
+                  This refunds your payment and revokes access to this report — the link will stop
+                  opening it. Your analysis data stays on this device until you delete it. Refunds can
+                  take a few business days to appear on your statement.
+                </p>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                  <button
+                    className="btn-cta"
+                    style={{ width: "auto" }}
+                    disabled={pending !== null}
+                    onClick={() => void runServerAction("refund")}
+                  >
+                    {pending === "refund" ? "Refunding…" : "Yes, refund"}
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    disabled={pending !== null}
+                    onClick={() => setConfirm(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {confirm === "delete" && (
+              <div className="risk-card" data-testid="delete-confirm" style={{ marginTop: 16 }}>
+                <div className="risk-head">
+                  <span className="risk-level mid">Confirm</span>
+                  <span className="risk-label">Delete your analysis data?</span>
+                </div>
+                <p>
+                  This deletes your analysis data from our servers and removes the local copy from
+                  this browser. It cannot be undone. If you are within the refund window and want your
+                  money back, request the refund first — deleting your data removes the order details
+                  a refund needs.
+                </p>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                  <button
+                    className="btn-cta"
+                    style={{ width: "auto" }}
+                    disabled={pending !== null}
+                    onClick={() => void runServerAction("delete")}
+                  >
+                    {pending === "delete" ? "Deleting…" : "Yes, delete my data"}
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    disabled={pending !== null}
+                    onClick={() => setConfirm(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {outcome?.kind === "error" && (
+              <div className="risk-card" data-testid="action-error" style={{ marginTop: 16 }}>
+                <div className="risk-head">
+                  <span className="risk-level mid">Couldn&apos;t complete</span>
+                  <span className="risk-label">{outcome.title}</span>
+                </div>
+                <p>{outcome.message}</p>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    marginTop: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  {outcome.retryable && lastAction !== null && (
+                    <button
+                      className="btn-cta"
+                      style={{ width: "auto" }}
+                      disabled={pending !== null}
+                      onClick={() => void runServerAction(lastAction)}
+                    >
+                      {pending === lastAction ? "Trying…" : "Try again"}
+                    </button>
+                  )}
+                  {outcome.offerLocalDelete && (
+                    <LocalDeleteControl
+                      label="Delete this analysis from this device"
+                      onDeleted={handleLocalDeleted}
+                    />
+                  )}
+                  <button
+                    className="btn-secondary"
+                    onClick={() => window.location.reload()}
+                  >
+                    Refresh
+                  </button>
+                  <button className="btn-secondary" onClick={() => setOutcome(null)}>
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {report.chapters.map((chapter) => (
@@ -752,6 +1025,61 @@ function RealReportView({
       </section>
       <Footer />
     </>
+  );
+}
+
+/**
+ * Local-only deletion (no network): clears `tell:features:v1` / `tell:lastInput`
+ * from this browser only. Used when server-side deletion isn't available
+ * (mock checkout / legacy `?order_id=` link) and as a fallback after a failed
+ * server delete.
+ */
+function LocalDeleteControl({
+  label = "Delete this analysis from this device",
+  onDeleted,
+}: {
+  label?: string;
+  onDeleted?: () => void;
+}) {
+  const [phase, setPhase] = useState<"idle" | "confirm" | "done">("idle");
+
+  if (phase === "confirm") {
+    return (
+      <span style={{ display: "inline-flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <span style={{ fontSize: 13.5, color: "var(--ink-700)" }}>
+          Remove the local copy from this browser? This cannot be undone.
+        </span>
+        <button
+          className="btn-cta"
+          style={{ width: "auto" }}
+          onClick={() => {
+            clearSession();
+            track("report_delete_local", {});
+            if (onDeleted) onDeleted();
+            else setPhase("done");
+          }}
+        >
+          Yes, delete
+        </button>
+        <button className="btn-secondary" onClick={() => setPhase("idle")}>
+          Cancel
+        </button>
+      </span>
+    );
+  }
+
+  if (phase === "done") {
+    return (
+      <p style={{ fontSize: 13, color: "var(--ink-500)" }}>
+        This analysis has been removed from this browser.
+      </p>
+    );
+  }
+
+  return (
+    <button className="btn-secondary" data-testid="delete-local-button" onClick={() => setPhase("confirm")}>
+      {label}
+    </button>
   );
 }
 
