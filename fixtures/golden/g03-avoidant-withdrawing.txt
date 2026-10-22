@@ -1,0 +1,65 @@
+# case: g03-avoidant-withdrawing
+# synthetic: true (deterministic generator over hand-written scenarios; contains no real conversation)
+# platform: whatsapp / Android 24h / DD/MM/YYYY / bracketed header
+# expected-direction: user=avoidant|mixed partner=anxious|mixed
+# expected-health-score: 45-72
+# asserts: user replies slowly and briefly, asks no questions, sends far less volume, closes sessions; partner initiates every session, sends more and asks the questions
+[01/03/2026, 20:00] Sam: Hey! Something funny happened today, want to hear? 😄
+[01/03/2026, 21:30] Alex: maybe tomorrow
+[01/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[01/03/2026, 21:36] Sam: I'm a bit stressed about it honestly
+[01/03/2026, 22:40] Alex: not tonight
+[02/03/2026, 20:00] Sam: Are you around tonight? I had a long day 😅
+[02/03/2026, 21:30] Alex: not tonight
+[02/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[02/03/2026, 21:36] Sam: I'm a bit stressed about it honestly
+[02/03/2026, 22:40] Alex: maybe tomorrow
+[03/03/2026, 20:00] Sam: I found a new recipe, want to try it this week? 😋
+[03/03/2026, 21:30] Alex: ha
+[03/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[03/03/2026, 21:36] Sam: I'm a bit stressed about it honestly
+[03/03/2026, 22:40] Alex: sure
+[04/03/2026, 20:00] Sam: How did your meeting go? Been thinking about you 🙂
+[04/03/2026, 21:30] Alex: ok
+[04/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[04/03/2026, 21:36] Sam: I'm a bit stressed about it honestly
+[05/03/2026, 20:00] Sam: Can I call you later? Nothing urgent, just wanted to talk ❤️
+[05/03/2026, 21:30] Alex: later
+[05/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[05/03/2026, 21:36] Sam: I'm a bit stressed about it honestly
+[05/03/2026, 22:40] Alex: busy
+[05/03/2026, 22:45] Sam: Are you okay? You've been quiet 😔
+[06/03/2026, 20:00] Sam: I miss you a bit. How are you doing? 🥺
+[06/03/2026, 21:30] Alex: busy
+[06/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[06/03/2026, 21:36] Sam: I'm a bit stressed about it honestly
+[06/03/2026, 22:40] Alex: later
+[07/03/2026, 20:00] Sam: Hey! Something funny happened today, want to hear? 😄
+[07/03/2026, 21:30] Alex: tired
+[07/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[07/03/2026, 21:36] Sam: I'm a bit stressed about it honestly
+[07/03/2026, 22:40] Alex: ok
+[08/03/2026, 20:00] Sam: Are you around tonight? I had a long day 😅
+[08/03/2026, 21:30] Alex: sure
+[08/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[08/03/2026, 21:36] Sam: I'm a bit stressed about it honestly
+[09/03/2026, 20:00] Sam: I found a new recipe, want to try it this week? 😋
+[09/03/2026, 21:30] Alex: maybe tomorrow
+[09/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[09/03/2026, 21:36] Sam: I'm a bit stressed about it honestly
+[09/03/2026, 22:40] Alex: not tonight
+[10/03/2026, 20:00] Sam: How did your meeting go? Been thinking about you 🙂
+[10/03/2026, 21:30] Alex: not tonight
+[10/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[10/03/2026, 21:36] Sam: I'm a bit stressed about it honestly
+[10/03/2026, 22:40] Alex: maybe tomorrow
+[10/03/2026, 22:45] Sam: Are you okay? You've been quiet 😔
+[11/03/2026, 20:00] Sam: Can I call you later? Nothing urgent, just wanted to talk ❤️
+[11/03/2026, 21:30] Alex: ha
+[11/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[11/03/2026, 21:36] Sam: I'm a bit stressed about it honestly
+[11/03/2026, 22:40] Alex: sure
+[12/03/2026, 20:00] Sam: I miss you a bit. How are you doing? 🥺
+[12/03/2026, 21:30] Alex: ok
+[12/03/2026, 21:33] Sam: Long story short: my manager scheduled a meeting at 7am 😅
+[12/03/2026, 21:36] Sam: I'm a bit stressed about it honestly

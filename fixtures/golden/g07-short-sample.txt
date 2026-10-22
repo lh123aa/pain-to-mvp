@@ -1,0 +1,14 @@
+# case: g07-short-sample
+# synthetic: true (deterministic generator over hand-written scenarios; contains no real conversation)
+# platform: whatsapp / Android 24h / DD/MM/YYYY / bracketed header
+# expected-direction: user=secure|anxious|avoidant|mixed partner=secure|anxious|avoidant|mixed
+# expected-health-score: 20-92
+# asserts: 8 messages only; chapters must say 'not enough data' / provisional; data confidence below 0.3 and low-sample flag true; direction stays a valid label (no crash)
+[03/03/2026, 21:00] Alex: hey, are you around?
+[03/03/2026, 21:05] Sam: kinda. long day
+[03/03/2026, 21:06] Alex: want to talk?
+[03/03/2026, 21:20] Sam: not tonight
+[05/03/2026, 22:00] Sam: sorry about last time
+[05/03/2026, 22:04] Alex: it's okay
+[05/03/2026, 22:06] Sam: thanks
+[05/03/2026, 22:07] Alex: sleep well

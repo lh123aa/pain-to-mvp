@@ -1,0 +1,38 @@
+# case: g01-healthy-secure
+# synthetic: true (deterministic generator over hand-written scenarios; contains no real conversation)
+# platform: whatsapp / Android 24h / DD/MM/YYYY / bracketed header
+# expected-direction: user=secure partner=secure
+# expected-health-score: 85-100
+# asserts: balanced volume + initiation; symmetric quick replies; repair language and no conflict hits; both sides secure-leaning
+[01/03/2026, 09:00] Alex: Morning! Slept better than usual 😴
+[01/03/2026, 09:06] Sam: Same here 😊 how are you feeling?
+[02/03/2026, 09:00] Sam: Yes please, I need coffee ☕
+[02/03/2026, 09:06] Alex: Coffee later? I'm free after 10 ☕
+[03/03/2026, 09:00] Alex: That sounds lovely 😊
+[03/03/2026, 09:06] Sam: Happy to hear that 💛
+[04/03/2026, 09:00] Sam: Of course, you'd do the same for me
+[04/03/2026, 09:06] Alex: Thanks for listening last night, it really helped
+[04/03/2026, 20:00] Alex: That sounds lovely 😊
+[04/03/2026, 20:05] Sam: Me too ❤️
+[05/03/2026, 09:00] Alex: You're right, I overreacted a bit, sorry
+[05/03/2026, 09:06] Sam: No worries at all, sorry I snapped earlier
+[06/03/2026, 09:00] Sam: Me too ❤️
+[06/03/2026, 09:06] Alex: I'm glad we talked it out ❤️
+[07/03/2026, 09:00] Alex: How's your day going so far?
+[07/03/2026, 09:06] Sam: Pretty good! Busy morning though 😅
+[08/03/2026, 09:00] Sam: All good 😊
+[08/03/2026, 09:06] Alex: My bad for the late text yesterday 😅
+[09/03/2026, 09:00] Alex: That's such good news! Proud of you 🎉
+[09/03/2026, 09:06] Sam: Thank you! Still can't believe it 🎉
+[09/03/2026, 20:00] Sam: Happy to hear that 💛
+[09/03/2026, 20:05] Alex: I'm glad we talked it out ❤️
+[10/03/2026, 09:00] Sam: I'd love that 🌊
+[10/03/2026, 09:06] Alex: Want to walk by the river this weekend?
+[11/03/2026, 09:00] Alex: I appreciate you, genuinely 🙂
+[11/03/2026, 09:06] Sam: I appreciate you too 🙂
+[12/03/2026, 09:00] Sam: Deal 😄
+[12/03/2026, 09:06] Alex: Fair enough 😄
+[13/03/2026, 09:00] Alex: I love that idea 💡
+[13/03/2026, 09:06] Sam: Great minds 💡
+[14/03/2026, 09:00] Sam: See you then! 😍
+[14/03/2026, 09:06] Alex: Ok see you at 7! 😍

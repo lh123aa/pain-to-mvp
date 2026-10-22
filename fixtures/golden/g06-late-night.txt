@@ -1,0 +1,69 @@
+# case: g06-late-night
+# synthetic: true (deterministic generator over hand-written scenarios; contains no real conversation)
+# platform: whatsapp / Android 24h / DD/MM/YYYY / bracketed header
+# expected-direction: user=anxious|mixed partner=avoidant|mixed
+# expected-health-score: 55-82
+# asserts: almost every timestamp falls in the 23:00-04:59 window; user starts sessions, replies faster and asks more questions; late-night metric and free-preview late card must be non-zero
+[01/03/2026, 23:00] Alex: Can't sleep. You up? 🌙
+[01/03/2026, 23:30] Sam: Same, wired 😅
+[01/03/2026, 23:33] Alex: Want to call for ten minutes? 😴
+[01/03/2026, 23:36] Alex: No pressure if you're done for the night
+[02/03/2026, 00:20] Sam: Still there?
+[02/03/2026, 00:23] Alex: Yes! Sorry, phone was charging 😅
+[02/03/2026, 00:26] Sam: Ok. Night 🌙
+[02/03/2026, 23:00] Alex: I keep replaying today, sorry 😅
+[02/03/2026, 23:30] Sam: It's fine, just tired
+[02/03/2026, 23:33] Alex: Want to call for ten minutes? 😴
+[02/03/2026, 23:36] Alex: No pressure if you're done for the night
+[03/03/2026, 00:20] Sam: Still there?
+[03/03/2026, 00:23] Alex: Yes! Sorry, phone was charging 😅
+[03/03/2026, 00:26] Sam: Ok. Night 🌙
+[03/03/2026, 23:00] Alex: Are you okay? You seemed off tonight
+[03/03/2026, 23:30] Sam: Yeah, long day
+[03/03/2026, 23:33] Alex: Want to call for ten minutes? 😴
+[03/03/2026, 23:36] Alex: No pressure if you're done for the night
+[04/03/2026, 00:20] Sam: Still there?
+[04/03/2026, 00:23] Alex: Yes! Sorry, phone was charging 😅
+[04/03/2026, 00:26] Sam: Ok. Night 🌙
+[04/03/2026, 23:00] Alex: I really like talking to you at night ❤️
+[04/03/2026, 23:30] Sam: Night ❤️
+[04/03/2026, 23:33] Alex: Want to call for ten minutes? 😴
+[04/03/2026, 23:36] Alex: No pressure if you're done for the night
+[05/03/2026, 00:20] Sam: Still there?
+[05/03/2026, 00:23] Alex: Yes! Sorry, phone was charging 😅
+[05/03/2026, 00:26] Sam: Ok. Night 🌙
+[05/03/2026, 23:00] Alex: Can't sleep. You up? 🌙
+[05/03/2026, 23:30] Sam: Same, wired 😅
+[05/03/2026, 23:33] Alex: Want to call for ten minutes? 😴
+[05/03/2026, 23:36] Alex: No pressure if you're done for the night
+[06/03/2026, 00:20] Sam: Still there?
+[06/03/2026, 00:23] Alex: Yes! Sorry, phone was charging 😅
+[06/03/2026, 00:26] Sam: Ok. Night 🌙
+[06/03/2026, 23:00] Alex: I keep replaying today, sorry 😅
+[06/03/2026, 23:30] Sam: It's fine, just tired
+[06/03/2026, 23:33] Alex: Want to call for ten minutes? 😴
+[06/03/2026, 23:36] Alex: No pressure if you're done for the night
+[07/03/2026, 00:20] Sam: Still there?
+[07/03/2026, 00:23] Alex: Yes! Sorry, phone was charging 😅
+[07/03/2026, 00:26] Sam: Ok. Night 🌙
+[07/03/2026, 23:00] Alex: Are you okay? You seemed off tonight
+[07/03/2026, 23:30] Sam: Yeah, long day
+[07/03/2026, 23:33] Alex: Want to call for ten minutes? 😴
+[07/03/2026, 23:36] Alex: No pressure if you're done for the night
+[08/03/2026, 00:20] Sam: Still there?
+[08/03/2026, 00:23] Alex: Yes! Sorry, phone was charging 😅
+[08/03/2026, 00:26] Sam: Ok. Night 🌙
+[08/03/2026, 23:00] Alex: I really like talking to you at night ❤️
+[08/03/2026, 23:30] Sam: Night ❤️
+[08/03/2026, 23:33] Alex: Want to call for ten minutes? 😴
+[08/03/2026, 23:36] Alex: No pressure if you're done for the night
+[09/03/2026, 00:20] Sam: Still there?
+[09/03/2026, 00:23] Alex: Yes! Sorry, phone was charging 😅
+[09/03/2026, 00:26] Sam: Ok. Night 🌙
+[09/03/2026, 23:00] Alex: Can't sleep. You up? 🌙
+[09/03/2026, 23:30] Sam: Same, wired 😅
+[09/03/2026, 23:33] Alex: Want to call for ten minutes? 😴
+[09/03/2026, 23:36] Alex: No pressure if you're done for the night
+[10/03/2026, 00:20] Sam: Still there?
+[10/03/2026, 00:23] Alex: Yes! Sorry, phone was charging 😅
+[10/03/2026, 00:26] Sam: Ok. Night 🌙

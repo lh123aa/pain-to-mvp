@@ -1,0 +1,265 @@
+/*
+ * /report · print / PDF stylesheet (W5-5)
+ *
+ * Scope: only the report route imports this file (`src/app/report/page.tsx`).
+ * The browser's "Download PDF" button calls `window.print()`; no server-side
+ * PDF service is involved, so everything below is plain `@media print`.
+ *
+ * Goals:
+ * 1. A4 paper, compact but readable margins; target <= 15 pages for a standard
+ *    report (six chapters). Achieved with 10.5pt body copy, 5mm chapter padding
+ *    and dense-but-legible evidence cards — not by hiding content.
+ * 2. Hide app chrome and interactive-only UI: top bar, footer, privacy panel,
+ *    report action buttons (PDF/refund/delete), confirmation dialogs, sync
+ *    notices. The report content itself (scores, chapters, evidence quotes,
+ *    "what we don't know") must stay visible.
+ * 3. No chapter/evidence card is split across a page break: `break-inside:
+ *    avoid` on chapters, risk cards (evidence quotes / attachment sides),
+ *    plan items (turning points / 7-day plan) and metric rows. Headings stay
+ *    with their first paragraph (`break-after: avoid`).
+ * 4. Keep the semantic accents (score, grade chip, score tracks) by forcing
+ *    color printing on the elements that carry meaning.
+ */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm 16mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #16202b !important;
+  }
+
+  body {
+    font-size: 10.5pt;
+    line-height: 1.45;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ---- hide app chrome / interactive-only UI ---------------------------------- */
+  .top,
+  .foot,
+  footer,
+  .panel,
+  .panel-veil,
+  .no-print,
+  .report-actions,
+  [data-print="hide"],
+  [data-testid="report-actions"],
+  [data-testid="refund-confirm"],
+  [data-testid="delete-confirm"],
+  [data-testid="action-error"],
+  [data-testid="report-sync-saved"],
+  [data-testid="delete-local-button"],
+  [data-testid="delete-local-confirm"] {
+    display: none !important;
+  }
+
+  /* ---- page shell ------------------------------------------------------------ */
+  .inner {
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+
+  .report-wrap,
+  .report-print,
+  .wrap {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* ---- report header (score must stay visible) ------------------------------- */
+  .report-hero {
+    padding: 0 0 5mm !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .sec-label {
+    font-size: 8pt;
+    letter-spacing: 0.12em;
+    margin-bottom: 2mm;
+  }
+
+  .report-score {
+    gap: 10px;
+    margin-bottom: 2mm;
+  }
+
+  .report-score .num {
+    font-size: 30pt;
+    line-height: 1;
+  }
+
+  .report-score .label {
+    font-size: 11.5pt;
+  }
+
+  .grade-chip {
+    border: 0.5pt solid currentColor;
+    border-radius: 2mm;
+    padding: 0.8mm 2mm;
+    font-size: 9pt;
+  }
+
+  .report-summary {
+    font-size: 11pt;
+    line-height: 1.5;
+    margin: 2mm 0 3mm;
+  }
+
+  .mock-badge {
+    border: 0.5pt solid #9aa8b5;
+    background: transparent !important;
+    color: #5a6b7d !important;
+    font-size: 8pt;
+    padding: 0.8mm 2mm;
+    margin-bottom: 3mm;
+  }
+
+  /* ---- chapters: never break a chapter block across pages -------------------- */
+  .report-chapter {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    padding: 4.5mm 0 3.5mm;
+    margin: 0;
+    border-bottom: 0.4pt solid #d8d2c6;
+  }
+
+  .report-chapter:last-child {
+    border-bottom: none;
+  }
+
+  .report-chapter h3 {
+    font-size: 14pt;
+    line-height: 1.25;
+    margin: 1mm 0 2mm;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .report-chapter p {
+    font-size: 10pt;
+    line-height: 1.5;
+    margin: 1mm 0;
+  }
+
+  .ch-label {
+    break-after: avoid;
+    page-break-after: avoid;
+    font-size: 7.5pt;
+    letter-spacing: 0.12em;
+    margin-bottom: 1.5mm;
+  }
+
+  /* ---- evidence / signals / actions / metrics -------------------------------- */
+  .risk-card {
+    border: 0.4pt solid #d8d2c6 !important;
+    border-radius: 2mm;
+    background: #fff !important;
+    box-shadow: none !important;
+    padding: 3mm 4mm;
+    margin: 0 0 3mm !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .risk-card p {
+    font-size: 9.8pt;
+    line-height: 1.5;
+  }
+
+  .risk-head {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .risk-level {
+    border: 0.4pt solid currentColor;
+    border-radius: 1mm;
+    padding: 0.4mm 1.4mm;
+    font-size: 8pt;
+  }
+
+  .plan-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    padding: 2.2mm 0;
+  }
+
+  .plan-item .day {
+    font-size: 8pt;
+  }
+
+  .plan-item .action {
+    font-size: 10pt;
+    line-height: 1.4;
+  }
+
+  .plan-item .goal {
+    font-size: 9.2pt;
+    line-height: 1.45;
+  }
+
+  .metric-row {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    padding: 1.2mm 0;
+    border-bottom: 0.3pt solid #eee8dd;
+  }
+
+  .metric-row .m-label,
+  .metric-row .m-val {
+    font-size: 9.5pt;
+  }
+
+  .track {
+    height: 2.2mm;
+    border: 0.3pt solid #e5dfd3;
+    background: #f3eee5 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .track .fill {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ---- long lists / quotes --------------------------------------------------- */
+  .report-chapter ul {
+    margin: 1.5mm 0 0 5mm !important;
+    padding: 0;
+  }
+
+  .report-chapter li {
+    font-size: 9.6pt;
+    line-height: 1.5;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  blockquote,
+  .risk-card p[style*="italic"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* ---- keep links harmless in print ------------------------------------------ */
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  /* Remove transitions/shadows that waste ink and cause repaint artifacts. */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}

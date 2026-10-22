@@ -46,6 +46,7 @@ import {
   type VerifiedOrderView,
   type WaitingReason,
 } from "../../lib/report-access";
+import "./print.css";
 
 /**
  * /report — 完整报告页（6 章）
@@ -1060,7 +1061,7 @@ function RealReportView({
     <>
       <TopBar />
       <section className="inner">
-        <div className="wrap report-wrap">
+        <div className="wrap report-wrap report-print">
           {isMock && (
             <div className="mock-badge" style={{ marginBottom: 16 }}>
               Demo checkout — this report was built locally from your upload

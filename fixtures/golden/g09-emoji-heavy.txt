@@ -1,0 +1,30 @@
+# case: g09-emoji-heavy
+# synthetic: true (deterministic generator over hand-written scenarios; contains no real conversation)
+# platform: whatsapp / Android 24h / DD/MM/YYYY / bracketed header
+# expected-direction: user=secure|mixed partner=secure|mixed
+# expected-health-score: 85-100
+# asserts: almost every message carries emoji; warm positive vocabulary on both sides; balanced timing and volume; atmosphere dimension should be high
+[01/03/2026, 09:00] Alex: Hehe that's so cute 🥰😍
+[01/03/2026, 09:03] Sam: Awww you're sweet 😊💕
+[02/03/2026, 09:00] Sam: Same!! 😆🎉
+[02/03/2026, 09:03] Alex: I'm so happy right now 😄🎉
+[03/03/2026, 09:00] Alex: Thank you thank you thank you ❤️❤️
+[03/03/2026, 09:03] Sam: Anytime ❤️🙂
+[04/03/2026, 09:00] Sam: You made my day too 🌟😊
+[04/03/2026, 09:03] Alex: That made my whole day 🌞😊
+[04/03/2026, 19:00] Sam: Also sorry I was quiet yesterday ❤️
+[04/03/2026, 19:04] Alex: Don't worry about it at all 💛😊
+[05/03/2026, 09:00] Alex: Can't wait!! 🎊🔥
+[05/03/2026, 09:03] Sam: Me neither!! 🥳✨
+[06/03/2026, 09:00] Sam: You too 💛🤗
+[06/03/2026, 09:03] Alex: You're the best 💛🤗
+[07/03/2026, 09:00] Alex: Hehe that's so cute 🥰😍
+[07/03/2026, 09:03] Sam: Awww you're sweet 😊💕
+[08/03/2026, 09:00] Sam: Same!! 😆🎉
+[08/03/2026, 09:03] Alex: I'm so happy right now 😄🎉
+[08/03/2026, 19:00] Sam: Also sorry I was quiet yesterday ❤️
+[08/03/2026, 19:04] Alex: Don't worry about it at all 💛😊
+[09/03/2026, 09:00] Alex: Thank you thank you thank you ❤️❤️
+[09/03/2026, 09:03] Sam: Anytime ❤️🙂
+[10/03/2026, 09:00] Sam: You made my day too 🌟😊
+[10/03/2026, 09:03] Alex: That made my whole day 🌞😊

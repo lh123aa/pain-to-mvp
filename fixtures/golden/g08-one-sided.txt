@@ -1,0 +1,62 @@
+# case: g08-one-sided
+# synthetic: true (deterministic generator over hand-written scenarios; contains no real conversation)
+# platform: whatsapp / Android 24h / DD/MM/YYYY / bracketed header
+# expected-direction: user=anxious|mixed partner=avoidant|mixed
+# expected-health-score: 38-65
+# asserts: user sends ~4x the messages, starts every session, double-texts constantly; partner answers with one short word, hours later
+[01/03/2026, 09:00] Alex: Morning! Did you sleep? 😊
+[01/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[01/03/2026, 09:08] Alex: We could go if you're free?
+[01/03/2026, 13:00] Sam: ok
+[01/03/2026, 13:05] Alex: No worries! Talk later? 😊
+[02/03/2026, 09:00] Alex: I was thinking about our plans this weekend
+[02/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[02/03/2026, 09:08] Alex: We could go if you're free?
+[02/03/2026, 13:00] Sam: busy
+[02/03/2026, 13:05] Alex: No worries! Talk later? 😊
+[03/03/2026, 09:00] Alex: Want to do the market on Saturday?
+[03/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[03/03/2026, 09:08] Alex: We could go if you're free?
+[03/03/2026, 13:00] Sam: maybe
+[04/03/2026, 09:00] Alex: I can bring coffee ☕
+[04/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[04/03/2026, 09:08] Alex: We could go if you're free?
+[04/03/2026, 13:00] Sam: not sure
+[04/03/2026, 13:05] Alex: No worries! Talk later? 😊
+[05/03/2026, 09:00] Alex: No rush, just let me know 🙂
+[05/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[05/03/2026, 09:08] Alex: We could go if you're free?
+[05/03/2026, 13:00] Sam: can't
+[05/03/2026, 13:05] Alex: No worries! Talk later? 😊
+[06/03/2026, 09:00] Alex: Morning! Did you sleep? 😊
+[06/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[06/03/2026, 09:08] Alex: We could go if you're free?
+[06/03/2026, 13:00] Sam: ok
+[07/03/2026, 09:00] Alex: I was thinking about our plans this weekend
+[07/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[07/03/2026, 09:08] Alex: We could go if you're free?
+[07/03/2026, 13:00] Sam: busy
+[07/03/2026, 13:05] Alex: No worries! Talk later? 😊
+[08/03/2026, 09:00] Alex: Want to do the market on Saturday?
+[08/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[08/03/2026, 09:08] Alex: We could go if you're free?
+[08/03/2026, 13:00] Sam: maybe
+[08/03/2026, 13:05] Alex: No worries! Talk later? 😊
+[09/03/2026, 09:00] Alex: I can bring coffee ☕
+[09/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[09/03/2026, 09:08] Alex: We could go if you're free?
+[09/03/2026, 13:00] Sam: not sure
+[10/03/2026, 09:00] Alex: No rush, just let me know 🙂
+[10/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[10/03/2026, 09:08] Alex: We could go if you're free?
+[10/03/2026, 13:00] Sam: can't
+[10/03/2026, 13:05] Alex: No worries! Talk later? 😊
+[11/03/2026, 09:00] Alex: Morning! Did you sleep? 😊
+[11/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[11/03/2026, 09:08] Alex: We could go if you're free?
+[11/03/2026, 13:00] Sam: ok
+[11/03/2026, 13:05] Alex: No worries! Talk later? 😊
+[12/03/2026, 09:00] Alex: I was thinking about our plans this weekend
+[12/03/2026, 09:03] Alex: Also I saw that band you like is playing 😊
+[12/03/2026, 09:08] Alex: We could go if you're free?
+[12/03/2026, 13:00] Sam: busy

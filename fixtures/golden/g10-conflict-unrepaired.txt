@@ -1,0 +1,54 @@
+# case: g10-conflict-unrepaired
+# synthetic: true (deterministic generator over hand-written scenarios; contains no real conversation)
+# platform: whatsapp / Android 24h / DD/MM/YYYY / bracketed header
+# expected-direction: user=anxious|mixed partner=avoidant|mixed|secure
+# expected-health-score: 30-68
+# asserts: conflict lexicon hits from the partner with zero repair words anywhere; conflict_repair dimension must be low and repairToConflictRatio 0; user keeps pursuing, partner withdraws
+[01/03/2026, 09:00] Alex: Hey, are you okay? You seem distant
+[01/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[01/03/2026, 11:00] Sam: I'm annoyed
+[01/03/2026, 11:04] Alex: Okay. I'm here when you want to talk
+[01/03/2026, 21:00] Alex: Goodnight. Hope tomorrow is better 🌙
+[02/03/2026, 09:00] Alex: What happened? Please talk to me
+[02/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[02/03/2026, 11:00] Sam: whatever
+[03/03/2026, 09:00] Alex: I don't understand what I did
+[03/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[03/03/2026, 11:00] Sam: don't care
+[03/03/2026, 11:04] Alex: Okay. I'm here when you want to talk
+[03/03/2026, 21:00] Alex: Goodnight. Hope tomorrow is better 🌙
+[04/03/2026, 09:00] Alex: I'll wait, just tell me when you're ready
+[04/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[04/03/2026, 11:00] Sam: leave me alone
+[05/03/2026, 09:00] Alex: Are we still on for Friday?
+[05/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[05/03/2026, 11:00] Sam: never mind
+[05/03/2026, 11:04] Alex: Okay. I'm here when you want to talk
+[05/03/2026, 21:00] Alex: Goodnight. Hope tomorrow is better 🌙
+[06/03/2026, 09:00] Alex: I miss you. Can we please talk?
+[06/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[06/03/2026, 11:00] Sam: I'm tired of this
+[07/03/2026, 09:00] Alex: Hey, are you okay? You seem distant
+[07/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[07/03/2026, 11:00] Sam: I'm annoyed
+[07/03/2026, 11:04] Alex: Okay. I'm here when you want to talk
+[07/03/2026, 21:00] Alex: Goodnight. Hope tomorrow is better 🌙
+[08/03/2026, 09:00] Alex: What happened? Please talk to me
+[08/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[08/03/2026, 11:00] Sam: whatever
+[09/03/2026, 09:00] Alex: I don't understand what I did
+[09/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[09/03/2026, 11:00] Sam: don't care
+[09/03/2026, 11:04] Alex: Okay. I'm here when you want to talk
+[09/03/2026, 21:00] Alex: Goodnight. Hope tomorrow is better 🌙
+[10/03/2026, 09:00] Alex: I'll wait, just tell me when you're ready
+[10/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[10/03/2026, 11:00] Sam: leave me alone
+[11/03/2026, 09:00] Alex: Are we still on for Friday?
+[11/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[11/03/2026, 11:00] Sam: never mind
+[11/03/2026, 11:04] Alex: Okay. I'm here when you want to talk
+[11/03/2026, 21:00] Alex: Goodnight. Hope tomorrow is better 🌙
+[12/03/2026, 09:00] Alex: I miss you. Can we please talk?
+[12/03/2026, 09:02] Alex: I keep checking my phone and worrying 😔
+[12/03/2026, 11:00] Sam: I'm tired of this

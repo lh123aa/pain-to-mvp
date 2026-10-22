@@ -1,0 +1,72 @@
+# case: g05-investment-imbalance
+# synthetic: true (deterministic generator over hand-written scenarios; contains no real conversation)
+# platform: whatsapp / Android 24h / DD/MM/YYYY / bracketed header
+# expected-direction: user=anxious|mixed partner=avoidant|mixed
+# expected-health-score: 42-68
+# asserts: user sends most messages, starts every session, replies quickly; partner replies hours later with short messages, creating a clear investment asymmetry
+[01/03/2026, 08:00] Alex: Morning! How's your day looking? ☀️
+[01/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[01/03/2026, 11:30] Sam: ok
+[01/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[01/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[02/03/2026, 08:00] Alex: I saw something today that reminded me of you 😊
+[02/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[02/03/2026, 11:30] Sam: busy
+[02/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[02/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[02/03/2026, 21:00] Alex: Goodnight! Text me when you're free 🙂
+[03/03/2026, 08:00] Alex: Want to get dinner this week? I can pick a place
+[03/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[03/03/2026, 11:30] Sam: maybe
+[03/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[03/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[04/03/2026, 08:00] Alex: No pressure, just let me know 😊
+[04/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[04/03/2026, 11:30] Sam: can't tonight
+[04/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[04/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[04/03/2026, 21:00] Alex: Goodnight! Text me when you're free 🙂
+[05/03/2026, 08:00] Alex: Hope your meeting went okay ❤️
+[05/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[05/03/2026, 11:30] Sam: fine
+[05/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[05/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[06/03/2026, 08:00] Alex: Morning! How's your day looking? ☀️
+[06/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[06/03/2026, 11:30] Sam: ok
+[06/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[06/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[06/03/2026, 21:00] Alex: Goodnight! Text me when you're free 🙂
+[07/03/2026, 08:00] Alex: I saw something today that reminded me of you 😊
+[07/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[07/03/2026, 11:30] Sam: busy
+[07/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[07/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[08/03/2026, 08:00] Alex: Want to get dinner this week? I can pick a place
+[08/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[08/03/2026, 11:30] Sam: maybe
+[08/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[08/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[08/03/2026, 21:00] Alex: Goodnight! Text me when you're free 🙂
+[09/03/2026, 08:00] Alex: No pressure, just let me know 😊
+[09/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[09/03/2026, 11:30] Sam: can't tonight
+[09/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[09/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[10/03/2026, 08:00] Alex: Hope your meeting went okay ❤️
+[10/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[10/03/2026, 11:30] Sam: fine
+[10/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[10/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[10/03/2026, 21:00] Alex: Goodnight! Text me when you're free 🙂
+[11/03/2026, 08:00] Alex: Morning! How's your day looking? ☀️
+[11/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[11/03/2026, 11:30] Sam: ok
+[11/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[11/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[12/03/2026, 08:00] Alex: I saw something today that reminded me of you 😊
+[12/03/2026, 08:02] Alex: Also did you see the news about the bakery? 🥐
+[12/03/2026, 11:30] Sam: busy
+[12/03/2026, 11:33] Alex: All good! Let me know if you change your mind 😊
+[12/03/2026, 19:00] Alex: Thinking about you. Hope today wasn't too much ❤️
+[12/03/2026, 21:00] Alex: Goodnight! Text me when you're free 🙂

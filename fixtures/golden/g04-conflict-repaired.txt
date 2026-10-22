@@ -1,0 +1,58 @@
+# case: g04-conflict-repaired
+# synthetic: true (deterministic generator over hand-written scenarios; contains no real conversation)
+# platform: whatsapp / Android 24h / DD/MM/YYYY / bracketed header
+# expected-direction: user=secure|mixed partner=secure|mixed
+# expected-health-score: 65-88
+# asserts: conflict lexicon hits are present but every conflict beat is followed by explicit repair (sorry / you're right / my bad / I hear you); repair hits outnumber conflict hits
+[01/03/2026, 09:00] Alex: Morning! How are you feeling today? 😊
+[01/03/2026, 09:05] Sam: Better than yesterday 😊 thanks for asking
+[01/03/2026, 09:09] Alex: I appreciate you telling me instead of going quiet
+[01/03/2026, 09:13] Sam: That sounds nice 😌
+[02/03/2026, 09:00] Alex: I was thinking about what you said, and you're right
+[02/03/2026, 09:05] Sam: Yeah. I'm upset about last night, but I want to talk about it
+[02/03/2026, 09:09] Alex: How about we plan something calm this weekend?
+[02/03/2026, 09:13] Sam: I was annoyed about the dishes thing but it's fine
+[03/03/2026, 09:00] Alex: That makes sense. I hear you 🙂
+[03/03/2026, 09:05] Sam: I hear you. Sorry I snapped earlier, my bad
+[03/03/2026, 09:09] Alex: I love that idea 💛
+[03/03/2026, 09:13] Sam: You're right, I shouldn't have said that
+[03/03/2026, 20:00] Sam: I'm upset about last night. I felt ignored.
+[03/03/2026, 20:03] Alex: You're right. I'm sorry. My bad for not texting back.
+[03/03/2026, 20:06] Sam: Thank you. I hear you. Sorry I got angry too.
+[03/03/2026, 20:10] Alex: I apologize again. Let's talk tonight ❤️
+[04/03/2026, 09:00] Alex: I appreciate you telling me instead of going quiet
+[04/03/2026, 09:05] Sam: Thank you. Let's talk tonight, no drama ❤️
+[04/03/2026, 09:09] Alex: Thanks for being honest with me
+[04/03/2026, 09:13] Sam: Same here. I appreciate you too
+[05/03/2026, 09:00] Alex: How about we plan something calm this weekend?
+[05/03/2026, 09:05] Sam: That sounds nice 😌
+[05/03/2026, 09:09] Alex: I'm glad we can talk about this stuff
+[05/03/2026, 09:13] Sam: Better than yesterday 😊 thanks for asking
+[06/03/2026, 09:00] Alex: I love that idea 💛
+[06/03/2026, 09:05] Sam: I was annoyed about the dishes thing but it's fine
+[06/03/2026, 09:09] Alex: Morning! How are you feeling today? 😊
+[06/03/2026, 09:13] Sam: Yeah. I'm upset about last night, but I want to talk about it
+[06/03/2026, 20:00] Sam: I'm upset about last night. I felt ignored.
+[06/03/2026, 20:03] Alex: You're right. I'm sorry. My bad for not texting back.
+[06/03/2026, 20:06] Sam: Thank you. I hear you. Sorry I got angry too.
+[06/03/2026, 20:10] Alex: I apologize again. Let's talk tonight ❤️
+[07/03/2026, 09:00] Alex: Thanks for being honest with me
+[07/03/2026, 09:05] Sam: You're right, I shouldn't have said that
+[07/03/2026, 09:09] Alex: I was thinking about what you said, and you're right
+[07/03/2026, 09:13] Sam: I hear you. Sorry I snapped earlier, my bad
+[08/03/2026, 09:00] Alex: I'm glad we can talk about this stuff
+[08/03/2026, 09:05] Sam: Same here. I appreciate you too
+[08/03/2026, 09:09] Alex: That makes sense. I hear you 🙂
+[08/03/2026, 09:13] Sam: Thank you. Let's talk tonight, no drama ❤️
+[08/03/2026, 20:00] Sam: I'm upset about last night. I felt ignored.
+[08/03/2026, 20:03] Alex: You're right. I'm sorry. My bad for not texting back.
+[08/03/2026, 20:06] Sam: Thank you. I hear you. Sorry I got angry too.
+[08/03/2026, 20:10] Alex: I apologize again. Let's talk tonight ❤️
+[09/03/2026, 09:00] Alex: Morning! How are you feeling today? 😊
+[09/03/2026, 09:05] Sam: Better than yesterday 😊 thanks for asking
+[09/03/2026, 09:09] Alex: I appreciate you telling me instead of going quiet
+[09/03/2026, 09:13] Sam: That sounds nice 😌
+[10/03/2026, 09:00] Alex: I was thinking about what you said, and you're right
+[10/03/2026, 09:05] Sam: Yeah. I'm upset about last night, but I want to talk about it
+[10/03/2026, 09:09] Alex: How about we plan something calm this weekend?
+[10/03/2026, 09:13] Sam: I was annoyed about the dishes thing but it's fine

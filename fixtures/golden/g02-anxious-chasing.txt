@@ -1,0 +1,110 @@
+# case: g02-anxious-chasing
+# synthetic: true (deterministic generator over hand-written scenarios; contains no real conversation)
+# platform: whatsapp / Android 24h / DD/MM/YYYY / bracketed header
+# expected-direction: user=anxious|mixed partner=avoidant|mixed|secure
+# expected-health-score: 50-78
+# asserts: user replies much faster, double-texts, starts most sessions, asks more questions, some late-night messages; partner slower and shorter
+[01/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[01/03/2026, 08:50] Sam: ok
+[01/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[01/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[01/03/2026, 10:10] Sam: nice
+[01/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[01/03/2026, 10:40] Sam: maybe
+[01/03/2026, 10:42] Alex: No pressure! Just let me know 😊
+[02/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[02/03/2026, 08:50] Sam: ok
+[02/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[02/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[02/03/2026, 10:10] Sam: nice
+[02/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[02/03/2026, 10:40] Sam: maybe
+[02/03/2026, 10:42] Alex: No pressure! Just let me know 😊
+[03/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[03/03/2026, 08:50] Sam: ok
+[03/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[03/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[03/03/2026, 10:10] Sam: nice
+[03/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[03/03/2026, 10:40] Sam: maybe
+[03/03/2026, 10:42] Alex: No pressure! Just let me know 😊
+[03/03/2026, 23:45] Alex: Hey... are we okay? I keep overthinking us 😔
+[03/03/2026, 23:55] Sam: we're okay. try to sleep ❤️
+[04/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[04/03/2026, 08:50] Sam: ok
+[04/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[04/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[04/03/2026, 10:10] Sam: nice
+[04/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[04/03/2026, 10:40] Sam: maybe
+[04/03/2026, 10:42] Alex: No pressure! Just let me know 😊
+[05/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[05/03/2026, 08:50] Sam: ok
+[05/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[05/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[05/03/2026, 10:10] Sam: nice
+[05/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[05/03/2026, 10:40] Sam: maybe
+[05/03/2026, 10:42] Alex: No pressure! Just let me know 😊
+[05/03/2026, 23:45] Alex: Hey... are we okay? I keep overthinking us 😔
+[05/03/2026, 23:55] Sam: we're okay. try to sleep ❤️
+[06/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[06/03/2026, 08:50] Sam: ok
+[06/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[06/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[06/03/2026, 10:10] Sam: nice
+[06/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[06/03/2026, 10:40] Sam: maybe
+[06/03/2026, 10:42] Alex: No pressure! Just let me know 😊
+[07/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[07/03/2026, 08:50] Sam: ok
+[07/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[07/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[07/03/2026, 10:10] Sam: nice
+[07/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[07/03/2026, 10:40] Sam: maybe
+[07/03/2026, 10:42] Alex: No pressure! Just let me know 😊
+[08/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[08/03/2026, 08:50] Sam: ok
+[08/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[08/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[08/03/2026, 10:10] Sam: nice
+[08/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[08/03/2026, 10:40] Sam: maybe
+[08/03/2026, 10:42] Alex: No pressure! Just let me know 😊
+[08/03/2026, 23:45] Alex: Hey... are we okay? I keep overthinking us 😔
+[08/03/2026, 23:55] Sam: we're okay. try to sleep ❤️
+[09/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[09/03/2026, 08:50] Sam: ok
+[09/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[09/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[09/03/2026, 10:10] Sam: nice
+[09/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[09/03/2026, 10:40] Sam: maybe
+[09/03/2026, 10:42] Alex: No pressure! Just let me know 😊
+[10/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[10/03/2026, 08:50] Sam: ok
+[10/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[10/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[10/03/2026, 10:10] Sam: nice
+[10/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[10/03/2026, 10:40] Sam: maybe
+[10/03/2026, 10:42] Alex: No pressure! Just let me know 😊
+[11/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[11/03/2026, 08:50] Sam: ok
+[11/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[11/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[11/03/2026, 10:10] Sam: nice
+[11/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[11/03/2026, 10:40] Sam: maybe
+[11/03/2026, 10:42] Alex: No pressure! Just let me know 😊
+[11/03/2026, 23:45] Alex: Hey... are we okay? I keep overthinking us 😔
+[11/03/2026, 23:55] Sam: we're okay. try to sleep ❤️
+[12/03/2026, 08:00] Alex: Morning! How are you feeling today?
+[12/03/2026, 08:50] Sam: ok
+[12/03/2026, 08:52] Alex: Did you sleep okay? I was worried 😅
+[12/03/2026, 08:55] Alex: Also I found that cafe you mentioned ☕
+[12/03/2026, 10:10] Sam: nice
+[12/03/2026, 10:13] Alex: Want to go Friday? I can book it 😊
+[12/03/2026, 10:40] Sam: maybe
+[12/03/2026, 10:42] Alex: No pressure! Just let me know 😊
