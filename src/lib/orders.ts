@@ -1,13 +1,20 @@
 /**
- * 订单最小存储（MVP）
- * ==================
- * 现状：进程内 Map 实现。重启 / serverless 新实例即失，仅够让「webhook 落库 →
- * 报告页验证」链路先跑通，不适合当生产唯一数据源。
+ * 订单存储抽象 + 状态机（MVP → W3 持久化）
+ * =========================================
+ * 存储选择（见 getOrderStore）：
+ *   - `ORDERS_DATA_DIR` 有值 → `FileOrderStore`（JSON 文件，原子写 + 进程内串行队列，
+ *     跨重启保留；适合**单实例 / staging / 本地**）；
+ *   - 未设置 → `InMemoryOrderStore`（进程内 Map；测试 / CI 默认，重启即失）。
+ *
+ * ⚠️ Vercel serverless / 多实例部署**不能**用文件存储（实例间不共享、文件系统临时）：
+ *   需要 Postgres。Adapter 接口不变——实现同一个 `OrderStore` 的 `PgOrderStore`
+ *   （`src/lib/order-store-pg.ts` 待接入），然后在 getOrderStore() 按 env 选择即可，
+ *   路由 / 页面 / 测试都不用改。
  *
  * 接 DB 的入口（P4）：
- *   1. 新建 `src/lib/orders-db.ts`，实现同一个 `OrderStore` 接口
+ *   1. 新建 `src/lib/order-store-pg.ts`，实现 `OrderStore`
  *      （get / upsert / list / clear / refundOrder / deleteOrderAnalysis）；
- *   2. 在 `getOrderStore()` 里按 `process.env.DATABASE_URL` 选择内存或 DB 实现；
+ *   2. 在 `getOrderStore()` 里按 `process.env.DATABASE_URL` 选择实现；
  *   3. 路由 / 页面只依赖 `OrderStore` 接口，不用改。
  *
  * 状态机（W2-2 退款/删除）：
@@ -19,7 +26,10 @@
  * `upsert()` 返回 `{ created:false, changed:false }`；终态不会被迟到的旧事件改回去。
  *
  * 注意：本模块只在服务端（API route / server component）使用，不要被客户端组件 import。
+ *       （它会经 order-store-file 间接依赖 node:fs，客户端引用会构建失败。）
  */
+
+import { createFileOrderStore } from "./order-store-file";
 
 export type OrderStatus =
   | "completed"
@@ -150,6 +160,110 @@ function toIsoString(value: Date | string | undefined): string {
   return new Date().toISOString();
 }
 
+/* ===== 共享状态机实现（InMemory / File / 未来 Pg 复用，避免语义分叉） ===== */
+
+export type UpsertTransition = {
+  order: OrderRecord;
+  created: boolean;
+  changed: boolean;
+};
+
+/**
+ * upsert 的纯逻辑：合并状态 + 合并 custom + deleted 只读保护。
+ * 调用方（InMemory / File）负责持久化 changed/created 的结果。
+ */
+export function applyUpsertTransition(
+  current: OrderRecord | null,
+  incoming: OrderRecord
+): UpsertTransition {
+  if (!current) {
+    return { order: incoming, created: true, changed: true };
+  }
+
+  // deleted 是绝对终态：数据已脱敏删除，webhook 重放不能把 PII/状态写回来
+  if (current.status === "deleted") {
+    return { order: current, created: false, changed: false };
+  }
+
+  const status = mergeOrderStatus(current.status, incoming.status);
+  const merged: OrderRecord = {
+    ...current,
+    email: incoming.email || current.email,
+    variantId: incoming.variantId || current.variantId,
+    status,
+    custom:
+      Object.keys(incoming.custom).length > 0
+        ? { ...current.custom, ...incoming.custom }
+        : current.custom,
+    updatedAt: incoming.updatedAt || current.updatedAt,
+    completedAt:
+      status === "completed"
+        ? incoming.completedAt || current.completedAt
+        : current.completedAt,
+    lastEventName: incoming.lastEventName || current.lastEventName,
+    testMode: incoming.testMode || current.testMode,
+  };
+
+  if (isSameOrder(current, merged)) {
+    return { order: current, created: false, changed: false };
+  }
+  return { order: merged, created: false, changed: true };
+}
+
+/** refundOrder 的纯逻辑（假设 current 存在；调用方先处理 not-found） */
+export function applyRefundTransition(
+  current: OrderRecord,
+  at?: Date | string
+): OrderMutationResult {
+  if (current.status === "refunded") {
+    // 幂等：重复退款请求不再改动
+    return { ok: true, order: current, changed: false };
+  }
+  if (current.status !== "completed") {
+    // pending 未付款 / canceled / deleted 均不可退款
+    return { ok: false, reason: "invalid-transition" };
+  }
+
+  const atIso = toIsoString(at);
+  return {
+    ok: true,
+    order: {
+      ...current,
+      status: "refunded",
+      refundedAt: current.refundedAt || atIso,
+      updatedAt: atIso,
+    },
+    changed: true,
+  };
+}
+
+/** deleteOrderAnalysis 的纯逻辑（假设 current 存在；调用方先处理 not-found） */
+export function applyDeleteTransition(
+  current: OrderRecord,
+  at?: Date | string
+): OrderMutationResult {
+  if (current.status === "deleted") {
+    return { ok: true, order: current, changed: false };
+  }
+
+  const atIso = toIsoString(at);
+  // 删除/脱敏：分析输入（custom）、邮箱、variant 都不再保留；只留订单骨架用于
+  // 幂等判断与审计（orderId / 状态 / 时间戳）。接 DB 时同步删除关联分析行。
+  return {
+    ok: true,
+    order: {
+      ...current,
+      status: "deleted",
+      email: "",
+      variantId: "",
+      custom: {},
+      updatedAt: atIso,
+      deletedAt: atIso,
+    },
+    changed: true,
+  };
+}
+
 /** 内存订单存储（进程级单例由 getOrderStore 维护） */
 export class InMemoryOrderStore implements OrderStore {
   private readonly orders = new Map<string, OrderRecord>();
@@ -167,41 +281,16 @@ export class InMemoryOrderStore implements OrderStore {
   }
 
   async upsert(incoming: OrderRecord): Promise<OrderUpsertResult> {
-    const current = this.orders.get(incoming.orderId);
-    if (!current) {
-      this.orders.set(incoming.orderId, incoming);
-      return { order: incoming, created: true, changed: true };
+    const current = this.orders.get(incoming.orderId) ?? null;
+    const transition = applyUpsertTransition(current, incoming);
+    if (transition.created || transition.changed) {
+      this.orders.set(incoming.orderId, transition.order);
     }
-
-    // deleted 是绝对终态：数据已脱敏删除，webhook 重放不能把 PII/状态写回来
-    if (current.status === "deleted") {
-      return { order: current, created: false, changed: false };
-    }
-
-    const status = mergeOrderStatus(current.status, incoming.status);
-    const merged: OrderRecord = {
-      ...current,
-      email: incoming.email || current.email,
-      variantId: incoming.variantId || current.variantId,
-      status,
-      custom:
-        Object.keys(incoming.custom).length > 0
-          ? { ...current.custom, ...incoming.custom }
-          : current.custom,
-      updatedAt: incoming.updatedAt || current.updatedAt,
-      completedAt:
-        status === "completed"
-          ? incoming.completedAt || current.completedAt
-          : current.completedAt,
-      lastEventName: incoming.lastEventName || current.lastEventName,
-      testMode: incoming.testMode || current.testMode,
+    return {
+      order: transition.order,
+      created: transition.created,
+      changed: transition.changed,
     };
-
-    const changed = !isSameOrder(current, merged);
-    if (!changed) return { order: current, created: false, changed: false };
-
-    this.orders.set(incoming.orderId, merged);
-    return { order: merged, created: false, changed: true };
   }
 
   async refundOrder(
@@ -210,24 +299,11 @@ export class InMemoryOrderStore implements OrderStore {
   ): Promise<OrderMutationResult> {
     const current = this.orders.get(orderId);
     if (!current) return { ok: false, reason: "not-found" };
-    if (current.status === "refunded") {
-      // 幂等：重复退款请求不再改动
-      return { ok: true, order: current, changed: false };
+    const result = applyRefundTransition(current, at);
+    if (result.ok && result.changed) {
+      this.orders.set(orderId, result.order);
     }
-    if (current.status !== "completed") {
-      // pending 未付款 / canceled / deleted 均不可退款
-      return { ok: false, reason: "invalid-transition" };
-    }
-
-    const atIso = toIsoString(at);
-    const updated: OrderRecord = {
-      ...current,
-      status: "refunded",
-      refundedAt: current.refundedAt || atIso,
-      updatedAt: atIso,
-    };
-    this.orders.set(orderId, updated);
-    return { ok: true, order: updated, changed: true };
+    return result;
   }
 
   async deleteOrderAnalysis(
@@ -236,42 +312,64 @@ export class InMemoryOrderStore implements OrderStore {
   ): Promise<OrderMutationResult> {
     const current = this.orders.get(orderId);
     if (!current) return { ok: false, reason: "not-found" };
-    if (current.status === "deleted") {
-      return { ok: true, order: current, changed: false };
+    const result = applyDeleteTransition(current, at);
+    if (result.ok && result.changed) {
+      this.orders.set(orderId, result.order);
     }
-
-    const atIso = toIsoString(at);
-    // 删除/脱敏：分析输入（custom）、邮箱、variant 都不再保留；只留订单骨架用于
-    // 幂等判断与审计（orderId / 状态 / 时间戳）。接 DB 时同步删除关联分析行。
-    const updated: OrderRecord = {
-      ...current,
-      status: "deleted",
-      email: "",
-      variantId: "",
-      custom: {},
-      updatedAt: atIso,
-      deletedAt: atIso,
-    };
-    this.orders.set(orderId, updated);
-    return { ok: true, order: updated, changed: true };
+    return result;
   }
 }
 
-let activeStore: OrderStore = new InMemoryOrderStore();
+/* ===== 存储选择（内存 / 文件 / 注入） ===== */
 
-/** 当前订单存储（路由里统一从这里取，便于以后切 DB） */
+export type OrderStoreKind = "memory" | "file" | "injected";
+
+let activeStore: OrderStore | null = null;
+let activeStoreKind: OrderStoreKind | null = null;
+
+/**
+ * 当前订单存储单例（路由统一从这里取）。
+ *
+ * 选择规则（首次调用时按 env 决定，之后复用单例）：
+ *   - `ORDERS_DATA_DIR` 非空 → FileOrderStore(该目录)，JSON 持久化；
+ *   - 否则 → InMemoryOrderStore（测试 / CI 默认，行为与 W2 完全一致）。
+ *
+ * ⚠️ file 模式适合单实例 / staging / 本地；Vercel serverless（多实例、临时文件系统）
+ *    必须换 Postgres 实现（PgOrderStore，接口不变）。
+ */
 export function getOrderStore(): OrderStore {
+  if (activeStore) return activeStore;
+
+  const dataDir = process.env.ORDERS_DATA_DIR?.trim();
+  if (dataDir) {
+    activeStore = createFileOrderStore(dataDir);
+    activeStoreKind = "file";
+  } else {
+    activeStore = new InMemoryOrderStore();
+    activeStoreKind = "memory";
+  }
   return activeStore;
 }
 
 /** 注入订单存储（测试 / 切 DB 时用） */
 export function setOrderStore(store: OrderStore): void {
   activeStore = store;
+  activeStoreKind = "injected";
 }
 
-/** 重置为全新的内存存储（仅测试用） */
+/**
+ * 重置单例（仅测试用）：清空后，下一次 getOrderStore() 重新按 env 选择
+ * （CI / 现有测试没有 ORDERS_DATA_DIR → 仍然拿到全新内存存储，兼容原有行为）。
+ */
 export function resetOrderStore(): void {
-  activeStore = new InMemoryOrderStore();
+  activeStore = null;
+  activeStoreKind = null;
+}
+
+/** 当前存储类型，便于诊断 / 健康检查（首次调用会触发初始化） */
+export function getOrderStoreKind(): OrderStoreKind {
+  if (!activeStore) getOrderStore();
+  return activeStoreKind ?? "memory";
 }
 
 /* ===== 订单状态变更（退款 / 删除）===== */

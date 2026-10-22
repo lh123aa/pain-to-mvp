@@ -48,3 +48,6 @@ next-env.d.ts
 
 # data discipline (PRD 全局约束): 原始聊天样本永不进 git
 /samples/raw/
+
+# 本地文件订单存储（ORDERS_DATA_DIR，见 src/lib/order-store-file.ts）
+/.data/
