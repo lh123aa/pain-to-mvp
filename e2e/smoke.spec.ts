@@ -1,9 +1,48 @@
+﻿import path from "node:path";
 import { test, expect } from "@playwright/test";
 
-// 冒烟测试（Task 1 · 脚手架占位，W0-A2 起扩展为 privacy.spec.ts）
-// 方案 Task 1 只要求 Playwright 项目跑通（chromium），此处给一个最小用例验证 e2e 管线可用
-test("landing page renders", async ({ page }) => {
-  await page.goto("/");
-  // Next.js 16 默认页带 "Welcome to Next.js!"（后续被 Landing 替换时同步改这条断言）
-  await expect(page).toHaveTitle(/Next/i);
+/**
+ * W2 冒烟：真实上传 → 本地解析 → 免费三卡 → mock 结账 → 六章真实报告。
+ * 约束：不依赖任何真实账号/密钥（mock 结账）；全程浏览器本地解析（无上传）。
+ */
+test.describe("The Tell · mock happy path", () => {
+  test("landing page renders", async ({ page }) => {
+    await page.goto("/");
+    await expect(page).toHaveTitle(/The Tell/i);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  });
+
+  test("upload → preview → checkout → real report", async ({ page }) => {
+    test.setTimeout(90_000);
+
+    // 1) 上传合成 WhatsApp 导出（Alex ↔ Sam）
+    await page.goto("/analyze");
+    const fixture = path.join(__dirname, "..", "fixtures", "whatsapp", "android-24h-dmy.txt");
+    await page.locator('input[type="file"]').setInputFiles(fixture);
+    await page.locator("#spk-a").fill("Alex");
+    await page.locator("#spk-b").fill("Sam");
+    await page.getByRole("button", { name: /Continue to free preview/i }).click();
+
+    // 2) 免费三卡（本地解析结果）
+    await expect(page).toHaveURL(/\/report\/preview/, { timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "Your free cards" })).toBeVisible();
+    await expect(page.locator(".free-card")).toHaveCount(3);
+
+    // 3) mock 结账（AC-7.2：勾选 EU 撤回权弃权后才能支付）
+    await page.getByRole("link", { name: /Unlock full report/i }).click();
+    await expect(page).toHaveURL(/\/checkout/);
+    await expect(page.getByRole("link", { name: "Terms of Service" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Refund Policy" })).toBeVisible();
+    await page.getByRole("checkbox").check();
+    await page.getByRole("button", { name: /Pay \$14\.99/i }).click();
+
+    // 4) 回到报告页：应渲染真实六章（不是 demo 文案）
+    await expect(page).toHaveURL(/\/report\?/, { timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "At a glance" })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByText("Attachment picture").first()).toBeVisible();
+    await expect(page.getByText("Communication health").first()).toBeVisible();
+    await expect(page.getByText(/Demo report/i)).toHaveCount(0);
+  });
 });
