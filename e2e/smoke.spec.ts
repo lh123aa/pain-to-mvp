@@ -14,6 +14,10 @@ test.describe("The Tell · mock happy path", () => {
 
   test("upload → preview → checkout → real report", async ({ page }) => {
     test.setTimeout(90_000);
+    const syncRequests: string[] = [];
+    page.on("request", (req) => {
+      if (/\/api\/(order-status|report)(\?|$)/.test(req.url())) syncRequests.push(req.url());
+    });
 
     // 1) 上传合成 WhatsApp 导出（Alex ↔ Sam）
     await page.goto("/analyze");
@@ -61,5 +65,30 @@ test.describe("The Tell · mock happy path", () => {
     });
     expect(storage.features).toBeNull();
     expect(storage.lastInput).toBeNull();
+
+    // mock 模式不允许触发跨设备同步（否则会把演示订单当真实订单处理）
+    expect(syncRequests).toEqual([]);
+  });
+
+  test("SEO pages and /sample render real content", async ({ page }) => {
+    await page.goto("/analyzer/whatsapp");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByText(/export/i).first()).toBeVisible();
+
+    await page.goto("/analyzer/imessage");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    await page.goto("/analyzer/attachment-style-test");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    await page.goto("/sample");
+    await expect(page.getByText(/synthetic/i).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /At a glance/i })).toBeVisible();
+    await expect(page.getByText(/Demo report/i)).toHaveCount(0);
+
+    // 站内入口：页脚必须能到达三个新页面
+    await expect(page.locator('.foot-links a[href="/analyzer/whatsapp"]')).toHaveCount(1);
+    await expect(page.locator('.foot-links a[href="/analyzer/imessage"]')).toHaveCount(1);
+    await expect(page.locator('.foot-links a[href="/analyzer/attachment-style-test"]')).toHaveCount(1);
   });
 });
