@@ -1,18 +1,24 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/content/seo/shared";
 
 /**
  * Sitemap · 只收录可公开索引的页面。
  * 不收录 /checkout、/report（交易与私有报告页）。
  *
- * 注意：域名仍是占位值（ADR-0007 已失效，待 G3 品牌/域名重拍）。
- * 域名拍板后应把 NEXT_PUBLIC_SITE_URL 设为正式域名，并同步
- * src/content/legal/shared.ts 的 SITE_URL（canonical 来源）。
+ * 域名仍是占位值（ADR-0007 已失效，待 G3 品牌/域名重拍）。canonical 与 sitemap
+ * 共用 `src/content/seo/shared.ts` 的 SITE_URL：部署时设置
+ * NEXT_PUBLIC_SITE_URL 即整体切换，不需要改页面。
+ *
+ * task-14 新增三条获客落地页（PRD FR-11 / P-10）：
+ *   /analyzer/whatsapp · /analyzer/imessage · /analyzer/attachment-style-test
+ * 连同已有的 /sample，四条获客资产全部进 sitemap。
  */
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://thetell.app").replace(/\/$/, "");
-
 const ROUTES: Array<{ path: string; priority: number; changeFrequency: "weekly" | "monthly" }> = [
   { path: "", priority: 1, changeFrequency: "weekly" },
   { path: "/analyze", priority: 0.9, changeFrequency: "weekly" },
+  { path: "/analyzer/whatsapp", priority: 0.8, changeFrequency: "weekly" },
+  { path: "/analyzer/imessage", priority: 0.8, changeFrequency: "weekly" },
+  { path: "/analyzer/attachment-style-test", priority: 0.8, changeFrequency: "weekly" },
   { path: "/sample", priority: 0.8, changeFrequency: "monthly" },
   { path: "/methodology", priority: 0.7, changeFrequency: "monthly" },
   { path: "/privacy", priority: 0.5, changeFrequency: "monthly" },
@@ -24,10 +30,10 @@ const ROUTES: Array<{ path: string; priority: number; changeFrequency: "weekly" 
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
-  return ROUTES.map((r) => ({
-    url: `${SITE_URL}${r.path}`,
+  return ROUTES.map((route) => ({
+    url: `${SITE_URL}${route.path}`,
     lastModified,
-    changeFrequency: r.changeFrequency,
-    priority: r.priority,
+    changeFrequency: route.changeFrequency,
+    priority: route.priority,
   }));
 }

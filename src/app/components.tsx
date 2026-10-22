@@ -107,6 +107,9 @@ export function Footer() {
             <a href="/notice">Notice for people in your chats</a>
             <a href="/crisis-protocol">Crisis resources</a>
             <a href="/methodology">Methodology</a>
+            <a href="/analyzer/whatsapp">WhatsApp analyzer</a>
+            <a href="/analyzer/imessage">iMessage analyzer</a>
+            <a href="/analyzer/attachment-style-test">Attachment style test</a>
             <a href="mailto:hello@thetell.app">hello@thetell.app</a>
           </nav>
         </div>
