@@ -1,4 +1,4 @@
-﻿import path from "node:path";
+import path from "node:path";
 import { test, expect } from "@playwright/test";
 
 /**
@@ -44,5 +44,22 @@ test.describe("The Tell · mock happy path", () => {
     await expect(page.getByText("Attachment picture").first()).toBeVisible();
     await expect(page.getByText("Communication health").first()).toBeVisible();
     await expect(page.getByText(/Demo report/i)).toHaveCount(0);
+
+    // 5) W3-1：mock 订单下退款/删除服务端动作禁用，仅本地删除可用
+    await expect(page.getByTestId("refund-button")).toBeDisabled();
+    await expect(page.getByTestId("delete-button")).toBeDisabled();
+    await expect(page.getByText("Only available for paid orders").first()).toBeVisible();
+
+    await page.getByTestId("delete-local-button").first().click();
+    await page.getByRole("button", { name: "Yes, delete" }).click();
+    await expect(page.getByText("This analysis has been removed from this browser.")).toBeVisible();
+
+    const storage = await page.evaluate(() => {
+      const read = (k: string) =>
+        window.sessionStorage.getItem(k) ?? window.localStorage.getItem(k);
+      return { features: read("tell:features:v1"), lastInput: read("tell:lastInput") };
+    });
+    expect(storage.features).toBeNull();
+    expect(storage.lastInput).toBeNull();
   });
 });
