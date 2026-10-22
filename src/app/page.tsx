@@ -135,10 +135,16 @@ export default function Home() {
               Open the chat → Tap the name → Export chat → <strong>Without media</strong> → Share
               the <code>.txt</code> file to your computer.
               <span className="acc-note">Only export chats you have the right to share.</span>
+              <span className="acc-note">
+                <a href="/analyzer/whatsapp">Step-by-step WhatsApp analyzer guide →</a>
+              </span>
             </AccItem>
             <AccItem id="imessage" title="How to export (iMessage)" comingSoon>
               iMessage support is in validation. WhatsApp and paste work today.
               <span className="acc-note">Only export chats you have the right to share.</span>
+              <span className="acc-note">
+                <a href="/analyzer/imessage">Read the iMessage beta guide →</a>
+              </span>
             </AccItem>
           </div>
         </div>
