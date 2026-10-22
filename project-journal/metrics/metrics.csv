@@ -34,3 +34,16 @@ date,metric,value,unit,source,confidence,note
 2026-10-19,tests_passed,272,,pytest 全量（index 卡片修复 + 回归测试）,high,预览发现列表页卡片内联布局 bug；新增 test_index_page 3 条
 2026-10-21,content_posts_published,3,count,爱发电/B站/知乎,high,内容引擎 Day1；三平台各 1 条微内容
 2026-10-21,content_interactions,0,count,三平台发布后初始,high,0 赞/0 评论/0 私信；爱发电主页访问 31 次/15 人
+2026-10-21,tests_passed,272,count,pytest -q 2026-10-21,high,
+2026-10-21,day1_interactions,0,count,B站/知乎/爱发电 15:17 巡检,high,三平台赞/评/私信均为 0
+2026-10-21,afdian_profile_visits,31,count,爱发电 dashboard 15:17,high,15 人
+2026-10-21,zhihu_answer_collapsed,1,count,知乎回答页 15:17,high,原因：可能包含 AI 创作内容；collapsedBy=community
+2026-10-21,bili_login_ok,0,bool,B站 nav API 16:10,high,评论尝试后登录态丢失
+2026-10-22,zhihu_answer_reads,12,count,知乎创作中心,high,仍折叠
+2026-10-22,zhihu_pin_views,3,count,知乎创作中心,high,0 赞/0 评论
+2026-10-22,afdian_profile_visits,32,count,爱发电 dashboard,high,16 人
+2026-10-22,content_interactions,0,count,三平台巡检,high,B站/知乎/爱发电均 0 评论
+2026-10-22,business_dms,0,count,知乎/爱发电私信,high,仅官方消息
+2026-10-22,bili_login_ok,0,bool,B站 nav API,high,isLogin:false
+2026-10-22,zhihu_answer_collapsed,1,count,知乎回答页,high,collapsedBy=community
+2026-10-22,afdian_profile_visitors,16,count,爱发电 dashboard,high,主页 32 次
