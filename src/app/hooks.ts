@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef } from "react";
+import { capture, sanitizeProperties } from "@/lib/posthog";
 
 /* 进场：200ms fade + 2px rise（规范 §0.2） */
 export function useRiseOnScroll() {
@@ -93,7 +94,7 @@ export function usePanel(open: boolean, close: () => void) {
   return { veil: setVeilRef, panel: setPanelRef };
 }
 
-/* 简易埋点占位（生产接 PostHog EU） */
+/* 埋点：先过 PII 白名单过滤，再交给 PostHog 最小上报器（无 key 时整条链路 no-op） */
 export function track(ev: string, props: Record<string, unknown> = {}) {
-  if (typeof window !== "undefined") console.log("[track]", ev, props);
+  capture(ev, sanitizeProperties(props));
 }

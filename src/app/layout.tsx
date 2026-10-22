@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Source_Sans_3, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import "./components.css";
+import { Analytics } from "./components/analytics";
 
 /* 字体：Source Sans 3（正文）+ IBM Plex Mono（眉标 / 数字 / 代码），与 landing-v0.html 一致 */
 const sourceSans = Source_Sans_3({
@@ -42,7 +43,10 @@ export default function RootLayout({
       lang="en"
       className={`${sourceSans.variable} ${plexMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
