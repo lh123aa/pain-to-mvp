@@ -24,6 +24,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { sendMagicLinkForOrder } from "@/lib/email";
+import { increment } from "@/lib/observability";
 import {
   getOrderStore,
   isLemonOrderEvent,
@@ -67,9 +68,11 @@ function verifySignature(
 }
 
 export async function POST(req: NextRequest) {
+  increment("webhook_received");
   const secret = getWebhookSecret();
   if (!secret) {
     // fail closed：没配 secret 时不接受任何 webhook（原先开发期放行的逻辑已移除）
+    increment("webhook_rejected");
     console.error("[webhook] LEMON_SQUEEZY_WEBHOOK_SECRET 未配置，拒绝处理");
     return NextResponse.json(
       { error: "webhook secret not configured" },
@@ -80,6 +83,7 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const signature = req.headers.get(SIGNATURE_HEADER) || "";
   if (!verifySignature(rawBody, signature, secret)) {
+    increment("webhook_rejected");
     return NextResponse.json({ error: "invalid signature" }, { status: 401 });
   }
 
@@ -87,6 +91,7 @@ export async function POST(req: NextRequest) {
   try {
     payload = JSON.parse(rawBody);
   } catch {
+    increment("webhook_rejected");
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
 
@@ -97,6 +102,7 @@ export async function POST(req: NextRequest) {
 
   if (!isLemonOrderEvent(parsed.eventName) || !parsed.order) {
     // 非订单事件 / 无订单 id：200 忽略，避免 LS 无限重试
+    increment("webhook_ignored");
     return NextResponse.json({
       ok: true,
       event: parsed.eventName,
@@ -105,6 +111,12 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await getOrderStore().upsert(parsed.order);
+  increment("order_upserted");
+  if (result.created) increment("order_created");
+  if (result.order.status === "completed") increment("order_completed");
+  else if (result.order.status === "refunded") increment("order_refunded");
+  else if (result.order.status === "canceled") increment("order_canceled");
+  else if (result.order.status === "deleted") increment("order_deleted");
 
   // 首次落库 + 订单已完成 → 发 magic link 邮件。
   // 幂等靠 upsert 的 created：LS 重试同一事件时 created=false，不会重复发信。
