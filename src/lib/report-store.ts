@@ -7,8 +7,9 @@
  *
  * 本模块包含：
  *   1. `ReportStore` 接口 + `InMemoryReportStore`（测试 / CI 默认）；
- *   2. 存储选择 `getReportStore()`：`REPORT_DATA_DIR` 有值 → FileReportStore（见
- *      report-store-file.ts），否则内存；
+ *   2. 存储选择 `getReportStore()`：`DATABASE_URL` 有值 → PgReportStore（见
+ *      report-store-pg.ts，懒加载 pg）；否则 `REPORT_DATA_DIR` 有值 → FileReportStore
+ *      （见 report-store-file.ts）；否则内存；
  *   3. report-upload HMAC token：`/api/order-status` 在订单 completed 时签发 24h
  *      `scope=report-upload` token，`POST /api/report` 用它证明「我有这个订单的
  *      上传权」；
@@ -17,9 +18,8 @@
  * 过期策略：保存后 90 天过期（每次幂等覆盖都刷新 expiresAt）；过期记录读取时按
  * 「不存在」处理并惰性删除。
  *
- * ⚠️ 与订单存储同理：file 模式只适合单实例/staging；serverless 生产需把
- *    ReportStore 换成 Postgres 实现（`reports` 表：order_id PK / data jsonb /
- *    created_at / saved_at / expires_at），接口不变。
+ * ⚠️ file 模式只适合单实例/staging；serverless 生产必须 `DATABASE_URL`（PgReportStore，
+ *    `reports` 表见 src/lib/sql/schema.sql）。
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -162,21 +162,53 @@ export class InMemoryReportStore implements ReportStore {
   }
 }
 
-/* ===== 存储选择（内存 / 文件 / 注入） ===== */
+/* ===== 存储选择（内存 / 文件 / Postgres / 注入） ===== */
 
-export type ReportStoreKind = "memory" | "file" | "injected";
+export type ReportStoreKind = "memory" | "file" | "postgres" | "injected";
 
 let activeStore: ReportStore | null = null;
 let activeStoreKind: ReportStoreKind | null = null;
 
 /**
+ * Postgres 分支懒代理：getReportStore() 保持同步；pg 实现只在 DATABASE_URL
+ * 存在时动态 import，首次调用方法时才加载模块/连接池。
+ */
+function createLazyPgReportStore(connectionString: string): ReportStore {
+  let instance: Promise<ReportStore> | null = null;
+  const resolveStore = (): Promise<ReportStore> => {
+    if (!instance) {
+      instance = import("./report-store-pg").then(
+        ({ PgReportStore }) => new PgReportStore({ connectionString })
+      );
+    }
+    return instance;
+  };
+
+  return {
+    get: async (orderId) => (await resolveStore()).get(orderId),
+    save: async (orderId, report, options) =>
+      (await resolveStore()).save(orderId, report, options),
+    deleteReport: async (orderId) => (await resolveStore()).deleteReport(orderId),
+    list: async () => (await resolveStore()).list(),
+    clear: async () => (await resolveStore()).clear(),
+  };
+}
+
+/**
  * 当前报告存储单例。
- *   - `REPORT_DATA_DIR` 非空 → FileReportStore(该目录)（单实例/staging）；
- *   - 否则 → InMemoryReportStore（测试 / CI 默认）。
- * 生产 serverless 需替换为 Postgres 实现（接口不变）。
+ *   1. `DATABASE_URL` 非空 → PgReportStore（生产 serverless，懒加载 pg）；
+ *   2. `REPORT_DATA_DIR` 非空 → FileReportStore(该目录)（单实例/staging）；
+ *   3. 否则 → InMemoryReportStore（测试 / CI 默认）。
  */
 export function getReportStore(): ReportStore {
   if (activeStore) return activeStore;
+
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+  if (databaseUrl) {
+    activeStore = createLazyPgReportStore(databaseUrl);
+    activeStoreKind = "postgres";
+    return activeStore;
+  }
 
   const dataDir = process.env.REPORT_DATA_DIR?.trim();
   if (dataDir) {

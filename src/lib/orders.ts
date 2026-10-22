@@ -2,20 +2,14 @@
  * 订单存储抽象 + 状态机（MVP → W3 持久化）
  * =========================================
  * 存储选择（见 getOrderStore）：
- *   - `ORDERS_DATA_DIR` 有值 → `FileOrderStore`（JSON 文件，原子写 + 进程内串行队列，
- *     跨重启保留；适合**单实例 / staging / 本地**）；
+ *   - `DATABASE_URL` 有值 → `PgOrderStore`（Postgres，生产 serverless；实现见
+ *     order-store-pg.ts，动态 import，无 DB 环境不会加载 pg）；优先级最高；
+ *   - `ORDERS_DATA_DIR` 有值 → `FileOrderStore`（JSON 文件，单实例/staging/本地）；
  *   - 未设置 → `InMemoryOrderStore`（进程内 Map；测试 / CI 默认，重启即失）。
  *
- * ⚠️ Vercel serverless / 多实例部署**不能**用文件存储（实例间不共享、文件系统临时）：
- *   需要 Postgres。Adapter 接口不变——实现同一个 `OrderStore` 的 `PgOrderStore`
- *   （`src/lib/order-store-pg.ts` 待接入），然后在 getOrderStore() 按 env 选择即可，
- *   路由 / 页面 / 测试都不用改。
- *
- * 接 DB 的入口（P4）：
- *   1. 新建 `src/lib/order-store-pg.ts`，实现 `OrderStore`
- *      （get / upsert / list / clear / refundOrder / deleteOrderAnalysis）；
- *   2. 在 `getOrderStore()` 里按 `process.env.DATABASE_URL` 选择实现；
- *   3. 路由 / 页面只依赖 `OrderStore` 接口，不用改。
+ * 接 DB：
+ *   1. 先跑 `node scripts/migrate.mjs` 建表（schema 见 src/lib/sql/schema.sql）；
+ *   2. 部署环境设置 `DATABASE_URL`，路由 / 页面代码不用改。
  *
  * 状态机（W2-2 退款/删除）：
  *   pending / completed → refunded → deleted     （refunded 是终态；deleted 是绝对终态）
@@ -353,25 +347,62 @@ export class InMemoryOrderStore implements OrderStore {
   }
 }
 
-/* ===== 存储选择（内存 / 文件 / 注入） ===== */
+/* ===== 存储选择（内存 / 文件 / Postgres / 注入） ===== */
 
-export type OrderStoreKind = "memory" | "file" | "injected";
+export type OrderStoreKind = "memory" | "file" | "postgres" | "injected";
 
 let activeStore: OrderStore | null = null;
 let activeStoreKind: OrderStoreKind | null = null;
 
 /**
+ * Postgres 分支用懒代理：`getOrderStore()` 必须保持同步，而 pg 实现只在
+ * DATABASE_URL 存在时才需要加载（动态 import，避免无 DB 环境打包/加载 pg）。
+ * 代理第一次真正调用方法时才加载模块并建连接池单例。
+ */
+function createLazyPgOrderStore(connectionString: string): OrderStore {
+  let instance: Promise<OrderStore> | null = null;
+  const resolveStore = (): Promise<OrderStore> => {
+    if (!instance) {
+      instance = import("./order-store-pg").then(
+        ({ PgOrderStore }) => new PgOrderStore({ connectionString })
+      );
+    }
+    return instance;
+  };
+
+  return {
+    get: async (orderId) => (await resolveStore()).get(orderId),
+    upsert: async (order) => (await resolveStore()).upsert(order),
+    list: async () => (await resolveStore()).list(),
+    clear: async () => (await resolveStore()).clear(),
+    refundOrder: async (orderId, at) =>
+      (await resolveStore()).refundOrder(orderId, at),
+    deleteOrderAnalysis: async (orderId, at) =>
+      (await resolveStore()).deleteOrderAnalysis(orderId, at),
+    findByClientRef: async (clientRef) => {
+      const store = await resolveStore();
+      return store.findByClientRef ? store.findByClientRef(clientRef) : null;
+    },
+  };
+}
+
+/**
  * 当前订单存储单例（路由统一从这里取）。
  *
- * 选择规则（首次调用时按 env 决定，之后复用单例）：
- *   - `ORDERS_DATA_DIR` 非空 → FileOrderStore(该目录)，JSON 持久化；
- *   - 否则 → InMemoryOrderStore（测试 / CI 默认，行为与 W2 完全一致）。
- *
- * ⚠️ file 模式适合单实例 / staging / 本地；Vercel serverless（多实例、临时文件系统）
- *    必须换 Postgres 实现（PgOrderStore，接口不变）。
+ * 选择优先级（首次调用时按 env 决定，之后复用单例）：
+ *   1. `DATABASE_URL` 非空 → PgOrderStore（生产 serverless；懒加载 pg）；
+ *   2. `ORDERS_DATA_DIR` 非空 → FileOrderStore(该目录)（单实例/staging/本地）；
+ *   3. 否则 → InMemoryOrderStore（测试 / CI 默认，行为与 W2 完全一致）。
  */
 export function getOrderStore(): OrderStore {
   if (activeStore) return activeStore;
+
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+  if (databaseUrl) {
+    activeStore = createLazyPgOrderStore(databaseUrl);
+    activeStoreKind = "postgres";
+    return activeStore;
+  }
 
   const dataDir = process.env.ORDERS_DATA_DIR?.trim();
   if (dataDir) {
@@ -392,7 +423,7 @@ export function setOrderStore(store: OrderStore): void {
 
 /**
  * 重置单例（仅测试用）：清空后，下一次 getOrderStore() 重新按 env 选择
- * （CI / 现有测试没有 ORDERS_DATA_DIR → 仍然拿到全新内存存储，兼容原有行为）。
+ * （CI / 现有测试没有 DATABASE_URL / ORDERS_DATA_DIR → 仍然拿到全新内存存储）。
  */
 export function resetOrderStore(): void {
   activeStore = null;
