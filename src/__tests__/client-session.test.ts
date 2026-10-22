@@ -273,7 +273,9 @@ describe("tell:lastInput", () => {
       messageCount: 42,
     };
     expect(saveLastInput(meta)).toBe(true);
-    expect(loadLastInput()).toEqual(meta);
+    // W6：lastInput 现在也带 expiresAt（2h TTL），核心字段仍原样往返。
+    expect(loadLastInput()).toMatchObject(meta);
+    expect(loadLastInput()?.expiresAt).toBeTypeOf("string");
   });
 
   it("坏 JSON 或缺字段返回 null", () => {

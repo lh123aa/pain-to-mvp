@@ -59,13 +59,23 @@ export interface ClientSession {
    * 因此必须是字符串、可被 `buildReportV2` 原样渲染（与 report-contract.ts 对齐）。
    */
   createdAt: string;
+  /**
+   * ISO 过期时间（createdAt + 2h，PRD §7 本地数据边界）。
+   * 旧版本记录没有该字段；读取时按 createdAt + TTL 兼容计算并清理。
+   */
+  expiresAt?: string;
 }
+
+/** 本地会话保留时长：PRD §7「localStorage 2h」。 */
+export const SESSION_TTL_MS = 2 * 60 * 60 * 1000;
 
 /** `tell:lastInput` 的值形状。 */
 export interface LastInputMeta {
   fileName: string;
   dateRangeLabel: string;
   messageCount: number;
+  /** 可选：与 features 同 TTL；旧记录缺失时按无过期处理。 */
+  expiresAt?: string;
 }
 
 export interface SessionSaveInput {
@@ -206,7 +216,11 @@ export function speakersFromConversation(conversation: Conversation): StoredSpea
   };
 }
 
-function buildSessionRecord(input: SessionSaveInput, createdAt: string): ClientSession {
+function buildSessionRecord(
+  input: SessionSaveInput,
+  createdAt: string,
+  expiresAt: string,
+): ClientSession {
   return {
     schemaVersion: SESSION_SCHEMA_VERSION,
     features: input.features,
@@ -214,6 +228,7 @@ function buildSessionRecord(input: SessionSaveInput, createdAt: string): ClientS
     speakers: input.speakers ?? speakersFromConversation(input.conversation),
     fileName: input.fileName,
     createdAt,
+    expiresAt,
   };
 }
 
@@ -319,7 +334,8 @@ function parseStoredLastInput(raw: string): LastInputMeta | null {
 /** 估算完整会话（未降级）的序列化体积，供上传页提前提示。序列化失败返回 0。 */
 export function estimateSessionBytes(input: SessionSaveInput): number {
   // 固定 ISO 时间戳占位（同样 24 字符），估算值与实际写入体积只差亚字节。
-  const json = stringify(buildSessionRecord(input, new Date(0).toISOString()));
+  const stamp = new Date(0).toISOString();
+  const json = stringify(buildSessionRecord(input, stamp, stamp));
   return json === null ? 0 : utf8Bytes(json);
 }
 
@@ -329,9 +345,15 @@ export function estimateSessionBytes(input: SessionSaveInput): number {
  * - sessionStorage 写失败（配额/禁用）→ 尝试 localStorage，必要时再降级；
  * - 永不抛异常；ok=false 时页面应展示"本地存储不可用"的人话错误态。
  */
-export function saveSession(input: SessionSaveInput): SaveSessionResult {
-  const createdAt = new Date().toISOString();
-  let record = buildSessionRecord(input, createdAt);
+export function saveSession(
+  input: SessionSaveInput,
+  options: { now?: Date; ttlMs?: number } = {},
+): SaveSessionResult {
+  const now = options.now ?? new Date();
+  const ttlMs = options.ttlMs ?? SESSION_TTL_MS;
+  const createdAt = now.toISOString();
+  const expiresAt = new Date(now.getTime() + ttlMs).toISOString();
+  let record = buildSessionRecord(input, createdAt, expiresAt);
   let json = stringify(record);
   if (json === null) {
     return { ok: false, degraded: false, bytes: 0, storage: null, reason: "serialization" };
@@ -377,9 +399,44 @@ export function saveSession(input: SessionSaveInput): SaveSessionResult {
   return { ok: true, degraded, bytes, storage: outcome.area };
 }
 
-/** 读取会话；版本不符 / 坏 JSON / Storage 不可用 → null。 */
-export function loadSession(): ClientSession | null {
-  return readParsed(FEATURES_STORAGE_KEY, parseStoredSession);
+/** 读取会话；版本不符 / 坏 JSON / Storage 不可用 / 过期 → null（过期会顺便清理）。 */
+export function loadSession(options: { now?: number } = {}): ClientSession | null {
+  const session = readParsed(FEATURES_STORAGE_KEY, parseStoredSession);
+  if (session === null) return null;
+  if (isSessionExpired(session, options.now ?? Date.now())) {
+    removeRaw(FEATURES_STORAGE_KEY);
+    return null;
+  }
+  return session;
+}
+
+/** 过期判定：优先 expiresAt；旧记录回落 createdAt + TTL。 */
+export function sessionExpiresAt(session: Pick<ClientSession, "createdAt" | "expiresAt">): number | null {
+  if (session.expiresAt) {
+    const parsed = Date.parse(session.expiresAt);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  const created = Date.parse(session.createdAt);
+  if (Number.isFinite(created)) return created + SESSION_TTL_MS;
+  return null;
+}
+
+function isSessionExpired(
+  session: Pick<ClientSession, "createdAt" | "expiresAt">,
+  now: number,
+): boolean {
+  const expiry = sessionExpiresAt(session);
+  return expiry !== null && now > expiry;
+}
+
+/** 主动清理已过期的本地会话（启动/测试可用）；返回是否清理了 features。 */
+export function purgeExpiredSessions(options: { now?: number } = {}): boolean {
+  const now = options.now ?? Date.now();
+  const session = readParsed(FEATURES_STORAGE_KEY, parseStoredSession);
+  if (session === null) return false;
+  if (!isSessionExpired(session, now)) return false;
+  removeRaw(FEATURES_STORAGE_KEY);
+  return true;
 }
 
 /** 清空本会话的所有本地数据（特征、lastInput、旧结账元数据）。 */
@@ -390,15 +447,32 @@ export function clearSession(): void {
 }
 
 /** 写上传元信息；失败返回 false（不阻塞主流程）。 */
-export function saveLastInput(input: LastInputMeta): boolean {
-  const json = stringify(input);
+export function saveLastInput(
+  input: LastInputMeta,
+  options: { now?: Date; ttlMs?: number } = {},
+): boolean {
+  const now = options.now ?? new Date();
+  const ttlMs = options.ttlMs ?? SESSION_TTL_MS;
+  const json = stringify({
+    ...input,
+    expiresAt: new Date(now.getTime() + ttlMs).toISOString(),
+  });
   if (json === null) return false;
   return writeRaw(LAST_INPUT_STORAGE_KEY, json).area !== null;
 }
 
-/** 读上传元信息；坏 JSON / 缺字段 → null。 */
-export function loadLastInput(): LastInputMeta | null {
-  return readParsed(LAST_INPUT_STORAGE_KEY, parseStoredLastInput);
+/** 读上传元信息；坏 JSON / 缺字段 / 过期 → null（过期会清理）。 */
+export function loadLastInput(options: { now?: number } = {}): LastInputMeta | null {
+  const value = readParsed(LAST_INPUT_STORAGE_KEY, parseStoredLastInput);
+  if (value === null) return null;
+  if (value.expiresAt) {
+    const expiry = Date.parse(value.expiresAt);
+    if (Number.isFinite(expiry) && (options.now ?? Date.now()) > expiry) {
+      removeRaw(LAST_INPUT_STORAGE_KEY);
+      return null;
+    }
+  }
+  return value;
 }
 
 /**

@@ -91,4 +91,58 @@ test.describe("The Tell · mock happy path", () => {
     await expect(page.locator('.foot-links a[href="/analyzer/imessage"]')).toHaveCount(1);
     await expect(page.locator('.foot-links a[href="/analyzer/attachment-style-test"]')).toHaveCount(1);
   });
+
+  test("privacy self-check: local parsing, no outbound chat data, 2h TTL", async ({ page }) => {
+    test.setTimeout(60_000);
+    const chatFragment = "Morning! Did you sleep okay?";
+    const outbound: Array<{ url: string; postData: string | null }> = [];
+    page.on("request", (request) => {
+      outbound.push({ url: request.url(), postData: request.postData() });
+    });
+
+    await page.goto("/analyze");
+    const fixture = path.join(__dirname, "..", "fixtures", "whatsapp", "android-24h-dmy.txt");
+    await page.locator('input[type="file"]').setInputFiles(fixture);
+    await page.locator("#spk-a").fill("Alex");
+    await page.locator("#spk-b").fill("Sam");
+    await page.getByRole("button", { name: /Continue to free preview/i }).click();
+    await expect(page).toHaveURL(/\/report\/preview/, { timeout: 30_000 });
+
+    // 1) 解析期间没有聊天原文出现在任何请求（URL 或 body）。
+    const leaked = outbound.filter((entry) => {
+      if (entry.url.includes(encodeURIComponent(chatFragment))) return true;
+      if (entry.postData?.includes(chatFragment)) return true;
+      return false;
+    });
+    expect(leaked).toEqual([]);
+
+    // 2) 没有发往非同源 host 的请求（忽略 localhost 端口差异）。
+    const foreign = outbound.filter((entry) => {
+      const host = new URL(entry.url).hostname;
+      return host !== "localhost" && host !== "127.0.0.1";
+    });
+    expect(foreign).toEqual([]);
+
+    // 3) mock 流程不触发叙事/跨设备接口。
+    expect(outbound.some((entry) => entry.url.includes("/api/narrative"))).toBe(false);
+    expect(outbound.some((entry) => entry.url.includes("/api/report"))).toBe(false);
+
+    // 4) 本地特征带 2h 过期时间。
+    const expiry = await page.evaluate(() => {
+      const raw =
+        window.sessionStorage.getItem("tell:features:v1") ??
+        window.localStorage.getItem("tell:features:v1");
+      if (!raw) return null;
+      try {
+        const parsed = JSON.parse(raw) as { expiresAt?: string; createdAt?: string };
+        return { expiresAt: parsed.expiresAt, createdAt: parsed.createdAt };
+      } catch {
+        return null;
+      }
+    });
+    expect(typeof expiry?.expiresAt).toBe("string");
+    if (expiry?.expiresAt) {
+      expect(Date.parse(expiry.expiresAt)).toBeGreaterThan(Date.now());
+    }
+  });
 });
