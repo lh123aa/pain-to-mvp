@@ -9,15 +9,15 @@
   "success_line": "累计20条抽检记录、top3推荐命中率≥70%",
   "stop_loss": "连续2周无阶段推进即暂停并复盘去留",
   "counters": {
-    "decision": 3,
-    "risk": 1,
+    "decision": 4,
+    "risk": 2,
     "milestone": 7,
     "solution": 3,
     "insight": 2,
-    "problem": 2
+    "problem": 3
   },
-  "last_entry": "2026-10-22",
-  "last_touch": "2026-10-22T22:28:04",
+  "last_entry": "2026-10-23",
+  "last_touch": "2026-10-23T15:18:06",
   "stage_history": [
     {
       "date": "2026-10-15",

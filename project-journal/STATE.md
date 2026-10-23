@@ -1,6 +1,6 @@
 # STATE . pain-to-mvp 痛点→MVP机会发现管线
 
-> 由 journal.py 自动生成（2026-10-22T22:34:27），**手工修改会被下次刷新覆盖**。
+> 由 journal.py 自动生成（2026-10-23T15:25:24），**手工修改会被下次刷新覆盖**。
 > 记录根目录：G:/程序/pain-to-mvp/project-journal
 > 契约 PROTOCOL.md . 目录 INDEX.md . 宪章 CHARTER.md . 待办 NEXT-ACTIONS.md
 
@@ -10,10 +10,10 @@
 |---|---|
 | 阶段 | **S2 构建** |
 | 阶段轨迹 | S2(2026-10-15) |
-| 起始 | 2026-10-15（第 8 天） |
-| 最后记录 | 2026-10-22（今天） |
+| 起始 | 2026-10-15（第 9 天） |
+| 最后记录 | 2026-10-23（今天） |
 | 终局 | 进行中 |
-| 条目总量 | 日记 116 条 . 档案 18 份 . 指标 57 行 . 收支 0 行 |
+| 条目总量 | 日记 126 条 . 档案 21 份 . 指标 63 行 . 收支 0 行 |
 
 > 成功线 / 止损线见 CHARTER.md -- **成败以此为准，不以感觉为准**。
 
@@ -28,45 +28,48 @@
 | a4_post_fix_passes | 2 |  | 2026-10-16 | e2e_test | high |
 | a4_runs_current_code | 3 |  | 2026-10-16 | e2e_test | high |
 | clonerepo_tests_passed | 238 | count | 2026-10-19 | 外机克隆 PYTHONUTF8=1 pytest 全量 | high |
-| content_posts_published | 3 | count | 2026-10-21 | 爱发电/B站/知乎 | high |
+| content_posts_published | 9 | count | 2026-10-23 | PUBLISHED.md 台账 | high |
 | content_interactions | 0 | count | 2026-10-22 | 三平台巡检 22:25 | high |
 | day1_interactions | 0 | count | 2026-10-21 | B站/知乎/爱发电 15:17 巡检 | high |
-| afdian_profile_visits | 32 | count | 2026-10-22 | 爱发电 dashboard | high |
+| afdian_profile_visits | 34 | count | 2026-10-23 | 爱发电 dashboard 10-23 | high |
 | zhihu_answer_collapsed | 1 | count | 2026-10-22 | 知乎回答页 | high |
 | bili_login_ok | 1 | bool | 2026-10-22 | B站 nav API | high |
 | zhihu_answer_reads | 12 | count | 2026-10-22 | 知乎创作中心 | high |
 | zhihu_pin_views | 4 | count | 2026-10-22 | 知乎创作中心 22:25 | high |
-| business_dms | 0 | count | 2026-10-22 | 知乎/爱发电私信 22:25 | high |
-| afdian_profile_visitors | 16 | count | 2026-10-22 | 爱发电 dashboard | high |
+| business_dms | 0 | count | 2026-10-23 | B站/知乎/爱发电 10-23 巡检 | high |
+| afdian_profile_visitors | 18 | count | 2026-10-23 | 爱发电 dashboard 10-23 | high |
 | bili_comments_posted | 3 | count | 2026-10-22 | B站 x/v2/reply/main 复查 | high |
 | zhihu_article_published | 1 | count | 2026-10-22 | 知乎创作中心 | high |
-| zhihu_article_reads | 1 | count | 2026-10-22 | 知乎创作中心 22:25 | high |
+| zhihu_article_reads | 3 | count | 2026-10-23 | 知乎创作中心 10-23 | high |
 | v2ex_reachable | 0 | bool | 2026-10-22 | 浏览器导航两次 | high |
 | content_posts_total | 8 | count | 2026-10-22 | PUBLISHED.md 台账 | high |
+| bili_comments_total | 5 | count | 2026-10-23 | B站 API 复查 | high |
 
 - _尚无收支记录。_
 
-## 未闭环问题（2）
+## 未闭环问题（3）
 
 - PB-0001 v_voucher 二次拦截（10-17 10:00 直播没人看轮）：fail-close 生产实证 EXIT=1（2026-10-17 . open）
 - PB-0002 V2EX 网络层超时：今日不作为分发渠道（2026-10-22 . open）
+- PB-0003 B站评论区组件 A/B 变体卡死：UI 无法评论，改用官方 reply/add 接口（2026-10-23 . open）
 
-## 开放风险（1）
+## 开放风险（2）
 
 - RK-0001 #27 apply_fixes canonical 覆盖工作区：改4文件必先同步 generators/fixes
+- RK-0002 10-23 观察：昨评 1 赞 0 回复；文章 3 阅读；V2EX refused
 
 ## 最近条目
 
-- 2026-10-22 22:28 [M] content_posts_total = 8 count
-- 2026-10-22 22:28 [M] v2ex_reachable = 0 bool
-- 2026-10-22 22:28 [M] business_dms = 0 count
-- 2026-10-22 22:28 [M] content_interactions = 0 count
-- 2026-10-22 22:28 [M] zhihu_pin_views = 4 count
-- 2026-10-22 22:28 [M] zhihu_article_reads = 1 count
-- 2026-10-22 22:28 [M] zhihu_article_published = 1 count
-- 2026-10-22 22:28 [M] bili_comments_posted = 3 count
-- 2026-10-22 22:28 [M] bili_login_ok = 1 bool
-- 2026-10-22 22:27 [P] V2EX 网络层超时：今日不作为分发渠道  PB-0002
+- 2026-10-23 15:18 [M] bili_comments_total = 5 count
+- 2026-10-23 15:18 [M] business_dms = 0 count
+- 2026-10-23 15:18 [M] afdian_profile_visitors = 18 count
+- 2026-10-23 15:18 [M] afdian_profile_visits = 34 count
+- 2026-10-23 15:18 [M] zhihu_article_reads = 3 count
+- 2026-10-23 15:18 [M] content_posts_published = 9 count
+- 2026-10-23 15:18 [R] 10-23 观察：昨评 1 赞 0 回复；文章 3 阅读；V2EX refused  RK-0002
+- 2026-10-23 15:18 [D] 10-23 分发节奏：2 条评论 + 爱发电微内容；不追加第 3 条  ADR-0004
+- 2026-10-23 15:18 [P] B站评论区组件 A/B 变体卡死：UI 无法评论，改用官方 reply/add 接口  PB-0003
+- 2026-10-23 15:18 [T] 10-23 巡检 + 每日分发：2 条 B站评论 + 1 条爱发电微内容
 
 ## 下一步（来自 NEXT-ACTIONS.md）
 
@@ -80,8 +83,8 @@
 - A4 高频补跑受 v_voucher 风控约束（**10-17 两次拦截 + 10-18 13:23 跨天重试 + 10-18 15:06 扫码后重试仍拦截**（fail-close 生产实证 5 次从未假成功）；**10-18 15:06 认知修正：v_voucher 是 IP 级风控，非 cookie 级**——扫码配 BILI_SESSDATA（已做，长度 222，nav 接口验证 login:True）过不了被标记 IP 的评论 API，真正出路 = 换 IP（等自然冷却 / 换网络出口），非换 cookie；**明晨 10-19 上午**（距 10-17 13:44 >46h）再试，期间不碰 discover（每次尝试都消耗风控额度延长冷却）；.env SESSDATA 保留，IP 解锁后立即生效不用重扫
 - #19 CI 验证：**已推送 GitHub**（2026-10-16，lh123aa/pain-to-mvp，远端 master=f9c0ac8）——待 Actions 首跑绿勾销账：https://github.com/lh123aa/pain-to-mvp/actions
 - A6 卡片驱动实际动作：只能由用户执行（候选：20261016-001 S 档 112 条证据卡）
-- **发布后 24h 跟踪（B站/知乎）**：只回评论不追发；记录阅读/赞同/评论/私信；7 天 0 反馈 → 阶段 2 止损换渠道（截止 10-26）；**10-21 03:20 巡检：两平台均 0 评论/0 赞，无私信线索**；**10-21 07:40 Day1 三平台微内容已发，初始 0 互动（见 `content.csv`）**；**10-21 15:17 巡检：B站专栏 3 浏览、动态 0 互动；知乎想法 2 浏览/0 互动；知乎回答被折叠（AI 创作内容/community）；爱发电 31 次/15 人、0 评论/0 私信**；**10-21 16:10 B站登录态丢失（`isLogin:false`），评论未发出，暂停 B站自动化**；**10-22 晚：B站登录恢复 + 3 条评论已发（rpid 317850582929 / 317851534737 / 317851753137）；知乎文章《173 条评论…》已发（1 阅读/0 互动）；知乎回答仍折叠 12 阅读；爱发电 32/16；业务私信 0**
-- **新增分发动作（每日 30 分钟）**：在 2–3 个目标人群聚集的 B站视频/知乎问题下留 1 条真实、具体、无链接的补充评论；只回真实问题，不刷量。**10-22 已完成 3 条（B站）；10-23 继续 2–3 条**
-- **V2EX / 小红书 / 即刻（待用户登录）**：**10-22 复测 V2EX 网络层超时（www.v2ex.com / v2ex.com 均 ERR_CONNECTION_TIMED_OUT），稍后再试**；小红书/即刻需用户扫码登录；未登录前不占排期
-- **爱发电发布（2026-10-19 路线 A 已执行）**：2 条公开动态已发（[p/0dfe0652…](https://afdian.com/p/0dfe0652cbd211f1b40252540025c377) / [p/372960d0…](https://afdian.com/p/372960d0cbd211f18e3a52540025c377)）；P1 联系方式已回填；**创作者认证已提交（2026-10-20，审核中 2 工作日）**；**待用户：绑手机（当前受阻，提现前处理）**；**待 G0 复盘后：按 `docs/afdian-launch-kit.md` §2 上架 4 个 SKU**
+- **发布后 24h 跟踪（B站/知乎）**：只回评论不追发；记录阅读/赞同/评论/私信；7 天 0 反馈 → 阶段 2 止损换渠道（截止 10-26）；**10-21 03:20 巡检：两平台均 0 评论/0 赞，无私信线索**；**10-21 07:40 Day1 三平台微内容已发，初始 0 互动（见 `content.csv`）**；**10-21 15:17 巡检：B站专栏 3 浏览、动态 0 互动；知乎想法 2 浏览/0 互动；知乎回答被折叠（AI 创作内容/community）；爱发电 31 次/15 人、0 评论/0 私信**；**10-21 16:10 B站登录态丢失（`isLogin:false`），评论未发出，暂停 B站自动化**；**10-22 晚：B站登录恢复 + 3 条评论已发（rpid 317850582929 / 317851534737 / 317851753137）；知乎文章《173 条评论…》已发（1 阅读/0 互动）；知乎回答仍折叠 12 阅读；爱发电 32/16；业务私信 0**；**10-23 14:20：B站登录正常、昨日 3 条评论仍在（1 赞/0 回复）、无违规通知；知乎文章 3 阅读/0 互动/未折叠；爱发电 34/18、收入 ¥0、认证仍超期；V2EX ERR_CONNECTION_REFUSED；业务私信 0**
+- **新增分发动作（每日 30 分钟）**：在 2–3 个目标人群聚集的 B站视频/知乎问题下留 1 条真实、具体、无链接的补充评论；只回真实问题，不刷量。**10-22 已完成 3 条（B站）；10-23 已完成 2 条（B站，官方接口兜底）；10-24 继续 2–3 条（含顺延 BV1Nvp46CE2U）**
+- **V2EX / 小红书 / 即刻（待用户登录）**：**10-22 V2EX `ERR_CONNECTION_TIMED_OUT`；10-23 复测变为 `ERR_CONNECTION_REFUSED`，仍不可达**；小红书/即刻需用户扫码登录；未登录前不占排期
+- **爱发电发布（2026-10-19 路线 A 已执行）**：2 条公开动态已发（[p/0dfe0652…](https://afdian.com/p/0dfe0652cbd211f1b40252540025c377) / [p/372960d0…](https://afdian.com/p/372960d0cbd211f18e3a52540025c377)）；10-21 Day1 + 10-23《5 个问题…》已发；P1 联系方式已回填；**创作者认证已提交（2026-10-20，审核中 2 工作日，10-23 已超期仍待处理）**；**待用户：绑手机（当前受阻，提现前处理）**；**待 G0 复盘后：按 `docs/afdian-launch-kit.md` §2 上架 4 个 SKU**
 - **变现路径裁决（2026-10-19 两份评估已出）**：读 `docs/MONETIZATION-5Q-ASSESSMENT.md`（五问·价值真相，加权 5.7/10）与 `docs/WEB-MONETIZATION-ASSESSMENT.md`（网页路线）——建议 G1 = 报告站 + 服务单先行（网页不做在线跑批）；在「服务优先 / 报告站 / 工具授权 / 维持 MONETIZATION-EXECUTION 原序」中拍板；定价基线已出：`docs/PRICING-VALIDATION.md`（10-19）

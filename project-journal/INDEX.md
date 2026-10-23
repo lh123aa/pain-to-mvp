@@ -1,22 +1,24 @@
 # INDEX . pain-to-mvp 痛点→MVP机会发现管线
 
-> 由 journal.py 自动生成（2026-10-22T22:34:27）。按类型/时间检索本项目全部记录。
+> 由 journal.py 自动生成（2026-10-23T15:25:24）。按类型/时间检索本项目全部记录。
 
 - 阶段：S2 构建 . 终局：进行中
-- 日记 116 条 . 档案 18 份
+- 日记 126 条 . 档案 21 份
 
 ## 档案
 
-### 决策 decision（3）
+### 决策 decision（4）
 
 - **ADR-0001** [#21 方向A收窄版：补证据驱动维度（竞争=对比+失望、AI杠杆=形态词表），触达留空](records/decisions/ADR-0001-21-a-ai.md) -- 2026-10-15 . accepted
 - **ADR-0002** [P0 域校验选纯词表规则 + 阈值0.3→0.5（真实数据证伪后收紧）](records/decisions/ADR-0002-p0-0-3-0-5.md) -- 2026-10-15 . accepted
 - **ADR-0003** [工作约定：每阶段完成必须展示全局进度看板](records/decisions/ADR-0003-record.md) -- 2026-10-15 . accepted
+- **ADR-0004** [10-23 分发节奏：2 条评论 + 爱发电微内容；不追加第 3 条](records/decisions/ADR-0004-10-23-2-3.md) -- 2026-10-23 . accepted
 
-### 问题 problem（2）
+### 问题 problem（3）
 
 - **PB-0001** [v_voucher 二次拦截（10-17 10:00 直播没人看轮）：fail-close 生产实证 EXIT=1](records/problems/PB-0001-v-voucher-10-17-10-00-fail-close-exit-1.md) -- 2026-10-17 . open
 - **PB-0002** [V2EX 网络层超时：今日不作为分发渠道](records/problems/PB-0002-v2ex.md) -- 2026-10-22 . open
+- **PB-0003** [B站评论区组件 A/B 变体卡死：UI 无法评论，改用官方 reply/add 接口](records/problems/PB-0003-b-a-b-ui-reply-add.md) -- 2026-10-23 . open
 
 ### 解法 solution（3）
 
@@ -29,9 +31,10 @@
 - **IN-0001** [首次真实使用：聊天女主播 0 卡——品类型关键词评论区无痛点，求助型才有密度](records/insights/IN-0001-record.md) -- 2026-10-17 . done
 - **IN-0002** [v_voucher 冷却 3h44m 仍拦：今日 0/2 停手，下次跨天（修正 10-16 乐观样本外推）](records/insights/IN-0002-v-voucher-3h44m-0-2-10-16.md) -- 2026-10-17 . done
 
-### 风险 risk（1）
+### 风险 risk（2）
 
 - **RK-0001** [#27 apply_fixes canonical 覆盖工作区：改4文件必先同步 generators/fixes](records/risks/RK-0001-27-apply-fixes-canonical-4-generators-fi.md) -- 2026-10-15 . open
+- **RK-0002** [10-23 观察：昨评 1 赞 0 回复；文章 3 阅读；V2EX refused](records/risks/RK-0002-10-23-1-0-3-v2ex-refused.md) -- 2026-10-23 . open
 
 ### 里程碑 milestone（7）
 
@@ -45,6 +48,7 @@
 
 ## 日记
 
+- [2026-10-23](journal/2026-10-23.md) -- 10 条：T1 P1 D1 R1 M6
 - [2026-10-22](journal/2026-10-22.md) -- 23 条：T5 M17 P1
 - [2026-10-21](journal/2026-10-21.md) -- 10 条：T5 M5
 - [2026-10-20](journal/2026-10-20.md) -- 8 条：D5 T1 B1 M1

@@ -1,5 +1,8 @@
 date,platform,format,angle,title,url,views,likes,saves,comments,dms,leads,orders,notes
-2026-10-22,知乎,文章长文,数据拆解/争议,"173 条评论：51% 在求助，只有 9% 提钱，说明什么？",https://zhuanlan.zhihu.com/p/2096715183209166037,1,0,0,0,0,0,0,"21:53 发布；AI 声明+话题；零链接零价格零 CTA；22:25 创作中心 1 阅读/0 互动"
+2026-10-23,爱发电,动态,方法/清单,"5 个问题，判断一个需求是不是伪需求",https://afdian.com/p/6ccce194ceb111f1986b5254001e7c00,,0,,0,0,0,0,"14:29 发布；所有人可见；零链接零价格零 CTA；发布后 0 评论"
+2026-10-23,B站,评论,数据补充/提问,"BV1xYt265Ewb《找需求的3种方式 - 怎么判断值不值得做》",https://www.bilibili.com/video/BV1xYt265Ewb/#reply317907625969,,0,,0,0,0,0,"rpid 317907625969；14:52 发布（UI A/B 故障，官方 reply/add 接口兜底）；无链接无价格无品牌；API 复查 found=true/state=0/invisible=false"
+2026-10-23,B站,评论,作者提问,"BV12Kn16tERw《独立开发｜靠一块钱的小工具验证付费》",https://www.bilibili.com/video/BV12Kn16tERw/#reply317907640897,,0,,0,0,0,0,"rpid 317907640897；14:56 发布（同上）；无链接无价格无品牌；API 复查 found=true/state=0/invisible=false"
+2026-10-22,知乎,文章长文,数据拆解/争议,"173 条评论：51% 在求助，只有 9% 提钱，说明什么？",https://zhuanlan.zhihu.com/p/2096715183209166037,3,0,0,0,0,0,0,"21:53 发布；AI 声明+话题；零链接零价格零 CTA；22:25 1 阅读；10-23 巡检 3 阅读/0 互动/未折叠"
 2026-10-22,B站,评论,数据补充/提问,"BV1RT2FB6EXY《分享一个挖掘用户需求的方法》",https://www.bilibili.com/video/BV1RT2FB6EXY/#reply317850582929,,0,,0,0,0,0,"rpid 317850582929；22:04 发布；无链接无价格无品牌；API 复查存在"
 2026-10-22,B站,评论,选品追问,"BV1NqWc6gEPh《97年小伙靠AI网站月入10万》",https://www.bilibili.com/video/BV1NqWc6gEPh/#reply317851534737,,0,,0,0,0,0,"rpid 317851534737；22:14 发布；无链接无价格无品牌；API 复查存在"
 2026-10-22,B站,评论,作者提问,"BV1fmJ96BEo7《AI时代，独立开发者只剩4条护城河》",https://www.bilibili.com/video/BV1fmJ96BEo7/#reply317851753137,,0,,0,0,0,0,"rpid 317851753137；22:17 发布；无链接无价格无品牌；API 复查存在"

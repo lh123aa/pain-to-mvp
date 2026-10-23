@@ -56,3 +56,9 @@ date,metric,value,unit,source,confidence,note
 2026-10-22,business_dms,0,count,知乎/爱发电私信 22:25,high,仅官方/无业务
 2026-10-22,v2ex_reachable,0,bool,浏览器导航两次,high,ERR_CONNECTION_TIMED_OUT
 2026-10-22,content_posts_total,8,count,PUBLISHED.md 台账,high,爱发电 3 + B站 2 + 知乎 3
+2026-10-23,content_posts_published,9,count,PUBLISHED.md 台账,high,爱发电 4 + B站 2 + 知乎 3
+2026-10-23,zhihu_article_reads,3,count,知乎创作中心 10-23,high,10-22 晚 1
+2026-10-23,afdian_profile_visits,34,count,爱发电 dashboard 10-23,high,18 人
+2026-10-23,afdian_profile_visitors,18,count,爱发电 dashboard 10-23,high,主页 34 次
+2026-10-23,business_dms,0,count,B站/知乎/爱发电 10-23 巡检,high,仅官方消息
+2026-10-23,bili_comments_total,5,count,B站 API 复查,high,10-22 三条 + 10-23 两条
